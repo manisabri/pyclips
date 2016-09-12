@@ -1699,9 +1699,9 @@ BOOL i_py2do_mfhelp_e(void *env, PyObject *p, void *mfptr, int fieldpos) {
     case STRING:
     case SYMBOL:
     case INSTANCE_NAME:
-        if(!PyBytes_Check(value))
+        if(!PyUnicode_Check(value))
             goto fail;
-        s = PyBytes_AsString(value);
+        s = PyUnicode_AsUTF8(value);
         do_value = EnvAddSymbol(env, s);
         break;
     case INSTANCE_ADDRESS:
@@ -1759,9 +1759,9 @@ BOOL i_py2do_e(void *env, PyObject *p, DATA_OBJECT *o) {
     case STRING:
     case SYMBOL:
     case INSTANCE_NAME:
-        if(!PyBytes_Check(value))
+        if(!PyUnicode_Check(value))
             goto fail;
-        s = PyBytes_AsString(value);
+        s = PyUnicode_AsUTF8(value);
         do_value = EnvAddSymbol(env, s);
         break;
     case MULTIFIELD:

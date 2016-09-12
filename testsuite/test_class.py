@@ -255,6 +255,7 @@ class ctc_Class(ctestcase):
                 (slot ts1 (type SYMBOL))
                 (multislot ts2)
             """)
+
             self.assertTrue(c.Deletable)
             s1 = clips.Symbol(e.Eval("(gensym*)"))
             s2 = clips.Symbol(e.Eval("(gensym*)"))
@@ -271,6 +272,7 @@ class ctc_Class(ctestcase):
             self.assertEqual(len(list(i.Slots.keys())), 2)
             d1.append(i.PPForm())
         self.assertEqual(d1[0], d1[-1])
+
 
     def ctf_Instance_02(self):
         """Testing: FindInstance, Instance.Class, Instance.Name"""

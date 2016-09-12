@@ -47,7 +47,7 @@ PYCLIPS_VERSION = "%s.%s.%s.%s" % (
 
 from glob import glob
 import os, sys, re, tempfile
-
+from subprocess import Popen, PIPE
 
 # remove unwanted patch sets from this list (not recommended)
 APPLY_PATCHSETS = [
@@ -290,7 +290,7 @@ import os as  _os
 import types as _types
 
 # the low-level module
-import _clips as _c
+import clips._clips as _c
 
 
 # ========================================================================== #
@@ -333,7 +333,7 @@ CONSERVATION_MODE = _c.CONSERVATION_MODE
 
 
 # import adequate symbols from _clips_wrap
-from _clips_wrap import Nil, Integer, Float, String, Symbol, InstanceName, \\
+from ._clips_wrap import Nil, Integer, Float, String, Symbol, InstanceName, \\
                         Multifield, _cl2py, _py2cl, _py2clsyntax, \\
                         ClipsIntegerType, ClipsFloatType, ClipsStringType, \\
                         ClipsSymbolType, ClipsInstanceNameType, \\
@@ -842,9 +842,10 @@ else:
 if uses_gcc:
     CFLAGS.append('-fno-strict-aliasing')
 
+p = Popen("patch --version",  shell=True, bufsize=None,
+          stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=True)
+i, o, e = p.stdin, p.stdout, p.stderr
 
-# apply "optional" patches
-i, o, e = os.popen3("patch --version")
 vs = o.read()
 o.close()
 e.close()

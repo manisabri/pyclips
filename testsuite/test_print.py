@@ -1,6 +1,7 @@
 # test_print.py
 
-import sys, re, io
+import sys, re
+from io import StringIO
 
 """revision $Id: test_print.py 247 2005-02-23 00:28:47Z Franz $
 TESTS:
@@ -37,7 +38,7 @@ Class
 
 def i_returnOutput(func, args=None, kwargs=None):
     """execute a function while redirecting stdout"""
-    io = io.StringIO()
+    io = StringIO()
     save_stdout = sys.stdout
     sys.stdout = io
     try:
