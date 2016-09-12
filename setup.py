@@ -26,8 +26,8 @@ A Python module to interface the CLIPS expert system shell library."""
 
 
 __revision__ = "$Id: setup.py 373 2009-03-13 01:38:17Z franz $"
-print "Module 'clips': Python to CLIPS interface"
-print "Setup revision: %s" % __revision__
+print("Module 'clips': Python to CLIPS interface")
+print("Setup revision: %s" % __revision__)
 
 
 # the following values generate the version number and some of them
@@ -474,7 +474,7 @@ def _i_read_module(f):
 def _i_convert_classinstantiation_c(s):
     if s.split()[0] == 'class':
         return s
-    for x in ALL_CLASSES.keys():
+    for x in list(ALL_CLASSES.keys()):
         s = s.replace(" %s(" % x, " self.__envobject.%s(" % x)
         s = s.replace("(%s(" % x, "(self.__envobject.%s(" % x)
     return s
@@ -482,7 +482,7 @@ def _i_convert_classinstantiation_c(s):
 def _i_convert_classinstantiation(s):
     if s.split()[0] == 'class':
         return s
-    for x in ALL_CLASSES.keys():
+    for x in list(ALL_CLASSES.keys()):
         s = s.replace(" %s(" % x, " self.%s(" % x)
         s = s.replace("(%s(" % x, "(self.%s(" % x)
     return s
@@ -520,7 +520,7 @@ def _i_convert_line(s, cvtdef=False):
                 s1 = def_re.sub(mo.group(0) + "self", s1)
             else:
                 s1 = def_re.sub(mo.group(0) + "self, ", s1)
-        for x in ALL_CLASSES.keys():
+        for x in list(ALL_CLASSES.keys()):
             s1 = s1.replace(" %s(" % x, " self.%s(" % x)
             s1 = s1.replace(" %s:" % x, " self.%s:" % x)
             s1 = s1.replace("(%s(" % x, "(self.%s(" % x)
@@ -565,17 +565,17 @@ def _i_convert_fullclass(name, li):
     head4 = INDENT + INDENT + INDENT + "__env = private_environment\n"
     head5 = INDENT + INDENT + INDENT + "__envobject = environment_object\n"
     foot1 = INDENT + INDENT + "return %s\n"  % name
-    return [head1, head2, head3] + map(_i_convert_classline, docs) \
-       + [head4, head5] + map(_i_convert_classline, li1) + [foot1]
+    return [head1, head2, head3] + list(map(_i_convert_classline, docs)) \
+       + [head4, head5] + list(map(_i_convert_classline, li1)) + [foot1]
 
 # convert an entire function, provided as a list of lines
 def _i_convert_fullfunction(name, li):
-    return map(lambda x: _i_convert_line(x, True), li)
+    return [_i_convert_line(x, True) for x in li]
 
 # create the list of lines that build inner classes in Environment.__init__
 def _i_create_inner_classes():
     inner = []
-    kclasses = ALL_CLASSES.keys()
+    kclasses = list(ALL_CLASSES.keys())
     kclasses.sort()
     for x in kclasses:
         inner.append(
@@ -589,13 +589,13 @@ def convert_module(filename):
     _i_read_module(f)
     f.close()
     classes = []
-    kclasses = ALL_CLASSES.keys()
+    kclasses = list(ALL_CLASSES.keys())
     kclasses.sort()
     for x in kclasses:
         classes += _i_convert_fullclass(x, ALL_CLASSES[x])
     initclasses = _i_create_inner_classes()
     functions = []
-    kfunctions = ALL_FUNCTIONS.keys()
+    kfunctions = list(ALL_FUNCTIONS.keys())
     kfunctions.sort()
     for x in kfunctions:
         functions += _i_convert_fullfunction(x, ALL_FUNCTIONS[x])
@@ -659,34 +659,34 @@ def normalize_eols(t):
     tf.seek(0)
     li = tf.readlines()
     tf.close()
-    li = map(lambda x: x.rstrip(), li)
-    li = map(_remove_badchars, li)
+    li = [x.rstrip() for x in li]
+    li = list(map(_remove_badchars, li))
     return li
 
 
 if not os.path.exists(ClipsLIB_dir):
     if not os.path.exists(ClipsSrcZIP):
         # try to download file from official site
-        import urllib
-        print "CLIPS source archive (%s) not found, " \
-              "trying to download it for you..." % ClipsSrcZIP
+        import urllib.request, urllib.parse, urllib.error
+        print("CLIPS source archive (%s) not found, " \
+              "trying to download it for you..." % ClipsSrcZIP)
         try:
-            f = urllib.urlopen(CLIPS_SRC_URL)
+            f = urllib.request.urlopen(CLIPS_SRC_URL)
             s = f.read()
             if not s:
                 raise   # anyway we'll answer that the source wasn't found
             f = open(ClipsSrcZIP, 'wb')
             f.write(s)
             f.close()
-            print "Download successful, continuing build."
-            print "Please review CLIPS license in the downloaded ZIP file!"
+            print("Download successful, continuing build.")
+            print("Please review CLIPS license in the downloaded ZIP file!")
         except:
-            print "Download FAILED!"
-            print nozip_notice % ClipsSrcZIP
+            print("Download FAILED!")
+            print(nozip_notice % ClipsSrcZIP)
             sys.exit(2)
     import zipfile
     try:
-        print "Opening CLIPS source archive (%s)..." % ClipsSrcZIP
+        print("Opening CLIPS source archive (%s)..." % ClipsSrcZIP)
         zf = zipfile.ZipFile(ClipsSrcZIP)
         os.mkdir(ClipsLIB_dir)
         li = zf.namelist()
@@ -701,12 +701,12 @@ if not os.path.exists(ClipsLIB_dir):
                 f.close()
                 sys.stdout.write("done.\n")
         zf.close()
-        print "All CLIPS source files extracted, continuing build."
+        print("All CLIPS source files extracted, continuing build.")
     except zipfile.error:
-        print badzip_notice % ClipsSrcZIP
+        print(badzip_notice % ClipsSrcZIP)
         sys.exit(2)
     except:
-        print nozip_notice % ClipsSrcZIP
+        print(nozip_notice % ClipsSrcZIP)
         sys.exit(2)
 
 
@@ -803,7 +803,7 @@ sys.stdout.write("Done!\n")
 
 # retrieve used CLIPS version
 clips_version = get_clips_version(_p("clipssrc", "constant.h"))
-print "Found CLIPS version: %s" % clips_version
+print("Found CLIPS version: %s" % clips_version)
 maj, min = clips_version.split('.', 1)
 CFLAGS = [
     '-D_CRT_SECURE_NO_WARNINGS',
@@ -849,10 +849,10 @@ vs = o.read()
 o.close()
 e.close()
 if vs:
-    print "'patch' utility found, applying selected patchsets..."
+    print("'patch' utility found, applying selected patchsets...")
     import shutil
     def apply_patchset(ps):
-        print "Applying patchset '%s':" % ps
+        print("Applying patchset '%s':" % ps)
         pattern = "*.[ch]-??.v%s-%s.diff" % (clips_version, ps)
         for x in glob(_p(ClipsPATCH_dir, pattern)):
             pfn = os.path.basename(x)
@@ -868,9 +868,9 @@ if vs:
                 patchcmd = "patch -l -s -p0 %s < %s" % (
                     _p(ClipsLIB_dir, sourcefile), x)
                 if not os.system(patchcmd):
-                    print "ok."
+                    print("ok.")
                 else:
-                    print "FAILED"
+                    print("FAILED")
     for x in APPLY_PATCHSETS:
         apply_patchset(x)
 
@@ -887,7 +887,7 @@ version = (%s, %s, %s, %s)
 f.close()
 
 # start setup
-print "Standard setup in progress:"
+print("Standard setup in progress:")
 
 
 # The following is a warning to users of ez_setup when using GCC (for
@@ -913,9 +913,9 @@ if not DEBUGGING:
         import ez_setup
         ez_setup.use_setuptools()
         from setuptools import setup, Extension
-        print "Using setuptools instead of distutils..."
+        print("Using setuptools instead of distutils...")
         if not uses_gcc:
-            print warn_default_gcc
+            print(warn_default_gcc)
     except:
         from distutils.core import setup, Extension
 else:

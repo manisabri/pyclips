@@ -13,7 +13,7 @@ class ctc_Submitted(ctestcase):
 
     def ctf_Submitted01(self):
         """Testing: COOL rule execution coherence on SYMBOL"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -34,7 +34,7 @@ class ctc_Submitted(ctestcase):
 
     def ctf_Submitted02(self):
         """Testing: COOL rule execution coherence on STRING"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -76,12 +76,12 @@ class ctc_Submitted(ctestcase):
     
     def ctf_AcceptsForces01(self):
         """Testing: parameter checking and enforcement (Case 1)"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
-            S1 = unicode("S1")
-            S2 = unicode("S2")
+            S1 = str("S1")
+            S2 = str("S2")
             t1 = e.BuildTemplate(
                 "t1", """
                 (slot S1
@@ -97,11 +97,11 @@ class ctc_Submitted(ctestcase):
 
     def ctf_AcceptsForces02(self):
         """Testing: parameter checking and enforcement (Case 2)"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
-            S0 = unicode("S0")
+            S0 = str("S0")
             t1 = e.BuildTemplate(
                 "t1", "(slot S0)")
             f = t1.BuildFact()
