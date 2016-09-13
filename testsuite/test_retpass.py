@@ -65,8 +65,11 @@ class RetPass(CTestCase):
             self.assertEqual(f.Relation, clips.Symbol('a'))
 
     def test_RetInstances_01(self):
-        """Testing: Instance objects as return values"""
-        for x in list(self.envdict.keys()):
+        """Testing: Instance objects as return values
+            Have a look at the test_RetFacts_01 DocString
+        """
+
+        for x in sorted(list(self.envdict.keys())):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
