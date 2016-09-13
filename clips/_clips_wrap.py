@@ -4012,7 +4012,6 @@ def Build(construct):
 @_forces(str)
 def Eval(expr):
     """evaluate expression passed as argument"""
-    type(_c.eval).__dir__
     return _cl2py(_c.eval(expr))
 #}}
 
