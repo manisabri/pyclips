@@ -6,12 +6,12 @@ TESTS:
 COOL rule execution coherence on SYMBOL
 
 """
+from test import *
 
-
-class ctc_Submitted(ctestcase):
+class Submitted(CTestCase):
     """tests submitted by users"""
 
-    def ctf_Submitted01(self):
+    def test_Submitted01(self):
         """Testing: COOL rule execution coherence on SYMBOL"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -24,15 +24,14 @@ class ctc_Submitted(ctestcase):
                 "r1",
                 """(object (is-a C) (a1 ?a1&HELLO))""",
                 """(assert (success))"""
-                )
+            )
             e.Run()
             f = e.InitialFact()
             while f.Next():
                 f = f.Next()
             self.assertEqual(f.Relation, clips.Symbol("success"))
 
-
-    def ctf_Submitted02(self):
+    def test_Submitted02(self):
         """Testing: COOL rule execution coherence on STRING"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -48,15 +47,14 @@ class ctc_Submitted(ctestcase):
                     (test (eq (str-compare  ?a1 "HELLO") 0))
                 """,
                 """(assert (success))"""
-                )
+            )
             e.Run()
             f = e.InitialFact()
             while f.Next():
                 f = f.Next()
             self.assertEqual(f.Relation, clips.Symbol("success"))
 
-
-    def ctf_Submitted03(self):
+    def test_Submitted03(self):
         """Testing: multiple environment consistency"""
         env1 = clips.Environment()
         env2 = clips.Environment()
@@ -73,8 +71,8 @@ class ctc_Submitted(ctestcase):
         self.assertEqual(f1.Index, f2.Index)
         self.assertEqual(f1.Slots["s1"], clips.String("1"))
         self.assertEqual(f2.Slots["s2"], clips.String("2"))
-    
-    def ctf_AcceptsForces01(self):
+
+    def test_AcceptsForces01(self):
         """Testing: parameter checking and enforcement (Case 1)"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -92,10 +90,12 @@ class ctc_Submitted(ctestcase):
                     (allowed-values TEST1 TEST2))
                 """)
             self.assertEqual(t1.Slots.DefaultValue(S1), clips.Symbol("TEST0"))
-            self.assertEqual(t1.Slots.AllowedValues(S2)[0], clips.Symbol("TEST1"))
-            self.assertEqual(t1.Slots.AllowedValues(S2)[1], clips.Symbol("TEST2"))
+            self.assertEqual(t1.Slots.AllowedValues(S2)[0],
+                                                          clips.Symbol("TEST1"))
+            self.assertEqual(t1.Slots.AllowedValues(S2)[1],
+                                                          clips.Symbol("TEST2"))
 
-    def ctf_AcceptsForces02(self):
+    def test_AcceptsForces02(self):
         """Testing: parameter checking and enforcement (Case 2)"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -107,9 +107,7 @@ class ctc_Submitted(ctestcase):
             f = t1.BuildFact()
             f.Slots[S0] = 42
             self.assertEqual(f.Slots['S0'], 42)
-            
-            
 
 
-
-# end.
+if __name__ == "__main__":
+    unittest.main()

@@ -1,6 +1,5 @@
 # test_remove.py
 
-
 """revision $Id: test_remove.py 215 2004-11-26 16:10:56Z Franz $
 TESTS:
 Assert
@@ -32,12 +31,13 @@ Generic:
 Global:
   Remove
 """
+from test import *
 
 
-class ctc_Removals(ctestcase):
+class Removals(CTestCase):
     """test builds and removals"""
 
-    def ctf_RemovalsFact_01(self):
+    def test_RemovalsFact_01(self):
         """Testing: Assert, Fact.Retract"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -49,7 +49,7 @@ class ctc_Removals(ctestcase):
             self.assertRaises(clips.ClipsError, o.PPForm)
             self.assertRaises(clips.ClipsError, o.Retract)
 
-    def ctf_RemovalsRule_01(self):
+    def test_RemovalsRule_01(self):
         """Testing: BuildRule, Rule.Remove"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -61,7 +61,7 @@ class ctc_Removals(ctestcase):
             self.assertRaises(clips.ClipsError, o.PPForm)
             self.assertRaises(clips.ClipsError, o.Remove)
 
-    def ctf_RemovalsTemplate_01(self):
+    def test_RemovalsTemplate_01(self):
         """Testing: BuildTemplate, Template.Remove"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -73,7 +73,7 @@ class ctc_Removals(ctestcase):
             self.assertRaises(clips.ClipsError, o.PPForm)
             self.assertRaises(clips.ClipsError, o.Remove)
 
-    def ctf_RemovalsDeffacts_01(self):
+    def test_RemovalsDeffacts_01(self):
         """Testing: BuildDeffacts, Deffacts.Remove"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -85,7 +85,7 @@ class ctc_Removals(ctestcase):
             self.assertRaises(clips.ClipsError, o.PPForm)
             self.assertRaises(clips.ClipsError, o.Remove)
 
-    def ctf_RemovalsDefinstances_01(self):
+    def test_RemovalsDefinstances_01(self):
         """Testing: BuildDefinstances, Definstances.Remove"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -98,7 +98,7 @@ class ctc_Removals(ctestcase):
             self.assertRaises(clips.ClipsError, o.PPForm)
             self.assertRaises(clips.ClipsError, o.Remove)
 
-    def ctf_RemovalsGeneric_01(self):
+    def test_RemovalsGeneric_01(self):
         """Testing: BuildGeneric, Generic.Remove"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -110,7 +110,7 @@ class ctc_Removals(ctestcase):
             self.assertRaises(clips.ClipsError, o.PPForm)
             self.assertRaises(clips.ClipsError, o.Remove)
 
-    def ctf_RemovalsGlobal_01(self):
+    def test_RemovalsGlobal_01(self):
         """Testing: BuildGlobal, Global.Remove"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -123,5 +123,5 @@ class ctc_Removals(ctestcase):
             self.assertRaises(clips.ClipsError, o.Remove)
 
 
-
-# end.
+if __name__ == "__main__":
+    unittest.main()

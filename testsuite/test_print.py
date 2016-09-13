@@ -1,8 +1,5 @@
 # test_print.py
 
-import sys, re
-from io import StringIO
-
 """revision $Id: test_print.py 247 2005-02-23 00:28:47Z Franz $
 TESTS:
 BuildGlobal
@@ -34,6 +31,9 @@ Class
   PreviewSend
 
 """
+import sys, re
+from io import StringIO
+from test import *
 
 
 def i_returnOutput(func, args=None, kwargs=None):
@@ -43,11 +43,15 @@ def i_returnOutput(func, args=None, kwargs=None):
     sys.stdout = io
     try:
         if args is None:
-            if kwargs is None: r = func()
-            else: r = func(**kwargs)
+            if kwargs is None:
+                r = func()
+            else:
+                r = func(**kwargs)
         else:
-            if kwargs is None: r = func(*args)
-            else: r = func(*args, **kwargs)
+            if kwargs is None:
+                r = func(*args)
+            else:
+                r = func(*args, **kwargs)
         s = io.getvalue().strip()
         sys.stdout = save_stdout
         return r, s
@@ -61,11 +65,10 @@ def i_checkContains(s, rex):
     return bool(re.search(rex, s) is not None)
 
 
-
-class ctc_Print(ctestcase):
+class Print(CTestCase):
     """test debug output functions"""
 
-    def ctf_Print_01(self):
+    def test_Print_01(self):
         """Testing: PrintFacts"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -76,7 +79,7 @@ class ctc_Print(ctestcase):
             self.assertTrue(i_checkContains(s, r"f\-\d\s+\(initial\-fact\)"))
             self.assertTrue(i_checkContains(s, r"f\-\d\s+\(f1\)"))
 
-    def ctf_Print_02(self):
+    def test_Print_02(self):
         """Testing: PrintRules, PrintAgenda"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -89,8 +92,9 @@ class ctc_Print(ctestcase):
             r, s = i_returnOutput(e.PrintAgenda)
             self.assertTrue(i_checkContains(s, r"\d\s+f1\-rule"))
 
-    def ctf_Print_03(self):
-        """Testing: PrintClasses, PrintDeffacts, PrintDefinstances, PrintModules"""
+    def test_Print_03(self):
+        """Testing: PrintClasses, PrintDeffacts, PrintDefinstances,
+        PrintModules"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
@@ -113,7 +117,7 @@ class ctc_Print(ctestcase):
             r, s = i_returnOutput(e.PrintModules)
             self.assertTrue(i_checkContains(s, r"MAIN"))
 
-    def ctf_Print_04(self):
+    def test_Print_04(self):
         """Testing: PrintTemplates, PrintMessageHandlers"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -131,7 +135,7 @@ class ctc_Print(ctestcase):
             self.assertTrue(i_checkContains(s, r"delete"))
             self.assertTrue(i_checkContains(s, r"init"))
 
-    def ctf_Print_05(self):
+    def test_Print_05(self):
         """Testing: BuildGlobal, PrintGlobals, PrintGenerics"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -144,7 +148,7 @@ class ctc_Print(ctestcase):
             r, s = i_returnOutput(e.PrintGenerics)
             self.assertTrue(i_checkContains(s, "g1"))
 
-    def ctf_Print_06(self):
+    def test_Print_06(self):
         """Testing: PrintInstances, PrintSubclassInstances"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -163,7 +167,7 @@ class ctc_Print(ctestcase):
             self.assertTrue(i_checkContains(s4, re.escape(c.PPForm())))
             self.assertTrue(i_checkContains(s4, re.escape(d.PPForm())))
 
-    def ctf_Print_07(self):
+    def test_Print_07(self):
         """Testing: PrintAgenda, PrintBreakpoints, PrintFocusStack"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -185,7 +189,7 @@ class ctc_Print(ctestcase):
             self.assertTrue(i_checkContains(s, "MNEW"))
             self.assertTrue(i_checkContains(s, "MAIN"))
 
-    def ctf_Print_08(self):
+    def test_Print_08(self):
         """Testing: Generic.PrintMethods"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -198,7 +202,7 @@ class ctc_Print(ctestcase):
             self.assertTrue(i_checkContains(s, r"g.+\(NUMBER\)"))
             self.assertTrue(i_checkContains(s, r"g.+\(STRING\)"))
 
-    def ctf_Print_09(self):
+    def test_Print_09(self):
         """Testing: Rule.PrintMatches"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -210,7 +214,7 @@ class ctc_Print(ctestcase):
             self.assertTrue(i_checkContains(s, r"Matches for Pattern 1\s+f\-1"))
             self.assertTrue(i_checkContains(s, r"Activations\s+f\-1"))
 
-    def ctf_Print_10(self):
+    def test_Print_10(self):
         """Testing: Class.PrintMessageHandlers, Class.PrintAllMessageHandlers"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -231,7 +235,7 @@ class ctc_Print(ctestcase):
             self.assertTrue(i_checkContains(s, r"get-s1\ .*\ class"))
             self.assertTrue(i_checkContains(s, r"put-s1\ .*\ class"))
 
-    def ctf_Print_11(self):
+    def test_Print_11(self):
         """Testing: BrowseClasses, Class.PreviewSend"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -245,7 +249,7 @@ class ctc_Print(ctestcase):
             r, s = i_returnOutput(e.BrowseClasses, ("USER",))
             self.assertTrue(i_checkContains(s, r"USER\s+INITIAL\-OBJECT\s+C"))
 
-    def ctf_Print_12(self):
+    def test_Print_12(self):
         """Testing: Module.BuildGlobal, Module.ShowGlobals"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -256,4 +260,6 @@ class ctc_Print(ctestcase):
             r, s = i_returnOutput(mo.ShowGlobals)
             self.assertTrue(i_checkContains(s, re.escape("?*g* = 42")))
 
-# end.
+
+if __name__ == "__main__":
+    unittest.main()

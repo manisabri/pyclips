@@ -7,11 +7,13 @@ passing Instance objects as arguments
 Fact objects as return values
 Instance objects as return values
 """
+from test import *
 
-class ctc_RetPass(ctestcase):
+
+class RetPass(CTestCase):
     """test Class objects"""
 
-    def ctf_PassFacts_01(self):
+    def test_PassFacts_01(self):
         """Testing: Fact objects as arguments"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -23,7 +25,7 @@ class ctc_RetPass(ctestcase):
             e.SendCommand("(ppfact ?*g*)")
             self.assertEqual(clips.StdoutStream.Read().strip(), "(a)")
 
-    def ctf_PassInstances_01(self):
+    def test_PassInstances_01(self):
         """Testing: Instance objects as arguments"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -37,7 +39,7 @@ class ctc_RetPass(ctestcase):
             self.assertEqual(
                 e.Eval("(instance-name ?*g*)"), clips.InstanceName('i'))
 
-    def ctf_RetFacts_01(self):
+    def test_RetFacts_01(self):
         """Testing: Fact objects as return values"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -54,7 +56,7 @@ class ctc_RetPass(ctestcase):
             f = clips.Eval("(f)")
             self.assertEqual(f.Relation, clips.Symbol('a'))
 
-    def ctf_RetInstances_01(self):
+    def test_RetInstances_01(self):
         """Testing: Instance objects as return values"""
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
@@ -66,5 +68,5 @@ class ctc_RetPass(ctestcase):
             self.assertEqual(i.Name, clips.InstanceName('i'))
 
 
-
-# end.
+if __name__ == "__main__":
+    unittest.main()

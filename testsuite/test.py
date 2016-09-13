@@ -1,20 +1,9 @@
-# test_00.py
-# initial (hence the name '00') definitions for testing purposes
-
-
-"""\
-TESTS:
-
-CurrentEnvironment
-Environment
-"""
-
-
-import clips, unittest
+import clips
 import gc
+import unittest
 
 
-class ctestcase(unittest.TestCase):
+class CTestCase(unittest.TestCase):
     """base class for pyclips unit test cases"""
 
     def setUp(self):
@@ -23,7 +12,7 @@ class ctestcase(unittest.TestCase):
         self.envdict = {
             'clips': clips,
             'env': e1,
-            }
+        }
         clips.DebugConfig.WatchAll()
         e1.DebugConfig.WatchAll()
 
@@ -51,6 +40,3 @@ class ctestcase(unittest.TestCase):
         fc.write("%s --> %s unreached objects\n" % (
             self.__class__.__name__, o))
         fc.close()
-
-
-# end.
