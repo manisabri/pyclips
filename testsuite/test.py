@@ -1,10 +1,16 @@
 import clips
 import gc
+import os
 import unittest
 
 
 class CTestCase(unittest.TestCase):
     """base class for pyclips unit test cases"""
+
+    def __init__(self, *args, **kwargs):
+        relative_path = os.path.dirname(__file__)
+        self.result_path = os.path.join(".", relative_path, "results")
+        super(CTestCase, self).__init__(*args, **kwargs)
 
     def setUp(self):
         """set up testing environment"""
@@ -15,12 +21,16 @@ class CTestCase(unittest.TestCase):
         }
         clips.DebugConfig.WatchAll()
         e1.DebugConfig.WatchAll()
+        # from IPython import embed;
+        # embed();
+        # import ipdb;
+        # ipdb.set_trace()
 
     def tearDown(self):
         clips.DebugConfig.UnwatchAll()
         self.envdict['env'].DebugConfig.UnwatchAll()
         s = clips.TraceStream.Read()
-        fc = open("trace.out", 'a')
+        fc = open(os.path.join(self.result_path, "trace.out"), 'a')
         fc.write("=" * 78 + "\n")
         fc.write("--> %s\n" % self.__class__.__name__)
         fc.write("-" * 78 + "\n")
@@ -28,7 +38,7 @@ class CTestCase(unittest.TestCase):
         fc.write("\n\n\n")
         fc.close()
         s = clips.ErrorStream.Read()
-        fc = open("error.out", 'a')
+        fc = open(os.path.join(self.result_path, "error.out"), 'a')
         fc.write("=" * 78 + "\n")
         fc.write("--> %s\n" % self.__class__.__name__)
         fc.write("-" * 78 + "\n")
@@ -36,7 +46,7 @@ class CTestCase(unittest.TestCase):
         fc.write("\n\n\n")
         fc.close()
         o = gc.collect()
-        fc = open("garbage.out", 'a')
+        fc = open(os.path.join(self.result_path, "garbage.out"), 'a')
         fc.write("%s --> %s unreached objects\n" % (
             self.__class__.__name__, o))
         fc.close()

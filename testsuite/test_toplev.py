@@ -32,20 +32,20 @@ class Toplevel(CTestCase):
 
     def test_Top_01(self):
         """Testing: BatchStar, Save, BSave"""
-        f = open("t.clp", 'w')
+        f = open(os.path.join(self.result_path, "t.clp"), 'w')
         f.write(file01)
         f.close()
         for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
-            e.BatchStar("t.clp")
+            e.BatchStar(os.path.join(self.result_path, "t.clp"))
             e.Assert("(duck)")
             self.assertTrue(e.AgendaChanged())
             e.Run()
             self.assertEqual(e.FactList()[-1].CleanPPForm(), "(quack)")
-            e.Save("i_%s_c.dat" % x)
-            e.BSave("i_%s_c.bdat" % x)
+            e.Save(os.path.join(self.result_path, "i_%s_c.dat" % x))
+            e.BSave(os.path.join(self.result_path, "i_%s_c.bdat" % x))
 
     def test_Top_02(self):
         """Testing: Load, SaveFacts"""
@@ -53,12 +53,12 @@ class Toplevel(CTestCase):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
-            e.Load("i_%s_c.dat" % x)
+            e.Load(os.path.join(self.result_path, "i_%s_c.dat" % x))
             e.Assert("(duck)")
             self.assertTrue(e.AgendaChanged())
             e.Run()
             self.assertEqual(e.FactList()[-1].CleanPPForm(), "(quack)")
-            e.SaveFacts("i_%s_f.dat" % x)
+            e.SaveFacts(os.path.join(self.result_path,"i_%s_f.dat" % x))
 
     def test_Top_03(self):
         """Testing: LoadFacts"""
@@ -66,7 +66,7 @@ class Toplevel(CTestCase):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
-            e.LoadFacts("i_%s_f.dat" % x)
+            e.LoadFacts(os.path.join(self.result_path, "i_%s_f.dat" % x))
             self.assertEqual(e.FactList()[-1].CleanPPForm(), "(quack)")
 
     def test_Top_04(self):
@@ -75,7 +75,7 @@ class Toplevel(CTestCase):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
-            e.BLoad("i_%s_c.bdat" % x)
+            e.BLoad(os.path.join(self.result_path, "i_%s_c.bdat" % x))
             e.Assert("(duck)")
             self.assertTrue(e.AgendaChanged())
             e.Run()
@@ -126,11 +126,11 @@ class Toplevel(CTestCase):
             C = e.BuildClass("C", "(is-a USER)")
             i1 = C.BuildInstance("i1")
             i2 = C.BuildInstance("i2")
-            e.SaveInstances("i_%s_inst.dat" % x)
+            e.SaveInstances(os.path.join(self.result_path,"i_%s_inst.dat" % x))
             e.Clear()
             e.Reset()
             C = e.BuildClass("C", "(is-a USER)")
-            e.LoadInstances("i_%s_inst.dat" % x)
+            e.LoadInstances(os.path.join(self.result_path, "i_%s_inst.dat" % x))
             self.assertEqual(e.FindInstance("i1").Name, "i1")
             self.assertEqual(e.FindInstance("i2").Name, "i2")
 
@@ -143,11 +143,11 @@ class Toplevel(CTestCase):
             C = e.BuildClass("C", "(is-a USER)")
             i1 = C.BuildInstance("i1")
             i2 = C.BuildInstance("i2")
-            e.BSaveInstances("i_%s_inst.bdat" % x)
+            e.BSaveInstances(os.path.join(self.result_path, "i_%s_inst.bdat"%x))
             e.Clear()
             e.Reset()
             C = e.BuildClass("C", "(is-a USER)")
-            e.BLoadInstances("i_%s_inst.bdat" % x)
+            e.BLoadInstances(os.path.join(self.result_path, "i_%s_inst.bdat"%x))
             self.assertEqual(e.FindInstance("i1").Name, "i1")
             self.assertEqual(e.FindInstance("i2").Name, "i2")
 
