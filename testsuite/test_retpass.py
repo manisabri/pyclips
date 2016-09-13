@@ -42,7 +42,7 @@ class RetPass(CTestCase):
     def test_RetFacts_01(self):
         """
             Testing: Fact objects as return values
-            Seems that the what ever is in the list returned from
+            Seems that what ever is in the list returned from
             list(self.envdict.keys()) must have 'clips' as the first element
             otherwise if will crash later in clips source.
             since in this scenario we have only 'env' and 'clips' in the dict
