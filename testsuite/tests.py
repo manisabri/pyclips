@@ -6,8 +6,8 @@ import os
 import unittest
 
 if __name__ == "__main__":
-    relative_path  = os.path.dirname(__file__)
+    relative_path = os.path.dirname(__file__)
     test_loader = unittest.TestLoader()
-    suite = test_loader.discover(os.path.join('.',relative_path))
+    suite = test_loader.discover(os.path.join('.', relative_path))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
