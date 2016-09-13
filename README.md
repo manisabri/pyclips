@@ -1,3 +1,5 @@
+#IT IS A WORK IN PROGRESS (OR NOT) TO PORT PYCLIPS TO PY 3.5. IT STILL HAS ISSUES. 
+
 # PyCLIPS
 
 This is a reboot of PyCLIPS on GitHub, as git and GitHub have become my favourite tools for developement.
