@@ -21,10 +21,6 @@ class CTestCase(unittest.TestCase):
         }
         clips.DebugConfig.WatchAll()
         e1.DebugConfig.WatchAll()
-        # from IPython import embed;
-        # embed();
-        # import ipdb;
-        # ipdb.set_trace()
 
     def tearDown(self):
         clips.DebugConfig.UnwatchAll()
