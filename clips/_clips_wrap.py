@@ -139,13 +139,12 @@ def _accepts(*types):
                             errorstr = \
                                 "one of %s expected in %s, parameter %s" \
                                 % (", ".join(
-                                    [bytearray(x, 'ascii')[1:-1] for x in t]),
+                                    [str(x)[1:-1] for x in t]),
                                    f.__name__, i + 1)
                         else:
                             errorstr = \
                                 "%s expected in %s, parameter %s" \
-                                % (
-                                bytearray(t, 'ascii')[1:-1], f.__name__, i + 1)
+                                % (str(t)[1:-1], f.__name__, i + 1)
                         raise TypeError(errorstr)
                 i += 1
             return f(*args)
@@ -348,7 +347,7 @@ class Integer(int):
 
     def clsyntax(self):
         """represent this Integer as it would be in CLIPS syntax"""
-        return str(self)
+        return _bytearr(self)
 
     def cltypename(self):
         """name of this type in CLIPS"""
@@ -393,7 +392,7 @@ class Float(float):
 
     def clsyntax(self):
         """represent this Float as it would be in CLIPS syntax"""
-        return str(self)
+        return _bytearr(self)
 
     def cltypename(self):
         """name of this type in CLIPS"""
@@ -425,7 +424,6 @@ class String(bytearray):
         """name of this type in CLIPS"""
         return "STRING"
 
-import ipdb; ipdb.set_trace()
 ClipsStringType = type(String())
 
 
@@ -718,7 +716,7 @@ def _py2cl(o):
             elif isinstance(x, float):
                 li.append((_c.FLOAT, float(o)))
             elif isinstance(x, bytearray):
-                li.append((_c.STRING, str(o)))
+                li.append((_c.STRING, _bytearr(o)))
             elif isinstance(x, str):
                 li.append((_c.STRING, _bytearr(o)))
             else:
@@ -2168,11 +2166,11 @@ class Generic(object):
     def AddMethod(self, restrictions, actions, midx=None, comment=None):
         """Add a method to this Generic, given restrictions and actions"""
         if comment:
-            cmtstr = '"%s"' % str(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytearr(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         if midx:
-            indstr = str(midx)
+            indstr = _bytearr(midx)
         else:
             indstr = ""
         if type(restrictions) in (tuple, list):

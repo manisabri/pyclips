@@ -16,15 +16,15 @@ class CTestCase(unittest.TestCase):
         """set up testing environment"""
         e1 = clips.Environment()
         self.envdict = {
-            'clips': clips,
-            'env': e1,
+            b'clips': clips,
+            b'env': e1,
         }
         clips.DebugConfig.WatchAll()
         e1.DebugConfig.WatchAll()
 
     def tearDown(self):
         clips.DebugConfig.UnwatchAll()
-        self.envdict['env'].DebugConfig.UnwatchAll()
+        self.envdict[b'env'].DebugConfig.UnwatchAll()
         s = clips.TraceStream.Read()
         fc = open(os.path.join(self.result_path, "trace.out"), 'a')
         fc.write("=" * 78 + "\n")
