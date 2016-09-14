@@ -139,12 +139,12 @@ def _accepts(*types):
                             errorstr = \
                                 "one of %s expected in %s, parameter %s" \
                                 % (", ".join(
-                                    [str(x)[1:-1] for x in t]),
+                                    [_bytearr(x)[1:-1] for x in t]),
                                    f.__name__, i + 1)
                         else:
                             errorstr = \
                                 "%s expected in %s, parameter %s" \
-                                % (str(t)[1:-1], f.__name__, i + 1)
+                                % (_bytearr(t)[1:-1], f.__name__, i + 1)
                         raise TypeError(errorstr)
                 i += 1
             return f(*args)
@@ -168,12 +168,12 @@ def _accepts_method(*types):
                         if type(t) == tuple:
                             errorstr = \
                                 "one of %s expected in %s, parameter %s" \
-                                % (", ".join([str(x)[1:-1] for x in t]),
+                                % (", ".join([_bytearr(x)[1:-1] for x in t]),
                                    f.__name__, i + 1)
                         else:
                             errorstr = \
                                 "%s expected in %s, parameter %s" \
-                                % (str(t)[1:-1], f.__name__, i + 1)
+                                % (_bytearr(t)[1:-1], f.__name__, i + 1)
                         raise TypeError(errorstr)
                 i += 1
             return f(self, *args)
@@ -239,6 +239,7 @@ def _forces(*types):
                         newargs.append(a)
                 # otherwise the argument is converted to the specified type
                 else:
+                    print(type(t))
                     newargs.append(t(a))
                 i += 1
             return f(*newargs)
@@ -392,7 +393,7 @@ class Float(float):
 
     def clsyntax(self):
         """represent this Float as it would be in CLIPS syntax"""
-        return _bytearr(self)
+        return str(self)
 
     def cltypename(self):
         """name of this type in CLIPS"""
@@ -405,6 +406,8 @@ ClipsFloatType = type(Float(0.0))
 # 2) string types
 class String(bytearray):
     """extend a bytearray for use with CLIPS"""
+    def __init__(self, *args):
+        super(String, self).__init__(*args, 'ascii')
 
     def __repr__(self):
         return "<String %s>" % bytearray.__repr__(self)
@@ -424,11 +427,13 @@ class String(bytearray):
         """name of this type in CLIPS"""
         return "STRING"
 
-ClipsStringType = type(String())
+ClipsStringType = type(String(""))
 
 
 class Symbol(bytearray):
     """extend a bytearray for use with CLIPS as symbol"""
+    def __init__(self, *args):
+        super(Symbol, self).__init__(*args, 'ascii')
 
     def __repr__(self):
         return "<Symbol %s>" % bytearray.__repr__(self)
@@ -452,7 +457,7 @@ class Symbol(bytearray):
         return "SYMBOL"
 
 
-ClipsSymbolType = type(Symbol())
+ClipsSymbolType = type(Symbol(""))
 
 
 class InstanceName(bytearray):
@@ -612,11 +617,10 @@ ClipsMultifieldType = type(Multifield([]))
 
 # Converter from internal form (type, value) of CLIPS data to the
 #  wrappers provided above, in order to simplify transparent conversions
-# {{FUNCTION
+#{{FUNCTION
 def _cl2py(o):
     """convert a well-formed tuple to one of the CLIPS wrappers"""
-    if o is None:
-        return None
+    if o is None: return None
     elif type(o) == tuple and len(o) == 2:
         if o[0] == _c.INTEGER:
             return Integer(o[1])
@@ -659,12 +663,10 @@ def _cl2py(o):
             raise TypeError("malformed tuple value")
     else:
         raise TypeError("wrong argument type")
-
-
-# }}
+#}}
 
 # same as above, but from Python to CLIPS
-# {{FUNCTION
+#{{FUNCTION
 def _py2cl(o):
     """convert Python data to a well-formed tuple"""
     t1 = type(o)
@@ -725,9 +727,7 @@ def _py2cl(o):
         return (_c.MULTIFIELD, li)
     else:
         raise TypeError("value of type %s cannot be converted" % t1)
-
-
-# }}
+#}}
 
 # convert a Python value to what the python value would be in CLIPS syntax
 def _py2clsyntax(o):
@@ -797,7 +797,7 @@ def _py2clsyntax(o):
 
 # as we did above, we group all the status functions under a class and then
 #  create a single instance of the class itself prohibiting further instances
-# {{CLASS
+#{{CLASS
 class _clips_Status(object):
     """object to access global status functions"""
 
@@ -924,9 +924,7 @@ class _clips_Status(object):
         __property_getClassDefaultsMode,
         __property_setClassDefaultsMode,
         None, "class defaults mode")
-
-
-# }}
+#}}
 
 
 
@@ -936,7 +934,7 @@ class _clips_Status(object):
 # we group all debugging function under a class, then we prohibit
 #  creation of items of that class but provide an object able to
 #  access debugging status and to toggle debugging features
-# {{CLASS
+#{{CLASS
 class _clips_Debug(object):
     """object to enable/disable debugging features"""
 
@@ -1150,9 +1148,7 @@ class _clips_Debug(object):
         """unwatch all items"""
         for x in self.__watchitems:
             _c.unwatch(x)
-
-
-# }}
+#}}
 
 
 
@@ -1160,7 +1156,7 @@ class _clips_Debug(object):
 # High-level class for deftemplate objects
 # Treat a deftemplate as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access deftemplate objects.
-# {{CLASS
+#{{CLASS
 class Template(object):
     """high-level Template class (represents: deftemplate)"""
 
@@ -1356,9 +1352,7 @@ class Template(object):
 
     Watch = property(__property_getWatch, __property_setWatch,
                      None, "watch status of this Template")
-
-
-# }}
+#}}
 
 
 
@@ -1367,7 +1361,7 @@ class Template(object):
 # Treat a fact as an object having an Object-Oriented interface. All functions
 #  that normally refer to a fact use the underlying low-level fact object to
 #  interact with the system.
-# {{CLASS
+#{{CLASS
 class Fact(object):
     """high-level Fact class (represents: fact)"""
 
@@ -1552,9 +1546,7 @@ class Fact(object):
 
     Exists = property(__property_getExists, None, None,
                       "determine if Fact has been asserted and not retracted")
-
-
-# }}
+#}}
 
 
 
@@ -1562,7 +1554,7 @@ class Fact(object):
 # High-level class for deffacts objects
 # Treat a deffacts as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access deffacts objects.
-# {{CLASS
+#{{CLASS
 class Deffacts(object):
     """high-level Deffacts class (represents: deffacts)"""
 
@@ -1620,9 +1612,7 @@ class Deffacts(object):
 
     Deletable = property(__property_getDeletable, None, None,
                          "verify if this Deffacts can be deleted")
-
-
-# }}
+#}}
 
 
 
@@ -1630,7 +1620,7 @@ class Deffacts(object):
 # High-level class for defrule objects
 # Treat a defrule as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access defrule objects.
-# {{CLASS
+#{{CLASS
 class Rule(object):
     """high-level Rule class (represents: defrule)"""
 
@@ -1733,9 +1723,7 @@ class Rule(object):
     WatchFirings = property(__property_getWatchFirings,
                             __property_setWatchFirings,
                             None, "Rule firings debug status")
-
-
-# }}
+#}}
 
 
 
@@ -1743,7 +1731,7 @@ class Rule(object):
 # High-level class for activation objects
 # Treat an activation as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access activation objects.
-# {{CLASS
+#{{CLASS
 class Activation(object):
     """high-level Activation class (represents: activation)"""
 
@@ -1797,9 +1785,7 @@ class Activation(object):
 
     Salience = property(__property_getSalience, __property_setSalience,
                         None, "retrieve Activation salience")
-
-
-# }}
+#}}
 
 
 
@@ -1807,7 +1793,7 @@ class Activation(object):
 # High-level class for defglobal objects
 # Treat a defglobal as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access defglobal objects.
-# {{CLASS
+#{{CLASS
 class Global(object):
     """high-level Global class (represents: defglobal)"""
 
@@ -1887,9 +1873,7 @@ class Global(object):
 
     Watch = property(__property_getWatch, __property_setWatch,
                      None, "set/retrieve Global debug status")
-
-
-# }}
+#}}
 
 
 
@@ -1897,7 +1881,7 @@ class Global(object):
 # High-level class for deffunction objects
 # Treat a deffunction as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access deffunction objects.
-# {{CLASS
+#{{CLASS
 class Function(object):
     """high-level Function class (represents: deffunction)"""
 
@@ -2003,9 +1987,7 @@ class Function(object):
 
     Watch = property(__property_getWatch, __property_setWatch,
                      None, "set/retrieve Function debug status")
-
-
-# }}
+#}}
 
 
 
@@ -2013,7 +1995,7 @@ class Function(object):
 # High-level class for defgeneric objects
 # Treat a defgeneric as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access defgeneric objects.
-# {{CLASS
+#{{CLASS
 class Generic(object):
     """high-level Generic class (represents: defgeneric)"""
 
@@ -2242,9 +2224,7 @@ class Generic(object):
     def MethodDeletable(self, midx):
         """test whether or not specified Method can be deleted"""
         return bool(_c.isDefmethodDeletable(midx, self.__defgeneric))
-
-
-# }}
+#}}
 
 
 
@@ -2252,7 +2232,7 @@ class Generic(object):
 # High-level class for defclass objects
 # Treat a defclass as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access defclass objects.
-# {{CLASS
+#{{CLASS
 class Class(object):
     """high-level Class class (represents: defclass)"""
 
@@ -2703,9 +2683,7 @@ class Class(object):
         s = _c.routerRead("temporary")
         if s:
             _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
@@ -2713,7 +2691,7 @@ class Class(object):
 # High-level class for instance objects
 # Treat an instance as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access instance objects.
-# {{CLASS
+#{{CLASS
 class Instance(object):
     """high-level Instance class (represents: instance)"""
 
@@ -2912,9 +2890,7 @@ class Instance(object):
 
     Slots = property(__property_getSlots, None, None,
                      "Instance Slots information")
-
-
-# }}
+#}}
 
 
 
@@ -2922,7 +2898,7 @@ class Instance(object):
 # High-level class for definstances objects
 # Treat definstances as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access definstances objects.
-# {{CLASS
+#{{CLASS
 class Definstances(object):
     """high-level Definstances class (represents: definstances)"""
 
@@ -2981,9 +2957,7 @@ class Definstances(object):
 
     Deletable = property(__property_getDeletable, None, None,
                          "verify if this Definstances can be deleted")
-
-
-# }}
+#}}
 
 
 
@@ -2991,7 +2965,7 @@ class Definstances(object):
 # High-level class for defmodule objects
 # Treat a defmodule as an object having an Object-Oriented interface.
 #  Implements all the functions needed to access defmodule objects.
-# {{CLASS
+#{{CLASS
 class Module(object):
     """high-level Module class (represents: defmodule)"""
 
@@ -3337,9 +3311,7 @@ class Module(object):
         s = _c.routerRead("temporary")
         if s:
             _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
@@ -3351,18 +3323,16 @@ class Module(object):
 # ========================================================================== #
 # 1) functions involving Templates
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialTemplate():
     """return first Template in environment"""
     try:
         return Template(_c.getNextDeftemplate())
     except:
         raise _c.ClipsError("M02: could not find any Template")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintTemplates():
     """print Templates to standard output"""
     _c.routerClear("temporary")
@@ -3370,30 +3340,24 @@ def PrintTemplates():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def TemplateList():
     """return a list of Template names"""
     o = _c.getDeftemplateList()
     return Multifield(_cl2py(o))  # should be all strings
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindTemplate(s):
     """find a Template by name"""
     return Template(_c.findDeftemplate(s))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), (bytearray, str), None)
 @_forces(bytearray, bytearray, None)
 def BuildTemplate(name, text, comment=None):
@@ -3405,16 +3369,14 @@ def BuildTemplate(name, text, comment=None):
     construct = "(deftemplate %s %s %s)" % (name, cmtstr, text)
     _c.build(construct)
     return Template(_c.findDeftemplate(name))
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 2) functions involving facts
 
-# {{FUNCTION
+#{{FUNCTION
 def Assert(o):
     """assert a Fact from a string or constructed Fact object"""
     if '_Fact__fact' in dir(o) and _c.isFact(o._Fact__fact):
@@ -3423,52 +3385,42 @@ def Assert(o):
         return Fact(_c.assertString(_bytearr(o)))
     else:
         raise TypeError("expected a string or a Fact")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def InitialFact():
     """return first Fact in environment"""
     try:
         return Fact(_c.getNextFact())
     except:
         raise _c.ClipsError("M02: could not find any Fact")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def LoadFacts(filename):
     """load Facts from file"""
     _c.loadFacts(_os.path.normpath(filename))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def LoadFactsFromString(s):
     """load Fact objects from a string"""
     _c.loadFactsFromString(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), (bytearray, str))
 @_forces(bytearray, bytearray)
 def SaveFacts(filename, mode=LOCAL_SAVE):
     """save current Facts to file"""
     _c.saveFacts(_os.path.normpath(filename), mode)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintFacts():
     """print Facts to standard output"""
     _c.routerClear("temporary")
@@ -3476,21 +3428,17 @@ def PrintFacts():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def FactListChanged():
     """test whether Fact list is changed since last call"""
     rv = bool(_c.getFactListChanged())
     _c.setFactListChanged(False)
     return rv
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def FactList():
     """return list of Facts in current module"""
     o, li = _c.getFactList(), []
@@ -3499,36 +3447,30 @@ def FactList():
             if x[0] == _c.FACT_ADDRESS:
                 li.append(Fact(x[1]))
     return li
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 3) functions involving deffacts
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialDeffacts():
     """return first Deffacts"""
     try:
         return Deffacts(_c.getNextDeffacts())
     except:
         raise _c.ClipsError("M02: could not find any Deffacts")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def DeffactsList():
     """return a list of Deffacts names in current module"""
     o = _c.getDeffactsList()
     return Multifield(_cl2py(o))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindDeffacts(s):
@@ -3537,11 +3479,9 @@ def FindDeffacts(s):
         return Deffacts(_c.findDeffacts(s))
     except:
         raise _c.ClipsError("M02: could not find Deffacts '%s'" % s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), (bytearray, str), None)
 @_forces(bytearray, bytearray, None)
 def BuildDeffacts(name, text, comment=None):
@@ -3553,11 +3493,9 @@ def BuildDeffacts(name, text, comment=None):
     construct = "(deffacts %s %s %s)" % (name, cmtstr, text)
     _c.build(construct)
     return Deffacts(_c.findDeffacts(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintDeffacts():
     """print Deffacts to standard output"""
     _c.routerClear("temporary")
@@ -3565,36 +3503,30 @@ def PrintDeffacts():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 4) functions involving Rules
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialRule():
     """return first Rule"""
     try:
         return Rule(_c.getNextDefrule())
     except:
         raise _c.ClipsError("M02: could not find any Rule")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def RuleList():
     """return a list of Rule names in current module"""
     o = _c.getDefruleList()
     return Multifield(_cl2py(o))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindRule(s):
@@ -3603,11 +3535,9 @@ def FindRule(s):
         return Rule(_c.findDefrule(s))
     except:
         raise _c.ClipsError("M02: could not find defrule '%s'" % s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), (bytearray, str), (bytearray, str), None)
 @_forces(bytearray, bytearray, bytearray, None)
 def BuildRule(name, lhs, rhs, comment=None):
@@ -3619,11 +3549,9 @@ def BuildRule(name, lhs, rhs, comment=None):
     construct = "(defrule %s %s %s => %s)" % (name, cmtstr, lhs, rhs)
     _c.build(construct)
     return Rule(_c.findDefrule(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintRules():
     """print Rules to standard output"""
     _c.routerClear("temporary")
@@ -3631,11 +3559,9 @@ def PrintRules():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintBreakpoints():
     """print breakpoints to standard output"""
     _c.routerClear("temporary")
@@ -3643,46 +3569,38 @@ def PrintBreakpoints():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 5) functions involving Modules
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialModule():
     """return first Module"""
     try:
         return Module(_c.getNextDefmodule())
     except:
         raise _c.ClipsError("M02: could not find any Module")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def ModuleList():
     """return the list of Module names"""
     o = _c.getDefmoduleList()
     return Multifield(_cl2py(o))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindModule(name):
     """find a Module by name"""
     return Module(_c.findDefmodule(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), (bytearray, str), None)
 @_forces(bytearray, bytearray, None)
 def BuildModule(name, text="", comment=None):
@@ -3694,11 +3612,9 @@ def BuildModule(name, text="", comment=None):
     construct = "(defmodule %s %s %s)" % (name, cmtstr, text)
     _c.build(construct)
     return Module(_c.findDefmodule(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintModules():
     """print list of Modules to standard output"""
     _c.routerClear("temporary")
@@ -3706,46 +3622,38 @@ def PrintModules():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 6) functions involving defglobals
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialGlobal():
     """return first Global variable"""
     try:
         return Global(_c.getNextDefglobal())
     except:
         raise _c.ClipsError("M02: could not find any Global")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def GlobalList():
     """return the list of Global variable names"""
     o = _c.getDefglobalList()
     return Multifield(_cl2py(o))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindGlobal(name):
     """find a Global variable by name"""
     return Global(_c.findDefglobal(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None)
 @_forces(bytearray, None)
 def BuildGlobal(name, value=Nil):
@@ -3755,21 +3663,17 @@ def BuildGlobal(name, value=Nil):
     construct = "(defglobal ?*%s* = %s)" % (name, value)
     _c.build(construct)
     return Global(_c.findDefglobal("%s" % name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def GlobalsChanged():
     """test whether or not Global variables have changed since last call"""
     rv = bool(_c.getGlobalsChanged())
     _c.setGlobalsChanged(False)
     return rv
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintGlobals():
     """print list of Global variables to standard output"""
     _c.routerClear("temporary")
@@ -3777,11 +3681,9 @@ def PrintGlobals():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def ShowGlobals():
     """print list of Global variables and values to standard output"""
     _c.routerClear("temporary")
@@ -3789,46 +3691,38 @@ def ShowGlobals():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 7) functions involving Functions
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialFunction():
     """return first Function"""
     try:
         return Function(_c.getNextDeffunction())
     except:
         raise _c.ClipsError("M02: could not find any Function")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def FunctionList():
     """return the list of Function names"""
     o = _c.getDeffunctionList()
     return Multifield(_cl2py(o))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindFunction(name):
     """find a Function by name"""
     return Function(_c.findDeffunction(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None, (bytearray, str), None)
 @_forces(bytearray, None, bytearray, None)
 def BuildFunction(name, args, text, comment=None):
@@ -3844,11 +3738,9 @@ def BuildFunction(name, args, text, comment=None):
     construct = "(deffunction %s %s (%s) %s)" % (name, cmtstr, args, text)
     _c.build(construct)
     return Function(_c.findDeffunction(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintFunctions():
     """print list of Functions to standard output"""
     _c.routerClear("temporary")
@@ -3856,46 +3748,38 @@ def PrintFunctions():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 8) functions involving Generics
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialGeneric():
     """return first Generic"""
     try:
         return Generic(_c.getNextDefgeneric())
     except:
         raise _c.ClipsError("M02: could not find any Generic")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def GenericList():
     """return the list of Generic names"""
     o = _c.getDefgenericList()
     return Multifield(_cl2py(o))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindGeneric(name):
     """find a Generic by name"""
     return Generic(_c.findDefgeneric(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None)
 @_forces(bytearray, None)
 def BuildGeneric(name, comment=None):
@@ -3907,11 +3791,9 @@ def BuildGeneric(name, comment=None):
     construct = "(defgeneric %s %s)" % (name, cmtstr)
     _c.build(construct)
     return Generic(_c.findDefgeneric(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintGenerics():
     """print list of Generics to standard output"""
     _c.routerClear("temporary")
@@ -3919,11 +3801,9 @@ def PrintGenerics():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def MethodList():
     """return the list of all Methods"""
     o = _cl2py(_c.getDefmethodList())
@@ -3932,46 +3812,38 @@ def MethodList():
     for x in range(l):
         li.append(Multifield([o[2 * x], o[2 * x + 1]]))
     return li
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 9) functions involving Classes
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialClass():
     """retrieve first Class"""
     try:
         return Class(_c.getNextDefclass())
     except:
         raise _c.ClipsError("M02: could not find any Class")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def ClassList():
     """return the list of Class names"""
     o = _c.getDefclassList()
     return Multifield(_cl2py(o))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindClass(name):
     """find a Class by name"""
     return Class(_c.findDefclass(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), (bytearray, str), None)
 @_forces(bytearray, bytearray, None)
 def BuildClass(name, text, comment=None):
@@ -3983,11 +3855,9 @@ def BuildClass(name, text, comment=None):
     construct = "(defclass %s %s %s)" % (name, cmtstr, text)
     _c.build(construct)
     return Class(_c.findDefclass(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintClasses():
     """print list of Classes to standard output"""
     _c.routerClear("temporary")
@@ -3995,11 +3865,9 @@ def PrintClasses():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def BrowseClasses(classname):
@@ -4010,11 +3878,9 @@ def BrowseClasses(classname):
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None, None, (bytearray, str), None, None)
 @_forces(bytearray, bytearray, None, bytearray, None, None)
 def BuildMessageHandler(name, hclass, args, text, htype=PRIMARY, comment=None):
@@ -4037,11 +3903,9 @@ def BuildMessageHandler(name, hclass, args, text, htype=PRIMARY, comment=None):
     _c.build(construct)
     defclass = _c.findDefclass(hclass)
     return _c.findDefmessageHandler(defclass, name, htype)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def MessageHandlerList():
     """return list of MessageHandler constructs"""
     o = _c.getDefmessageHandlerList()
@@ -4050,11 +3914,9 @@ def MessageHandlerList():
     for x in range(0, l):
         rv.append(Multifield([li[x * 3], li[x * 3 + 1], li[x * 3 + 2]]))
     return Multifield(rv)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintMessageHandlers():
     """print list of all MessageHandlers"""
     _c.routerClear("temporary")
@@ -4062,128 +3924,104 @@ def PrintMessageHandlers():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 10) functions involving instances
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialInstance():
     """retrieve first Instance"""
     try:
         return Instance(_c.getNextInstance())
     except:
         raise _c.ClipsError("M02: could not find any Instance")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def BLoadInstances(filename):
     """load Instances from binary file"""
     _c.binaryLoadInstances(_os.path.normpath(filename))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None)
 @_forces(bytearray, None)
 def BSaveInstances(filename, mode=LOCAL_SAVE):
     """save Instances to binary file"""
     _c.binarySaveInstances(_os.path.normpath(filename), mode)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def LoadInstances(filename):
     """load Instances from file"""
     _c.loadInstances(_os.path.normpath(filename))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None)
 @_forces(bytearray, None)
 def SaveInstances(filename, mode=LOCAL_SAVE):
     """save Instances to file"""
     _c.saveInstances(_os.path.normpath(filename), mode)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def LoadInstancesFromString(s):
     """load Instances from the specified string"""
     _c.loadInstancesFromString(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def RestoreInstancesFromString(s):
     """restore Instances from the specified string"""
     _c.restoreInstancesFromString(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def InstancesChanged():
     """test if Instances have changed since last call"""
     rv = bool(_c.getInstancesChanged())
     _c.setInstancesChanged(False)
     return rv
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None, (bytearray, str))
 @_forces(bytearray, bytearray, bytearray)
 def BuildInstance(name, defclass, overrides=""):
     """build an Instance of given class overriding specified slots"""
     cmdstr = "(%s of %s %s)" % (name, str(defclass), overrides)
     return Instance(_c.makeInstance(cmdstr))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindInstance(name):
     """find an Instance in all modules (including imported)"""
     return Instance(_c.findInstance(name, True))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindInstanceLocal(name):
     """find an Instance in non imported modules"""
     return Instance(_c.findInstance(name, False))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_forces(bytearray)
 def PrintInstances(classname=None):
     """print Instances to standard output"""
@@ -4195,11 +4033,9 @@ def PrintInstances(classname=None):
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_forces(bytearray)
 def PrintSubclassInstances(classname):
     """print subclass Instances to standard output"""
@@ -4209,37 +4045,31 @@ def PrintSubclassInstances(classname):
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 11) functions involving definstances
 
-# {{FUNCTION
+#{{FUNCTION
 def InitialDefinstances():
     """retrieve first Definstances"""
     try:
         return Definstances(_c.getNextDefinstances())
     except:
         raise _c.ClipsError("M02: could not find any Definstances")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def FindDefinstances(name):
     """find Definstances by name"""
     return Definstances(_c.findDefinstances(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), (bytearray, str), None)
 @_forces(bytearray, bytearray, None)
 def BuildDefinstances(name, text, comment=None):
@@ -4251,20 +4081,16 @@ def BuildDefinstances(name, text, comment=None):
     construct = "(definstances %s %s %s)" % (name, cmtstr, text)
     _c.build(construct)
     return Definstances(_c.findDefinstances(name))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def DefinstancesList():
     """retrieve list of all Definstances names"""
     o = _c.getDefinstancesList()
     return Multifield(_cl2py(o))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintDefinstances():
     """print list of all Definstances to standard output"""
     _c.routerClear("temporary")
@@ -4272,16 +4098,14 @@ def PrintDefinstances():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 12) Agenda functions
 
-# {{FUNCTION
+#{{FUNCTION
 def PrintAgenda():
     """print Agenda Rules to standard output"""
     _c.routerClear("temporary")
@@ -4289,64 +4113,50 @@ def PrintAgenda():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def AgendaChanged():
     """test whether or not Agenda is changed since last call"""
     rv = bool(_c.getAgendaChanged())
     _c.setAgendaChanged(False)
     return rv
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def RefreshAgenda():
     """refresh Agenda Rules for current Module"""
     _c.refreshAgenda()
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def ReorderAgenda():
     """reorder Agenda Rules for current Module"""
     _c.reorderAgenda()
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def Run(limit=None):
     """execute Rules up to limit (if any)"""
     if limit is None:
         return _c.run()
     else:
         return _c.run(limit)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def ClearFocusStack():
     """clear focus stack"""
     _c.clearFocusStack()
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def FocusStack():
     """return list of Module names in focus stack"""
     return _cl2py(_c.getFocusStack())
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PrintFocusStack():
     """print focus stack to standard output"""
     _c.routerClear("temporary")
@@ -4354,113 +4164,91 @@ def PrintFocusStack():
     s = _c.routerRead("temporary")
     if s:
         _sys.stdout.write(s)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def PopFocus():
     """pop focus"""
     _c.popFocus()
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def InitialActivation():
     """return first Activation object"""
     try:
         return Activation(_c.getNextActivation())
     except:
         raise _c.ClipsError("M02: could not find any Activation")
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def CurrentModule():
     """return current Module"""
     return Module(_c.getCurrentModule())
-
-
-# }}
+#}}
 
 
 
 # ========================================================================== #
 # 13) True "current environment" functions - as of APG section 4.1
 
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def BLoad(filename):
     """binary load the constructs from a file"""
     _c.bload(_os.path.normpath(filename))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def BSave(filename):
     """binary save constructs to a file"""
     _c.bsave(_os.path.normpath(filename))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def Load(filename):
     """load constructs from a file"""
     _c.load(_os.path.normpath(filename))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def Save(filename):
     """save constructs to a file"""
     _c.save(_os.path.normpath(filename))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def BatchStar(filename):
     """execute commands stored in file"""
     _c.batchStar(_os.path.normpath(filename))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def Build(construct):
     """build construct given in argument"""
     _c.build(construct)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str))
 @_forces(bytearray)
 def Eval(expr):
     """evaluate expression passed as argument"""
     return _cl2py(_c.eval(expr))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None)
 @_forces(bytearray, None)
 def Call(func, args=None):
@@ -4521,21 +4309,17 @@ def Call(func, args=None):
         return _cl2py(_c.functionCall(func, sargs))
     else:
         return _cl2py(_c.functionCall(func))
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 @_accepts((bytearray, str), None)
 @_forces(bytearray, None)
 def SendCommand(command, verbose=False):
     """send a command to the engine as if typed at the CLIPS prompt"""
     _c.sendCommand(command, verbose)
+#}}
 
-
-# }}
-
-# {{FUNCTION
+#{{FUNCTION
 def Reset():
     """reset Environment"""
     _c.reset()
@@ -4546,15 +4330,13 @@ def Reset():
 # is why a check is performed to test whether or not the 'self' identifier
 # is present (which only happens in the environment-aware version)#}}
 
-# {{FUNCTION
+#{{FUNCTION
 def Clear():
     """clear Environment"""
     _c.clear()
     if not 'self' in list(locals().keys()):
         _setStockClasses()
-
-
-# }}
+#}}
 
 
 
