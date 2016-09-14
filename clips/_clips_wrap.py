@@ -36,6 +36,8 @@ import os as  _os
 # the low-level module
 import clips._clips as _c
 
+_bytes = lambda x: bytes(x, 'ascii')
+
 # check Python version, and issue an exception if not supported
 if _sys.version[:3] < "2.4":
     raise _c.ClipsError("M99: Python 2.4 or higher required")
@@ -136,12 +138,14 @@ def _accepts(*types):
                         if type(t) == tuple:
                             errorstr = \
                                 "one of %s expected in %s, parameter %s" \
-                                % (", ".join([str(x)[1:-1] for x in t]),
+                                % (", ".join(
+                                    [bytearray(x, 'ascii')[1:-1] for x in t]),
                                    f.__name__, i + 1)
                         else:
                             errorstr = \
                                 "%s expected in %s, parameter %s" \
-                                % (str(t)[1:-1], f.__name__, i + 1)
+                                % (
+                                bytearray(t, 'ascii')[1:-1], f.__name__, i + 1)
                         raise TypeError(errorstr)
                 i += 1
             return f(*args)
@@ -403,19 +407,22 @@ ClipsFloatType = type(Float(0.0))
 class String(bytes):
     """extend a bytes for use with CLIPS"""
 
+    def __init__(self, *args, **kwargs):
+        super(String, self).__init__(*args, encoding='ascii', **kwargs)
+
     def __repr__(self):
         return "<String %s>" % bytes.__repr__(self)
 
     def __add__(self, o):
-        return String(bytes(self) + bytes(o))
+        return String(_bytes(self) + _bytes(o))
 
     def clrepr(self):
         """represent this String for CLIPS"""
-        return (_c.STRING, bytes(self))
+        return (_c.STRING, _bytes(self))
 
     def clsyntax(self):
         """represent this String as it would be in CLIPS syntax"""
-        return '"%s"' % bytes(self).replace("\\", "\\\\").replace('"', '\\"')
+        return '"%s"' % _bytes(self).replace("\\", "\\\\").replace('"', '\\"')
 
     def cltypename(self):
         """name of this type in CLIPS"""
@@ -435,15 +442,15 @@ class Symbol(bytes):
         return bool(self not in ('FALSE', 'nil', ''))
 
     def __add__(self, o):
-        return Symbol(bytes(self) + bytes(o))
+        return Symbol(_bytes(self) + _bytes(o))
 
     def clrepr(self):
         """represent this Symbol for CLIPS"""
-        return (_c.SYMBOL, bytes(self))
+        return (_c.SYMBOL, _bytes(self))
 
     def clsyntax(self):
         """represent this Symbol as it would be in CLIPS syntax"""
-        return bytes(self)
+        return _bytes(self)
 
     def cltypename(self):
         """name of this type in CLIPS"""
@@ -460,15 +467,15 @@ class InstanceName(bytes):
         return "<InstanceName %s>" % bytes.__repr__(self)
 
     def __add__(self, o):
-        return InstanceName(bytes(self) + bytes(o))
+        return InstanceName(_bytes(self) + _bytes(o))
 
     def clrepr(self):
         """represent this InstanceName for CLIPS"""
-        return (_c.INSTANCE_NAME, bytes(self))
+        return (_c.INSTANCE_NAME, _bytes(self))
 
     def clsyntax(self):
         """represent this InstanceName as it would be in CLIPS syntax"""
-        return "[%s]" % bytes(self)
+        return "[%s]" % _bytes(self)
 
     def cltypename(self):
         """name of this type in CLIPS"""
@@ -671,7 +678,7 @@ def _py2cl(o):
     elif t1 == float:
         return (_c.FLOAT, float(o))
     elif t1 in (bytes, str):
-        return (_c.STRING, bytes(o))
+        return (_c.STRING, _bytes(o))
     elif t1 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                 ClipsSymbolType, ClipsInstanceNameType, ClipsNilType,
                 ClipsMultifieldType):
@@ -689,7 +696,7 @@ def _py2cl(o):
     elif isinstance(o, bytes):
         return (_c.STRING, str(o))
     elif isinstance(o, str):
-        return (_c.STRING, bytes(o))
+        return (_c.STRING, _bytes(o))
     elif t1 in (list, tuple):
         li = []
         for x in o:
@@ -699,7 +706,7 @@ def _py2cl(o):
             elif t0 == float:
                 li.append((_c.FLOAT, float(x)))
             elif t0 in (bytes, str):
-                li.append((_c.STRING, bytes(x)))
+                li.append((_c.STRING, _bytes(x)))
             elif t0 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                         ClipsSymbolType, ClipsInstanceNameType, ClipsNilType):
                 li.append(x.clrepr())
@@ -716,7 +723,7 @@ def _py2cl(o):
             elif isinstance(x, bytes):
                 li.append((_c.STRING, str(o)))
             elif isinstance(x, str):
-                li.append((_c.STRING, bytes(o)))
+                li.append((_c.STRING, _bytes(o)))
             else:
                 raise TypeError(
                     "list element of type %s cannot be converted" % t0)
@@ -2058,7 +2065,7 @@ class Generic(object):
         func = _c.getDefgenericName(self.__defgeneric)
         if args:
             if (len(args) == 1 and type(args[0]) in (bytes, str)):
-                sargs = bytes(args[0])
+                sargs = _bytes(args[0])
             else:
                 li = []
                 for x in args:
@@ -2179,11 +2186,11 @@ class Generic(object):
                 if type(x) == bytes:
                     rstr += "(%s)" % x
                 elif type(x) == str:
-                    rstr += "(%s)" % bytes(x)
+                    rstr += "(%s)" % _bytes(x)
                 else:
                     if len(x) < 2:
                         raise ValueError("tuple must be at least a pair")
-                    v1, v2 = bytes(x[0]), []
+                    v1, v2 = _bytes(x[0]), []
                     for y in range(1, len(x)):
                         z = x[y]
                         if z == bytes:
@@ -2209,7 +2216,7 @@ class Generic(object):
                         elif type(z) == bytes:
                             v2.append(z)
                         elif type(z) == str:
-                            v2.append(bytes(z))
+                            v2.append(_bytes(z))
                         else:
                             raise TypeError("unexpected value '%s'" % z)
                         rstr += "(%s %s)" % (v1, " ".join(v2))
@@ -2515,7 +2522,7 @@ class Class(object):
     def BuildSubclass(self, name, text="", comment=None):
         """build a subclass of this Class with specified name and body"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         clname = _c.getDefclassName(self.__defclass)
@@ -2593,7 +2600,7 @@ class Class(object):
     def AddMessageHandler(self, name, args, text, htype=PRIMARY, comment=None):
         """build a MessageHandler for this class with arguments and body"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         htype = htype.lower()
@@ -2604,7 +2611,7 @@ class Class(object):
         elif args is None:
             sargs = ""
         else:
-            sargs = bytes(args)
+            sargs = _bytes(args)
         hclass = _c.getDefclassName(self.__defclass)
         construct = "(defmessage-handler %s %s %s %s (%s) %s)" % (
             hclass, name, htype, cmtstr, sargs, text)
@@ -2871,7 +2878,7 @@ class Instance(object):
                     elif isinstance(x, str):
                         li.append(String(x).clsyntax())
                     else:
-                        li.append(bytes(x))
+                        li.append(_bytes(x))
                 sargs = " ".join(li)
             elif t in (int, int):
                 sargs = Integer(args).clsyntax()
@@ -3048,7 +3055,7 @@ class Module(object):
     def BuildTemplate(self, name, text, comment=None):
         """build a Template object with specified name and body"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         mname = self.Name
@@ -3085,7 +3092,7 @@ class Module(object):
     def BuildDeffacts(self, name, text, comment=None):
         """build a Deffacts object with specified name and body"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         mname = self.Name
@@ -3112,7 +3119,7 @@ class Module(object):
     def BuildRule(self, name, lhs, rhs, comment=None):
         """build a Rule object with specified name and LHS/RHS"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         mname = self.Name
@@ -3198,7 +3205,7 @@ class Module(object):
     def BuildFunction(self, name, args, text, comment=None):
         """build a Function with specified name, body and arguments"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         mname = self.Name
@@ -3230,7 +3237,7 @@ class Module(object):
     def BuildGeneric(self, name, comment=None):
         """build a Generic with specified name"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         mname = self.Name
@@ -3257,7 +3264,7 @@ class Module(object):
     def BuildClass(self, name, text, comment=None):
         """build a Class with specified name and body"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         mname = self.Name
@@ -3314,7 +3321,7 @@ class Module(object):
     def BuildDefinstances(self, name, text, comment=None):
         """build a Definstances with specified name and body"""
         if comment:
-            cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+            cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
         else:
             cmtstr = ""
         mname = self.Name
@@ -3397,7 +3404,7 @@ def FindTemplate(s):
 def BuildTemplate(name, text, comment=None):
     """build a Template object with specified name and body"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     construct = "(deftemplate %s %s %s)" % (name, cmtstr, text)
@@ -3418,7 +3425,7 @@ def Assert(o):
     if '_Fact__fact' in dir(o) and _c.isFact(o._Fact__fact):
         return o.Assert()
     elif type(o) in (bytes, str):
-        return Fact(_c.assertString(bytes(o)))
+        return Fact(_c.assertString(_bytes(o)))
     else:
         raise TypeError("expected a string or a Fact")
 
@@ -3545,7 +3552,7 @@ def FindDeffacts(s):
 def BuildDeffacts(name, text, comment=None):
     """build a Deffacts object with specified name and body"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     construct = "(deffacts %s %s %s)" % (name, cmtstr, text)
@@ -3611,7 +3618,7 @@ def FindRule(s):
 def BuildRule(name, lhs, rhs, comment=None):
     """build a Rule object with specified name and body"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     construct = "(defrule %s %s %s => %s)" % (name, cmtstr, lhs, rhs)
@@ -3686,7 +3693,7 @@ def FindModule(name):
 def BuildModule(name, text="", comment=None):
     """build a Module with specified name and body"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     construct = "(defmodule %s %s %s)" % (name, cmtstr, text)
@@ -3749,7 +3756,7 @@ def FindGlobal(name):
 def BuildGlobal(name, value=Nil):
     """build a Global variable with specified name and body"""
     if type(value) in (bytes, str, ClipsStringType):
-        value = '"%s"' % bytes(value)
+        value = '"%s"' % _bytes(value)
     construct = "(defglobal ?*%s* = %s)" % (name, value)
     _c.build(construct)
     return Global(_c.findDefglobal("%s" % name))
@@ -3832,7 +3839,7 @@ def FindFunction(name):
 def BuildFunction(name, args, text, comment=None):
     """build a Function with specified name, body and arguments"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     if type(args) in (tuple, list):
@@ -3899,7 +3906,7 @@ def FindGeneric(name):
 def BuildGeneric(name, comment=None):
     """build a Generic with specified name and body"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     construct = "(defgeneric %s %s)" % (name, cmtstr)
@@ -3975,7 +3982,7 @@ def FindClass(name):
 def BuildClass(name, text, comment=None):
     """build a Class with specified name and body"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     construct = "(defclass %s %s %s)" % (name, cmtstr, text)
@@ -4018,7 +4025,7 @@ def BrowseClasses(classname):
 def BuildMessageHandler(name, hclass, args, text, htype=PRIMARY, comment=None):
     """build a MessageHandler for specified class with arguments and body"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     htype = htype.lower()
@@ -4029,7 +4036,7 @@ def BuildMessageHandler(name, hclass, args, text, htype=PRIMARY, comment=None):
     elif args is None:
         sargs = ""
     else:
-        sargs = bytes(args)
+        sargs = _bytes(args)
     construct = "(defmessage-handler %s %s %s %s (%s) %s)" % (
         hclass, name, htype, cmtstr, sargs, text)
     _c.build(construct)
@@ -4243,7 +4250,7 @@ def FindDefinstances(name):
 def BuildDefinstances(name, text, comment=None):
     """build a Definstances with specified name and body"""
     if comment:
-        cmtstr = '"%s"' % bytes(comment).replace('"', '\\"')
+        cmtstr = '"%s"' % _bytes(comment).replace('"', '\\"')
     else:
         cmtstr = ""
     construct = "(definstances %s %s %s)" % (name, cmtstr, text)
@@ -4468,15 +4475,15 @@ def Call(func, args=None):
         if t == bytes:
             sargs = args
         elif t == str:
-            sargs = bytes(args)
+            sargs = _bytes(args)
         elif t in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                    ClipsSymbolType, ClipsNilType, ClipsInstanceNameType,
                    ClipsMultifieldType):
             sargs = _py2clsyntax(args)
         elif isinstance(args, bytes):
-            sargs = bytes(args)
+            sargs = _bytes(args)
         elif isinstance(args, str):
-            sargs = bytes(args)
+            sargs = _bytes(args)
         elif t in (tuple, list):
             li = []
             for x in args:
@@ -4502,7 +4509,7 @@ def Call(func, args=None):
                 elif isinstance(x, str):
                     li.append(String(x).clsyntax())
                 else:
-                    li.append(bytes(x))
+                    li.append(_bytes(x))
             sargs = " ".join(li)
         elif t in (int, int):
             sargs = Integer(int(args)).clsyntax()
@@ -4515,7 +4522,7 @@ def Call(func, args=None):
         elif isinstance(args, float):
             sargs = Float(args).clsyntax()
         else:
-            sargs = bytes(args)
+            sargs = _bytes(args)
         return _cl2py(_c.functionCall(func, sargs))
     else:
         return _cl2py(_c.functionCall(func))
@@ -4787,7 +4794,7 @@ def RegisterPythonFunction(func, name=None):
 def UnregisterPythonFunction(name):
     """unregister the given Python function from CLIPS"""
     if type(name) in (bytes, str):
-        _c.removePythonFunction(bytes(name))
+        _c.removePythonFunction(_bytes(name))
     else:
         _c.removePythonFunction(name.__name__)
 
