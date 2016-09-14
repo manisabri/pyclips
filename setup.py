@@ -285,6 +285,8 @@ clips - high-level interface to the CLIPS engine module
 
 # standard imports
 import sys as _sys
+_bytearray = str
+_bytearr = lambda x: str(x)
 
 import os as  _os
 import types as _types

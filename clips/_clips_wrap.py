@@ -36,7 +36,9 @@ import os as  _os
 # the low-level module
 import clips._clips as _c
 
-_bytearr = lambda x: bytearray(x, 'ascii')
+# _bytearr = lambda x: _bytearray(x, 'ascii')
+_bytearr = lambda x: str(x)
+_bytearray = str
 
 # check Python version, and issue an exception if not supported
 if _sys.version[:3] < "2.4":
@@ -139,12 +141,12 @@ def _accepts(*types):
                             errorstr = \
                                 "one of %s expected in %s, parameter %s" \
                                 % (", ".join(
-                                    [_bytearr(x)[1:-1] for x in t]),
+                                    [str(x)[1:-1] for x in t]),
                                    f.__name__, i + 1)
                         else:
                             errorstr = \
                                 "%s expected in %s, parameter %s" \
-                                % (_bytearr(t)[1:-1], f.__name__, i + 1)
+                                % (str(t)[1:-1], f.__name__, i + 1)
                         raise TypeError(errorstr)
                 i += 1
             return f(*args)
@@ -173,7 +175,7 @@ def _accepts_method(*types):
                         else:
                             errorstr = \
                                 "%s expected in %s, parameter %s" \
-                                % (_bytearr(t)[1:-1], f.__name__, i + 1)
+                                % (str(t)[1:-1], f.__name__, i + 1)
                         raise TypeError(errorstr)
                 i += 1
             return f(self, *args)
@@ -239,7 +241,6 @@ def _forces(*types):
                         newargs.append(a)
                 # otherwise the argument is converted to the specified type
                 else:
-                    print(type(t))
                     newargs.append(t(a))
                 i += 1
             return f(*newargs)
@@ -404,13 +405,13 @@ ClipsFloatType = type(Float(0.0))
 
 
 # 2) string types
-class String(bytearray):
-    """extend a bytearray for use with CLIPS"""
-    def __init__(self, *args):
-        super(String, self).__init__(*args, 'ascii')
+class String(_bytearray):
+    """extend a _bytearray for use with CLIPS"""
+    # def __init__(self, *args):
+    #     super(String, self).__init__(*args, 'ascii')
 
     def __repr__(self):
-        return "<String %s>" % bytearray.__repr__(self)
+        return "<String %s>" % _bytearray.__repr__(self)
 
     def __add__(self, o):
         return String(_bytearr(self) + _bytearr(o))
@@ -430,13 +431,13 @@ class String(bytearray):
 ClipsStringType = type(String(""))
 
 
-class Symbol(bytearray):
-    """extend a bytearray for use with CLIPS as symbol"""
-    def __init__(self, *args):
-        super(Symbol, self).__init__(*args, 'ascii')
+class Symbol(_bytearray):
+    """extend a _bytearray for use with CLIPS as symbol"""
+    # def __init__(self, *args):
+    #     super(Symbol, self).__init__(*args, 'ascii')
 
-    def __str__(self):
-        return "<Symbol %s>" % bytearray.__str__(self)
+    def __repr__(self):
+        return "<Symbol %s>" % _bytearray.__str__(self)
 
     def __bool__(self):
         return bool(self not in ('FALSE', 'nil', ''))
@@ -460,11 +461,11 @@ class Symbol(bytearray):
 ClipsSymbolType = type(Symbol(""))
 
 
-class InstanceName(bytearray):
+class InstanceName(_bytearray):
     """extend a str for use with CLIPS as instance name"""
 
     def __repr__(self):
-        return "<InstanceName %s>" % bytearray.__repr__(self)
+        return "<InstanceName %s>" % _bytearray.__repr__(self)
 
     def __add__(self, o):
         return InstanceName(_bytearr(self) + _bytearr(o))
@@ -553,7 +554,7 @@ class Multifield(list):
                 li.append(Integer(x).clrepr())
             elif t == float:
                 li.append(Float(x).clrepr())
-            elif t in (bytearray, str):
+            elif t in (_bytearray, str):
                 li.append(String(x).clrepr())
             elif isinstance(x, int):
                 li.append(Integer(x).clrepr())
@@ -561,7 +562,7 @@ class Multifield(list):
                 li.append(Integer(x).clrepr())
             elif isinstance(x, float):
                 li.append(Float(x).clrepr())
-            elif isinstance(x, bytearray):
+            elif isinstance(x, _bytearray):
                 li.append(String(x).clrepr())
             elif isinstance(x, str):
                 li.append(String(x).clrepr())
@@ -582,7 +583,7 @@ class Multifield(list):
                 li.append(Integer(x).clsyntax())
             elif t == float:
                 li.append(Float(x).clsyntax())
-            elif t in (bytearray, str):
+            elif t in (_bytearray, str):
                 li.append(String(x).clsyntax())
             elif isinstance(x, int):
                 li.append(Integer(x).clsyntax())
@@ -590,7 +591,7 @@ class Multifield(list):
                 li.append(Integer(x).clsyntax())
             elif isinstance(x, float):
                 li.append(Float(x).clsyntax())
-            elif isinstance(x, bytearray):
+            elif isinstance(x, _bytearray):
                 li.append(String(x).clsyntax())
             elif isinstance(x, str):
                 li.append(String(x).clsyntax())
@@ -674,7 +675,7 @@ def _py2cl(o):
         return (_c.INTEGER, int(o))
     elif t1 == float:
         return (_c.FLOAT, float(o))
-    elif t1 in (bytearray, str):
+    elif t1 in (_bytearray, str):
         return (_c.STRING, _bytearr(o))
     elif t1 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                 ClipsSymbolType, ClipsInstanceNameType, ClipsNilType,
@@ -690,7 +691,7 @@ def _py2cl(o):
         return (_c.INTEGER, int(o))
     elif isinstance(o, float):
         return (_c.FLOAT, float(o))
-    elif isinstance(o, bytearray):
+    elif isinstance(o, _bytearray):
         return (_c.STRING, str(o))
     elif isinstance(o, str):
         return (_c.STRING, _bytearr(o))
@@ -702,7 +703,7 @@ def _py2cl(o):
                 li.append((_c.INTEGER, int(x)))
             elif t0 == float:
                 li.append((_c.FLOAT, float(x)))
-            elif t0 in (bytearray, str):
+            elif t0 in (_bytearray, str):
                 li.append((_c.STRING, _bytearr(x)))
             elif t0 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                         ClipsSymbolType, ClipsInstanceNameType, ClipsNilType):
@@ -717,7 +718,7 @@ def _py2cl(o):
                 li.append((_c.INTEGER, int(o)))
             elif isinstance(x, float):
                 li.append((_c.FLOAT, float(o)))
-            elif isinstance(x, bytearray):
+            elif isinstance(x, _bytearray):
                 li.append((_c.STRING, _bytearr(o)))
             elif isinstance(x, str):
                 li.append((_c.STRING, _bytearr(o)))
@@ -737,7 +738,7 @@ def _py2clsyntax(o):
         return Integer(int(o)).clsyntax()
     elif t1 == float:
         return Float(o).clsyntax()
-    elif t1 in (bytearray, str):
+    elif t1 in (_bytearray, str):
         return String(o).clsyntax()
     elif t1 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                 ClipsSymbolType, ClipsInstanceNameType, ClipsNilType,
@@ -749,7 +750,7 @@ def _py2clsyntax(o):
         return Integer(int(o)).clsyntax()
     elif isinstance(o, float):
         return Float(o).clsyntax()
-    elif isinstance(o, bytearray):
+    elif isinstance(o, _bytearray):
         return String(o).clsyntax()
     elif t1 in (list, tuple):
         li = []
@@ -759,7 +760,7 @@ def _py2clsyntax(o):
                 li.append(Integer(int(x)).clsyntax())
             elif t0 == float:
                 li.append(Float(x).clsyntax())
-            elif t0 == bytearray:
+            elif t0 == _bytearray:
                 li.append(String(x).clsyntax())
             elif t0 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                         ClipsSymbolType, ClipsInstanceNameType, ClipsNilType):
@@ -770,7 +771,7 @@ def _py2clsyntax(o):
                 li.append(Integer(int(x)).clsyntax())
             elif isinstance(x, float):
                 li.append(Float(x).clsyntax())
-            elif isinstance(x, bytearray):
+            elif isinstance(x, _bytearray):
                 li.append(String(x).clsyntax())
             elif isinstance(x, str):
                 li.append(String(x).clsyntax())
@@ -1176,8 +1177,8 @@ class Template(object):
             def __getstate__(self):
                 raise _c.ClipsError("M03: cannot pickle template slots")
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def AllowedValues(self, name):
                 """return allowed values for specified Slot"""
                 rv = _cl2py(
@@ -1187,8 +1188,8 @@ class Template(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Cardinality(self, name):
                 """return cardinality for specified Slot"""
                 rv = _cl2py(
@@ -1198,14 +1199,14 @@ class Template(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def HasDefault(self, name):
                 """one of NO_DEFAULT, STATIC_DEFAULT or DYNAMIC_DEFAULT"""
                 return _c.deftemplateSlotDefaultP(self.__deftemplate, name)
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def DefaultValue(self, name):
                 """return default value for specified Slot"""
                 rv = _cl2py(
@@ -1215,15 +1216,15 @@ class Template(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Exists(self, name):
                 """return True if specified Slot exists"""
                 return bool(
                     _c.deftemplateSlotExistP(self.__deftemplate, name))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def IsMultifield(self, name):
                 """return True if specified Slot is a multifield one"""
                 return bool(
@@ -1237,8 +1238,8 @@ class Template(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Range(self, name):
                 """return numeric range information of specified Slot"""
                 rv = _cl2py(_c.deftemplateSlotRange(self.__deftemplate, name))
@@ -1247,15 +1248,15 @@ class Template(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def IsSinglefield(self, name):
                 """return True if specified Slot is a single field one"""
                 return bool(
                     _c.deftemplateSlotSingleP(self.__deftemplate, name))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Types(self, name):
                 """return names of primitive types for specified Slot"""
                 rv = _cl2py(_c.deftemplateSlotTypes(self.__deftemplate, name))
@@ -1386,13 +1387,13 @@ class Fact(object):
             def __init__(self, fo):
                 self.__fact = fo
 
-            @_accepts_method((bytearray, str), None)
-            @_forces_method(bytearray, None)
+            @_accepts_method((_bytearray, str), None)
+            @_forces_method(_bytearray, None)
             def __setitem__(self, name, v):
                 _c.putFactSlot(self.__fact, name, _py2cl(v))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def __getitem__(self, name):
                 if not name:
                     return _cl2py(_c.getFactSlot(self.__fact))
@@ -1402,8 +1403,8 @@ class Fact(object):
             def keys(self):
                 return _cl2py(_c.factSlotNames(self.__fact))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def has_key(self, k):
                 return k in list(
                     map(str, _cl2py(_c.factSlotNames(self.__fact))))
@@ -1428,7 +1429,7 @@ class Fact(object):
         elif '_Template__deftemplate' in dir(o) and \
                 _c.isDeftemplate(o._Template__deftemplate):
             self.__fact = _c.createFact(o._Template__deftemplate)
-        elif type(o) == bytearray:
+        elif type(o) == _bytearray:
             try:
                 self.__fact = _c.assertString(o)
             except:
@@ -1941,7 +1942,7 @@ class Function(object):
                         li.append(Integer(x).clsyntax())
                     elif t1 == float:
                         li.append(Float(x).clsyntax())
-                    elif t1 in (bytearray, str):
+                    elif t1 in (_bytearray, str):
                         li.append(String(x).clsyntax())
                     elif isinstance(x, int):
                         li.append(Integer(x).clsyntax())
@@ -2041,7 +2042,7 @@ class Generic(object):
         """call this Generic with given arguments"""
         func = _c.getDefgenericName(self.__defgeneric)
         if args:
-            if (len(args) == 1 and type(args[0]) in (bytearray, str)):
+            if (len(args) == 1 and type(args[0]) in (_bytearray, str)):
                 sargs = _bytearr(args[0])
             else:
                 li = []
@@ -2063,7 +2064,7 @@ class Generic(object):
                         li.append(Integer(x).clsyntax())
                     elif isinstance(x, float):
                         li.append(Float(x).clsyntax())
-                    elif isinstance(x, bytearray):
+                    elif isinstance(x, _bytearray):
                         li.append(String(x).clsyntax())
                     elif isinstance(x, str):
                         li.append(String(x).clsyntax())
@@ -2158,9 +2159,9 @@ class Generic(object):
         if type(restrictions) in (tuple, list):
             rstr = ""
             for x in restrictions:
-                if type(x) not in (tuple, bytearray, str):
+                if type(x) not in (tuple, _bytearray, str):
                     raise TypeError("tuple or string expected as restriction")
-                if type(x) == bytearray:
+                if type(x) == _bytearray:
                     rstr += "(%s)" % x
                 elif type(x) == str:
                     rstr += "(%s)" % _bytearr(x)
@@ -2170,7 +2171,7 @@ class Generic(object):
                     v1, v2 = _bytearr(x[0]), []
                     for y in range(1, len(x)):
                         z = x[y]
-                        if z == bytearray:
+                        if z == _bytearray:
                             v2.append("STRING")
                         elif z == ClipsStringType:
                             v2.append("STRING")
@@ -2190,14 +2191,14 @@ class Generic(object):
                             v2.append("MULTIFIELD")
                         elif z == ClipsMultifieldType:
                             v2.append("MULTIFIELD")
-                        elif type(z) == bytearray:
+                        elif type(z) == _bytearray:
                             v2.append(z)
                         elif type(z) == str:
                             v2.append(_bytearr(z))
                         else:
                             raise TypeError("unexpected value '%s'" % z)
                         rstr += "(%s %s)" % (v1, " ".join(v2))
-        elif type(restrictions) == bytearray:
+        elif type(restrictions) == _bytearray:
             rstr = restrictions
         else:
             raise TypeError("tuple or string expected as restriction")
@@ -2271,8 +2272,8 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def AllowedValues(self, name):
                 """return allowed values for specified Slot"""
                 rv = _cl2py(_c.slotAllowedValues(self.__defclass, name))
@@ -2281,8 +2282,8 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def AllowedClasses(self, name):
                 """return allowed classes for specified Slot"""
                 rv = _cl2py(_c.slotAllowedClasses(self.__defclass, name))
@@ -2291,8 +2292,8 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Cardinality(self, name):
                 """return cardinality for specified Slot"""
                 rv = _cl2py(_c.slotCardinality(self.__defclass, name))
@@ -2301,8 +2302,8 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def DefaultValue(self, name):
                 """return default value for specified Slot"""
                 rv = _cl2py(_c.slotDefaultValue(self.__defclass, name))
@@ -2311,8 +2312,8 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Facets(self, name):
                 """return facet values for specified Slot"""
                 rv = _cl2py(_c.slotFacets(self.__defclass, name))
@@ -2321,8 +2322,8 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Range(self, name):
                 """return numeric range information of specified Slot"""
                 rv = _cl2py(_c.slotRange(self.__defclass, name))
@@ -2331,8 +2332,8 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Sources(self, name):
                 """return source class names for specified Slot"""
                 rv = _cl2py(_c.slotSources(self.__defclass, name))
@@ -2341,8 +2342,8 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Types(self, name):
                 """return names of primitive types for specified Slot"""
                 rv = _cl2py(_c.slotTypes(self.__defclass, name))
@@ -2351,38 +2352,38 @@ class Class(object):
                 else:
                     return rv
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def HasDirectAccess(self, name):
                 """return True if specified Slot is directly accessible"""
                 return bool(_c.slotDirectAccessP(self.__defclass, name))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def Exists(self, name):
                 """return True if specified Slot exists or is inherited"""
                 return bool(_c.slotExistP(self.__defclass, name, 1))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def ExistsDefined(self, name):
                 """return True if specified Slot is defined in this Class"""
                 return bool(_c.slotExistP(self.__defclass, name, 0))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def IsInitable(self, name):
                 """return True if specified Slot is initable"""
                 return bool(_c.slotInitableP(self.__defclass, name))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def IsPublic(self, name):
                 """return True if specified Slot is public"""
                 return bool(_c.slotPublicP(self.__defclass, name))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def IsWritable(self, name):
                 """return True if specified Slot is writable"""
                 return bool(_c.slotWritableP(self.__defclass, name))
@@ -2449,8 +2450,8 @@ class Class(object):
         return Multifield(
             _cl2py(_c.classSuperclasses(self.__defclass, inherit)))
 
-    @_accepts_method((bytearray, str))
-    @_forces_method(bytearray)
+    @_accepts_method((_bytearray, str))
+    @_forces_method(_bytearray)
     def RawInstance(self, name):
         """create an empty Instance of this Class with specified name"""
         return Instance(_c.createRawInstance(self.__defclass, name))
@@ -2492,8 +2493,8 @@ class Class(object):
         """remove this Class"""
         _c.undefclass(self.__defclass)
 
-    @_accepts_method((bytearray, str), (bytearray, str), None)
-    @_forces_method(bytearray, bytearray, None)
+    @_accepts_method((_bytearray, str), (_bytearray, str), None)
+    @_forces_method(_bytearray, _bytearray, None)
     def BuildSubclass(self, name, text="", comment=None):
         """build a subclass of this Class with specified name and body"""
         if comment:
@@ -2506,8 +2507,8 @@ class Class(object):
         _c.build(construct)
         return Class(_c.findDefclass(name))
 
-    @_accepts_method((bytearray, str), (bytearray, str))
-    @_forces_method(bytearray, bytearray)
+    @_accepts_method((_bytearray, str), (_bytearray, str))
+    @_forces_method(_bytearray, _bytearray)
     def BuildInstance(self, name, overrides=""):
         """build an instance of this class overriding specified slots"""
         clname = _c.getDefclassName(self.__defclass)
@@ -2570,8 +2571,8 @@ class Class(object):
                      "Class Slots information")
 
     # message-handler functions
-    @_accepts_method((bytearray, str), (bytearray, str), (bytearray, str), None, None)
-    @_forces_method(bytearray, bytearray, bytearray, None, None)
+    @_accepts_method((_bytearray, str), (_bytearray, str), (_bytearray, str), None, None)
+    @_forces_method(_bytearray, _bytearray, _bytearray, None, None)
     def AddMessageHandler(self, name, args, text, htype=PRIMARY, comment=None):
         """build a MessageHandler for this class with arguments and body"""
         if comment:
@@ -2593,8 +2594,8 @@ class Class(object):
         _c.build(construct)
         return _c.findDefmessageHandler(self.__defclass, name, htype)
 
-    @_accepts_method((bytearray, str), None)
-    @_forces_method(bytearray, None)
+    @_accepts_method((_bytearray, str), None)
+    @_forces_method(_bytearray, None)
     def MessageHandlerIndex(self, name, htype=PRIMARY):
         """find the specified MessageHandler"""
         htype = htype.lower()
@@ -2674,8 +2675,8 @@ class Class(object):
         if s:
             _sys.stdout.write(s)
 
-    @_accepts_method((bytearray, str))
-    @_forces_method(bytearray)
+    @_accepts_method((_bytearray, str))
+    @_forces_method(_bytearray)
     def PreviewSend(self, msgname):
         """print list of MessageHandlers suitable for specified message"""
         _c.routerClear("temporary")
@@ -2710,13 +2711,13 @@ class Instance(object):
             def __init__(self, io):
                 self.__instance = io
 
-            @_accepts_method((bytearray, str), None)
-            @_forces_method(bytearray, None)
+            @_accepts_method((_bytearray, str), None)
+            @_forces_method(_bytearray, None)
             def __setitem__(self, name, v):
                 _c.directPutSlot(self.__instance, name, _py2cl(v))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def __getitem__(self, name):
                 return _cl2py(_c.directGetSlot(self.__instance, name))
 
@@ -2724,8 +2725,8 @@ class Instance(object):
                 return list(map(
                     str, list(Instance(self.__instance).Class.Slots.Names())))
 
-            @_accepts_method((bytearray, str))
-            @_forces_method(bytearray)
+            @_accepts_method((_bytearray, str))
+            @_forces_method(_bytearray)
             def has_key(self, k):
                 return bool(
                     k in list(map(str, list(
@@ -2792,29 +2793,29 @@ class Instance(object):
         """directly remove this Instance"""
         _c.deleteInstance(self.__instance)
 
-    @_accepts_method((bytearray, str))
-    @_forces_method(bytearray)
+    @_accepts_method((_bytearray, str))
+    @_forces_method(_bytearray)
     def GetSlot(self, slotname):
         """retrieve value of specified Slot"""
         return _cl2py(_c.directGetSlot(self.__instance, slotname))
 
     SlotValue = GetSlot
 
-    @_accepts_method((bytearray, str), None)
-    @_forces_method(bytearray, None)
+    @_accepts_method((_bytearray, str), None)
+    @_forces_method(_bytearray, None)
     def PutSlot(self, slotname, value):
         """set value of specified Slot"""
         _c.directPutSlot(self.__instance, slotname, _py2cl(value))
 
     SetSlotValue = PutSlot
 
-    @_accepts_method((bytearray, str), None)
-    @_forces_method(bytearray, None)
+    @_accepts_method((_bytearray, str), None)
+    @_forces_method(_bytearray, None)
     def Send(self, msg, args=None):
         """send specified message with the given arguments to Instance"""
         if args is not None:
             t = type(args)
-            if t == bytearray:
+            if t == _bytearray:
                 sargs = args
             elif t == str:
                 sargs = str(args)
@@ -2838,7 +2839,7 @@ class Instance(object):
                         li.append(Integer(int(x)).clsyntax())
                     elif t1 == float:
                         li.append(Float(x).clsyntax())
-                    elif t1 in (bytearray, str):
+                    elif t1 in (_bytearray, str):
                         li.append(String(x).clsyntax())
                     elif isinstance(x, int):
                         li.append(Integer(x).clsyntax())
@@ -2846,7 +2847,7 @@ class Instance(object):
                         li.append(Integer(x).clsyntax())
                     elif isinstance(x, float):
                         li.append(Float(x).clsyntax())
-                    elif isinstance(x, bytearray):
+                    elif isinstance(x, _bytearray):
                         li.append(String(x).clsyntax())
                     elif isinstance(x, str):
                         li.append(String(x).clsyntax())
@@ -2857,7 +2858,7 @@ class Instance(object):
                 sargs = Integer(args).clsyntax()
             elif t == float:
                 sargs = Float(args).clsyntax()
-            elif isinstance(args, bytearray):
+            elif isinstance(args, _bytearray):
                 sargs = str(args)
             elif isinstance(args, str):
                 sargs = str(args)
@@ -3019,8 +3020,8 @@ class Module(object):
     # Functions involving other entities
 
     # Templates
-    @_accepts_method((bytearray, str), (bytearray, str), None)
-    @_forces_method(bytearray, bytearray, None)
+    @_accepts_method((_bytearray, str), (_bytearray, str), None)
+    @_forces_method(_bytearray, _bytearray, None)
     def BuildTemplate(self, name, text, comment=None):
         """build a Template object with specified name and body"""
         if comment:
@@ -3056,8 +3057,8 @@ class Module(object):
         return li
 
     # Deffacts
-    @_accepts_method((bytearray, str), (bytearray, str), None)
-    @_forces_method(bytearray, bytearray, None)
+    @_accepts_method((_bytearray, str), (_bytearray, str), None)
+    @_forces_method(_bytearray, _bytearray, None)
     def BuildDeffacts(self, name, text, comment=None):
         """build a Deffacts object with specified name and body"""
         if comment:
@@ -3083,8 +3084,8 @@ class Module(object):
             _sys.stdout.write(s)
 
     # Rules
-    @_accepts_method((bytearray, str), (bytearray, str), (bytearray, str), None)
-    @_forces_method(bytearray, bytearray, bytearray, None)
+    @_accepts_method((_bytearray, str), (_bytearray, str), (_bytearray, str), None)
+    @_forces_method(_bytearray, _bytearray, _bytearray, None)
     def BuildRule(self, name, lhs, rhs, comment=None):
         """build a Rule object with specified name and LHS/RHS"""
         if comment:
@@ -3136,12 +3137,12 @@ class Module(object):
         _c.reorderAgenda(self.__defmodule)
 
     # Globals
-    @_accepts_method((bytearray, str), None)
-    @_forces_method(bytearray, None)
+    @_accepts_method((_bytearray, str), None)
+    @_forces_method(_bytearray, None)
     def BuildGlobal(self, name, value=Nil):
         """build a Global variable with specified name and value"""
         mname = self.Name
-        if type(value) in (bytearray, ClipsStringType):
+        if type(value) in (_bytearray, ClipsStringType):
             value = '"%s"' % value
         construct = "(defglobal %s ?*%s* = %s)" % (mname, name, value)
         _c.build(construct)
@@ -3169,8 +3170,8 @@ class Module(object):
             _sys.stdout.write(s)
 
     # Functions
-    @_accepts_method((bytearray, str), None, (bytearray, str), None)
-    @_forces_method(bytearray, None, bytearray, None)
+    @_accepts_method((_bytearray, str), None, (_bytearray, str), None)
+    @_forces_method(_bytearray, None, _bytearray, None)
     def BuildFunction(self, name, args, text, comment=None):
         """build a Function with specified name, body and arguments"""
         if comment:
@@ -3201,8 +3202,8 @@ class Module(object):
             _sys.stdout.write(s)
 
     # Generics
-    @_accepts_method((bytearray, str), None)
-    @_forces_method(bytearray, None)
+    @_accepts_method((_bytearray, str), None)
+    @_forces_method(_bytearray, None)
     def BuildGeneric(self, name, comment=None):
         """build a Generic with specified name"""
         if comment:
@@ -3228,8 +3229,8 @@ class Module(object):
             _sys.stdout.write(s)
 
     # Classes
-    @_accepts_method((bytearray, str), (bytearray, str), None)
-    @_forces_method(bytearray, bytearray, None)
+    @_accepts_method((_bytearray, str), (_bytearray, str), None)
+    @_forces_method(_bytearray, _bytearray, None)
     def BuildClass(self, name, text, comment=None):
         """build a Class with specified name and body"""
         if comment:
@@ -3255,15 +3256,15 @@ class Module(object):
             _sys.stdout.write(s)
 
     # Instances
-    @_accepts_method((bytearray, str), None, None)
-    @_forces_method(bytearray, bytearray, None)
+    @_accepts_method((_bytearray, str), None, None)
+    @_forces_method(_bytearray, _bytearray, None)
     def BuildInstance(self, name, defclass, overrides=""):
         """build an Instance of given Class overriding specified Slots"""
         mname = self.Name
         cmdstr = "(%s::%s of %s %s)" % (mname, name, defclass, overrides)
         return Instance(_c.makeInstance(cmdstr))
 
-    @_forces_method(bytearray)
+    @_forces_method(_bytearray)
     def PrintInstances(self, classname=None):
         """print Instances to standard output"""
         _c.routerClear("temporary")
@@ -3275,7 +3276,7 @@ class Module(object):
         if s:
             _sys.stdout.write(s)
 
-    @_forces_method(bytearray)
+    @_forces_method(_bytearray)
     def PrintSubclassInstances(self, classname):
         """print Instances to standard output"""
         _c.routerClear("temporary")
@@ -3285,8 +3286,8 @@ class Module(object):
             _sys.stdout.write(s)
 
     # Definstances
-    @_accepts_method((bytearray, str), (bytearray, str), None)
-    @_forces_method(bytearray, bytearray, None)
+    @_accepts_method((_bytearray, str), (_bytearray, str), None)
+    @_forces_method(_bytearray, _bytearray, None)
     def BuildDefinstances(self, name, text, comment=None):
         """build a Definstances with specified name and body"""
         if comment:
@@ -3350,16 +3351,16 @@ def TemplateList():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindTemplate(s):
     """find a Template by name"""
     return Template(_c.findDeftemplate(s))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), (bytearray, str), None)
-@_forces(bytearray, bytearray, None)
+@_accepts((_bytearray, str), (_bytearray, str), None)
+@_forces(_bytearray, _bytearray, None)
 def BuildTemplate(name, text, comment=None):
     """build a Template object with specified name and body"""
     if comment:
@@ -3381,7 +3382,7 @@ def Assert(o):
     """assert a Fact from a string or constructed Fact object"""
     if '_Fact__fact' in dir(o) and _c.isFact(o._Fact__fact):
         return o.Assert()
-    elif type(o) in (bytearray, str):
+    elif type(o) in (_bytearray, str):
         return Fact(_c.assertString(_bytearr(o)))
     else:
         raise TypeError("expected a string or a Fact")
@@ -3397,24 +3398,24 @@ def InitialFact():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def LoadFacts(filename):
     """load Facts from file"""
     _c.loadFacts(_os.path.normpath(filename))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def LoadFactsFromString(s):
     """load Fact objects from a string"""
     _c.loadFactsFromString(s)
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), (bytearray, str))
-@_forces(bytearray, bytearray)
+@_accepts((_bytearray, str), (_bytearray, str))
+@_forces(_bytearray, _bytearray)
 def SaveFacts(filename, mode=LOCAL_SAVE):
     """save current Facts to file"""
     _c.saveFacts(_os.path.normpath(filename), mode)
@@ -3471,8 +3472,8 @@ def DeffactsList():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindDeffacts(s):
     """find a Deffacts by name"""
     try:
@@ -3482,8 +3483,8 @@ def FindDeffacts(s):
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), (bytearray, str), None)
-@_forces(bytearray, bytearray, None)
+@_accepts((_bytearray, str), (_bytearray, str), None)
+@_forces(_bytearray, _bytearray, None)
 def BuildDeffacts(name, text, comment=None):
     """build a Deffacts object with specified name and body"""
     if comment:
@@ -3527,8 +3528,8 @@ def RuleList():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindRule(s):
     """find a Rule by name"""
     try:
@@ -3538,8 +3539,8 @@ def FindRule(s):
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), (bytearray, str), (bytearray, str), None)
-@_forces(bytearray, bytearray, bytearray, None)
+@_accepts((_bytearray, str), (_bytearray, str), (_bytearray, str), None)
+@_forces(_bytearray, _bytearray, _bytearray, None)
 def BuildRule(name, lhs, rhs, comment=None):
     """build a Rule object with specified name and body"""
     if comment:
@@ -3593,16 +3594,16 @@ def ModuleList():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindModule(name):
     """find a Module by name"""
     return Module(_c.findDefmodule(name))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), (bytearray, str), None)
-@_forces(bytearray, bytearray, None)
+@_accepts((_bytearray, str), (_bytearray, str), None)
+@_forces(_bytearray, _bytearray, None)
 def BuildModule(name, text="", comment=None):
     """build a Module with specified name and body"""
     if comment:
@@ -3646,19 +3647,19 @@ def GlobalList():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindGlobal(name):
     """find a Global variable by name"""
     return Global(_c.findDefglobal(name))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None)
-@_forces(bytearray, None)
+@_accepts((_bytearray, str), None)
+@_forces(_bytearray, None)
 def BuildGlobal(name, value=Nil):
     """build a Global variable with specified name and body"""
-    if type(value) in (bytearray, str, ClipsStringType):
+    if type(value) in (_bytearray, str, ClipsStringType):
         value = '"%s"' % _bytearr(value)
     construct = "(defglobal ?*%s* = %s)" % (name, value)
     _c.build(construct)
@@ -3715,16 +3716,16 @@ def FunctionList():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindFunction(name):
     """find a Function by name"""
     return Function(_c.findDeffunction(name))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None, (bytearray, str), None)
-@_forces(bytearray, None, bytearray, None)
+@_accepts((_bytearray, str), None, (_bytearray, str), None)
+@_forces(_bytearray, None, _bytearray, None)
 def BuildFunction(name, args, text, comment=None):
     """build a Function with specified name, body and arguments"""
     if comment:
@@ -3772,16 +3773,16 @@ def GenericList():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindGeneric(name):
     """find a Generic by name"""
     return Generic(_c.findDefgeneric(name))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None)
-@_forces(bytearray, None)
+@_accepts((_bytearray, str), None)
+@_forces(_bytearray, None)
 def BuildGeneric(name, comment=None):
     """build a Generic with specified name and body"""
     if comment:
@@ -3836,16 +3837,16 @@ def ClassList():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindClass(name):
     """find a Class by name"""
     return Class(_c.findDefclass(name))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), (bytearray, str), None)
-@_forces(bytearray, bytearray, None)
+@_accepts((_bytearray, str), (_bytearray, str), None)
+@_forces(_bytearray, _bytearray, None)
 def BuildClass(name, text, comment=None):
     """build a Class with specified name and body"""
     if comment:
@@ -3868,8 +3869,8 @@ def PrintClasses():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def BrowseClasses(classname):
     """print list of Classes that inherit from specified one"""
     _c.routerClear("temporary")
@@ -3881,8 +3882,8 @@ def BrowseClasses(classname):
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None, None, (bytearray, str), None, None)
-@_forces(bytearray, bytearray, None, bytearray, None, None)
+@_accepts((_bytearray, str), None, None, (_bytearray, str), None, None)
+@_forces(_bytearray, _bytearray, None, _bytearray, None, None)
 def BuildMessageHandler(name, hclass, args, text, htype=PRIMARY, comment=None):
     """build a MessageHandler for specified class with arguments and body"""
     if comment:
@@ -3941,48 +3942,48 @@ def InitialInstance():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def BLoadInstances(filename):
     """load Instances from binary file"""
     _c.binaryLoadInstances(_os.path.normpath(filename))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None)
-@_forces(bytearray, None)
+@_accepts((_bytearray, str), None)
+@_forces(_bytearray, None)
 def BSaveInstances(filename, mode=LOCAL_SAVE):
     """save Instances to binary file"""
     _c.binarySaveInstances(_os.path.normpath(filename), mode)
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def LoadInstances(filename):
     """load Instances from file"""
     _c.loadInstances(_os.path.normpath(filename))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None)
-@_forces(bytearray, None)
+@_accepts((_bytearray, str), None)
+@_forces(_bytearray, None)
 def SaveInstances(filename, mode=LOCAL_SAVE):
     """save Instances to file"""
     _c.saveInstances(_os.path.normpath(filename), mode)
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def LoadInstancesFromString(s):
     """load Instances from the specified string"""
     _c.loadInstancesFromString(s)
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def RestoreInstancesFromString(s):
     """restore Instances from the specified string"""
     _c.restoreInstancesFromString(s)
@@ -3997,8 +3998,8 @@ def InstancesChanged():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None, (bytearray, str))
-@_forces(bytearray, bytearray, bytearray)
+@_accepts((_bytearray, str), None, (_bytearray, str))
+@_forces(_bytearray, _bytearray, _bytearray)
 def BuildInstance(name, defclass, overrides=""):
     """build an Instance of given class overriding specified slots"""
     cmdstr = "(%s of %s %s)" % (name, str(defclass), overrides)
@@ -4006,23 +4007,23 @@ def BuildInstance(name, defclass, overrides=""):
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindInstance(name):
     """find an Instance in all modules (including imported)"""
     return Instance(_c.findInstance(name, True))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindInstanceLocal(name):
     """find an Instance in non imported modules"""
     return Instance(_c.findInstance(name, False))
 #}}
 
 #{{FUNCTION
-@_forces(bytearray)
+@_forces(_bytearray)
 def PrintInstances(classname=None):
     """print Instances to standard output"""
     _c.routerClear("temporary")
@@ -4036,7 +4037,7 @@ def PrintInstances(classname=None):
 #}}
 
 #{{FUNCTION
-@_forces(bytearray)
+@_forces(_bytearray)
 def PrintSubclassInstances(classname):
     """print subclass Instances to standard output"""
     _c.routerClear("temporary")
@@ -4062,16 +4063,16 @@ def InitialDefinstances():
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def FindDefinstances(name):
     """find Definstances by name"""
     return Definstances(_c.findDefinstances(name))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), (bytearray, str), None)
-@_forces(bytearray, bytearray, None)
+@_accepts((_bytearray, str), (_bytearray, str), None)
+@_forces(_bytearray, _bytearray, None)
 def BuildDefinstances(name, text, comment=None):
     """build a Definstances with specified name and body"""
     if comment:
@@ -4193,69 +4194,69 @@ def CurrentModule():
 # 13) True "current environment" functions - as of APG section 4.1
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def BLoad(filename):
     """binary load the constructs from a file"""
     _c.bload(_os.path.normpath(filename))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def BSave(filename):
     """binary save constructs to a file"""
     _c.bsave(_os.path.normpath(filename))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def Load(filename):
     """load constructs from a file"""
     _c.load(_os.path.normpath(filename))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def Save(filename):
     """save constructs to a file"""
     _c.save(_os.path.normpath(filename))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def BatchStar(filename):
     """execute commands stored in file"""
     _c.batchStar(_os.path.normpath(filename))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def Build(construct):
     """build construct given in argument"""
     _c.build(construct)
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str))
-@_forces(bytearray)
+@_accepts((_bytearray, str))
+@_forces(_bytearray)
 def Eval(expr):
     """evaluate expression passed as argument"""
     return _cl2py(_c.eval(expr))
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None)
-@_forces(bytearray, None)
+@_accepts((_bytearray, str), None)
+@_forces(_bytearray, None)
 def Call(func, args=None):
     """call a function with the given argument string or tuple"""
     if args is not None:
         t = type(args)
-        if t == bytearray:
+        if t == _bytearray:
             sargs = args
         elif t == str:
             sargs = _bytearr(args)
@@ -4263,7 +4264,7 @@ def Call(func, args=None):
                    ClipsSymbolType, ClipsNilType, ClipsInstanceNameType,
                    ClipsMultifieldType):
             sargs = _py2clsyntax(args)
-        elif isinstance(args, bytearray):
+        elif isinstance(args, _bytearray):
             sargs = _bytearr(args)
         elif isinstance(args, str):
             sargs = _bytearr(args)
@@ -4279,7 +4280,7 @@ def Call(func, args=None):
                     li.append(Integer(int(x)).clsyntax())
                 elif t1 == float:
                     li.append(Float(x).clsyntax())
-                elif t1 in (bytearray, str):
+                elif t1 in (_bytearray, str):
                     li.append(String(x).clsyntax())
                 elif isinstance(x, int):
                     li.append(Integer(x).clsyntax())
@@ -4287,7 +4288,7 @@ def Call(func, args=None):
                     li.append(Integer(x).clsyntax())
                 elif isinstance(x, float):
                     li.append(Float(x).clsyntax())
-                elif isinstance(x, bytearray):
+                elif isinstance(x, _bytearray):
                     li.append(String(x).clsyntax())
                 elif isinstance(x, str):
                     li.append(String(x).clsyntax())
@@ -4312,8 +4313,8 @@ def Call(func, args=None):
 #}}
 
 #{{FUNCTION
-@_accepts((bytearray, str), None)
-@_forces(bytearray, None)
+@_accepts((_bytearray, str), None)
+@_forces(_bytearray, None)
 def SendCommand(command, verbose=False):
     """send a command to the engine as if typed at the CLIPS prompt"""
     _c.sendCommand(command, verbose)
@@ -4495,7 +4496,7 @@ class _clips_Memory(object):
         return _c.memUsed()
 
     Used = property(__property_getUsed, None, None,
-                    "amount in bytearray of memory used by CLIPS")
+                    "amount in _bytearray of memory used by CLIPS")
 
     def __property_getRequests(self):
         return _c.memRequests()
@@ -4551,8 +4552,8 @@ del _clips_Memory
 
 # ========================================================================== #
 # 16) External Functions - "all sorts of new and shiny evil"
-@_accepts(None, (bytearray, str))
-@_forces(None, bytearray)
+@_accepts(None, (_bytearray, str))
+@_forces(None, _bytearray)
 def RegisterPythonFunction(func, name=None):
     """register an external (Python) function to call from within CLIPS"""
 
@@ -4570,7 +4571,7 @@ def RegisterPythonFunction(func, name=None):
 
 def UnregisterPythonFunction(name):
     """unregister the given Python function from CLIPS"""
-    if type(name) in (bytearray, str):
+    if type(name) in (_bytearray, str):
         _c.removePythonFunction(_bytearr(name))
     else:
         _c.removePythonFunction(name.__name__)

@@ -1701,7 +1701,7 @@ BOOL i_py2do_mfhelp_e(void *env, PyObject *p, void *mfptr, int fieldpos) {
     case INSTANCE_NAME:
         if(!PyUnicode_Check(value))
             goto fail;
-        s = PyUnicode_AsEncodedString(value, "ASCII", "strict");
+        s = PyUnicode_AsUTF8(value);
         do_value = EnvAddSymbol(env, s);
         break;
     case INSTANCE_ADDRESS:
@@ -1761,7 +1761,7 @@ BOOL i_py2do_e(void *env, PyObject *p, DATA_OBJECT *o) {
     case INSTANCE_NAME:
         if(!PyUnicode_Check(value))
             goto fail;
-        s = PyUnicode_AsEncodedString(value, "ASCII", "strict");
+        s = PyUnicode_AsUTF8(value);
         do_value = EnvAddSymbol(env, s);
         break;
     case MULTIFIELD:

@@ -101,8 +101,6 @@ class Class(CTestCase):
             e.Clear()
             e.Reset()
             li = e.ClassList()
-            # import  ipdb; ipdb.set_trace()
-            # print(list(map(str, li)))
             self.assertEqual(default_classes, list(map(str, li)))
             c0 = e.FindClass("USER")
             c1 = e.FindClass("OBJECT")
@@ -123,8 +121,8 @@ class Class(CTestCase):
     def test_Class_02(self):
         """Testing: Clear, Reset, Class.PPForm, Class.Description,
         Class.Module"""
-        e0 = self.envdict['clips']
-        e2 = self.envdict['env']
+        e0 = self.envdict[b'clips']
+        e2 = self.envdict[b'env']
         for e in [e0, e2]:
             e.Clear()
             e.Reset()
