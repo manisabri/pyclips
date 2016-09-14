@@ -24,4 +24,4 @@ github_username:
 
 # Build settings
 markdown: kramdown
-theme: technomad-jekyll_theme
+theme: minima
