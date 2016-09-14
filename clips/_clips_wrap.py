@@ -435,8 +435,8 @@ class Symbol(bytearray):
     def __init__(self, *args):
         super(Symbol, self).__init__(*args, 'ascii')
 
-    def __repr__(self):
-        return "<Symbol %s>" % bytearray.__repr__(self)
+    def __str__(self):
+        return "<Symbol %s>" % bytearray.__str__(self)
 
     def __bool__(self):
         return bool(self not in ('FALSE', 'nil', ''))

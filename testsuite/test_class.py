@@ -101,6 +101,8 @@ class Class(CTestCase):
             e.Clear()
             e.Reset()
             li = e.ClassList()
+            # import  ipdb; ipdb.set_trace()
+            # print(list(map(str, li)))
             self.assertEqual(default_classes, list(map(str, li)))
             c0 = e.FindClass("USER")
             c1 = e.FindClass("OBJECT")
