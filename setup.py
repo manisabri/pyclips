@@ -47,7 +47,7 @@ PYCLIPS_VERSION = "%s.%s.%s.%s" % (
 
 from glob import glob
 import os, sys, re, tempfile
-
+from subprocess import Popen, PIPE
 
 # remove unwanted patch sets from this list (not recommended)
 APPLY_PATCHSETS = [
@@ -259,7 +259,7 @@ import os as  _os
 import types as _types
 
 # the low-level module
-import _clips as _c
+import clips._clips as _c
 
 
 # ========================================================================== #
@@ -302,7 +302,7 @@ CONSERVATION_MODE = _c.CONSERVATION_MODE
 
 
 # import adequate symbols from _clips_wrap
-from _clips_wrap import Nil, Integer, Float, String, Symbol, InstanceName, \\
+from ._clips_wrap import Nil, Integer, Float, String, Symbol, InstanceName, \\
                         Multifield, _cl2py, _py2cl, _py2clsyntax, \\
                         ClipsIntegerType, ClipsFloatType, ClipsStringType, \\
                         ClipsSymbolType, ClipsInstanceNameType, \\
@@ -443,7 +443,7 @@ def _i_read_module(f):
 def _i_convert_classinstantiation_c(s):
     if s.split()[0] == 'class':
         return s
-    for x in ALL_CLASSES.keys():
+    for x in list(ALL_CLASSES.keys()):
         s = s.replace(" %s(" % x, " self.__envobject.%s(" % x)
         s = s.replace("(%s(" % x, "(self.__envobject.%s(" % x)
     return s
@@ -451,7 +451,7 @@ def _i_convert_classinstantiation_c(s):
 def _i_convert_classinstantiation(s):
     if s.split()[0] == 'class':
         return s
-    for x in ALL_CLASSES.keys():
+    for x in list(ALL_CLASSES.keys()):
         s = s.replace(" %s(" % x, " self.%s(" % x)
         s = s.replace("(%s(" % x, "(self.%s(" % x)
     return s
@@ -489,7 +489,7 @@ def _i_convert_line(s, cvtdef=False):
                 s1 = def_re.sub(mo.group(0) + "self", s1)
             else:
                 s1 = def_re.sub(mo.group(0) + "self, ", s1)
-        for x in ALL_CLASSES.keys():
+        for x in list(ALL_CLASSES.keys()):
             s1 = s1.replace(" %s(" % x, " self.%s(" % x)
             s1 = s1.replace(" %s:" % x, " self.%s:" % x)
             s1 = s1.replace("(%s(" % x, "(self.%s(" % x)
@@ -534,17 +534,17 @@ def _i_convert_fullclass(name, li):
     head4 = INDENT + INDENT + INDENT + "__env = private_environment\n"
     head5 = INDENT + INDENT + INDENT + "__envobject = environment_object\n"
     foot1 = INDENT + INDENT + "return %s\n"  % name
-    return [head1, head2, head3] + map(_i_convert_classline, docs) \
-       + [head4, head5] + map(_i_convert_classline, li1) + [foot1]
+    return [head1, head2, head3] + list(map(_i_convert_classline, docs)) \
+       + [head4, head5] + list(map(_i_convert_classline, li1)) + [foot1]
 
 # convert an entire function, provided as a list of lines
 def _i_convert_fullfunction(name, li):
-    return map(lambda x: _i_convert_line(x, True), li)
+    return [_i_convert_line(x, True) for x in li]
 
 # create the list of lines that build inner classes in Environment.__init__
 def _i_create_inner_classes():
     inner = []
-    kclasses = ALL_CLASSES.keys()
+    kclasses = list(ALL_CLASSES.keys())
     kclasses.sort()
     for x in kclasses:
         inner.append(
@@ -558,13 +558,13 @@ def convert_module(filename):
     _i_read_module(f)
     f.close()
     classes = []
-    kclasses = ALL_CLASSES.keys()
+    kclasses = list(ALL_CLASSES.keys())
     kclasses.sort()
     for x in kclasses:
         classes += _i_convert_fullclass(x, ALL_CLASSES[x])
     initclasses = _i_create_inner_classes()
     functions = []
-    kfunctions = ALL_FUNCTIONS.keys()
+    kfunctions = list(ALL_FUNCTIONS.keys())
     kfunctions.sort()
     for x in kfunctions:
         functions += _i_convert_fullfunction(x, ALL_FUNCTIONS[x])
@@ -628,8 +628,8 @@ def normalize_eols(t):
     tf.seek(0)
     li = tf.readlines()
     tf.close()
-    li = map(lambda x: x.rstrip(), li)
-    li = map(_remove_badchars, li)
+    li = [x.rstrip() for x in li]
+    li = list(map(_remove_badchars, li))
     return li
 
 
@@ -725,7 +725,7 @@ sys.stdout.write("Done!\n")
 
 # retrieve used CLIPS version
 clips_version = get_clips_version(_p("clipssrc", "constant.h"))
-print "Found CLIPS version: %s" % clips_version
+print("Found CLIPS version: %s" % clips_version)
 maj, min = clips_version.split('.', 1)
 CFLAGS = [
     '-DPYCLIPS',
@@ -763,17 +763,18 @@ else:
 if uses_gcc:
     CFLAGS.append('-fno-strict-aliasing')
 
+p = Popen("patch --version",  shell=True, bufsize=None,
+          stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=True)
+i, o, e = p.stdin, p.stdout, p.stderr
 
-# apply "optional" patches
-i, o, e = os.popen3("patch --version")
 vs = o.read()
 o.close()
 e.close()
 if vs:
-    print "'patch' utility found, applying selected patchsets..."
+    print("'patch' utility found, applying selected patchsets...")
     import shutil
     def apply_patchset(ps):
-        print "Applying patchset '%s':" % ps
+        print("Applying patchset '%s':" % ps)
         pattern = "*.[ch]-??.v%s-%s.diff" % (clips_version, ps)
         for x in glob(_p(ClipsPATCH_dir, pattern)):
             pfn = os.path.basename(x)
@@ -789,9 +790,9 @@ if vs:
                 patchcmd = "patch -l -s -p0 %s < %s" % (
                     _p(ClipsLIB_dir, sourcefile), x)
                 if not os.system(patchcmd):
-                    print "ok."
+                    print("ok.")
                 else:
-                    print "FAILED"
+                    print("FAILED")
     for x in APPLY_PATCHSETS:
         apply_patchset(x)
 
@@ -808,7 +809,7 @@ version = (%s, %s, %s, %s)
 f.close()
 
 # start setup
-print "Standard setup in progress:"
+print("Standard setup in progress:")
 
 
 # The following is a warning to users of ez_setup when using GCC (for
@@ -834,9 +835,9 @@ if not DEBUGGING:
         import ez_setup
         ez_setup.use_setuptools()
         from setuptools import setup, Extension
-        print "Using setuptools instead of distutils..."
+        print("Using setuptools instead of distutils...")
         if not uses_gcc:
-            print warn_default_gcc
+            print(warn_default_gcc)
     except:
         from distutils.core import setup, Extension
 else:

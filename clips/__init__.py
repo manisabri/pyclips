@@ -33,10 +33,10 @@ Please issue 'print clips.license' at the prompt for licensing information.
 """
 
 
-from _clips_wrap import *
-from _eclips_wrap import Environment, CurrentEnvironment
-from _license import license
-from _version import version, version_string
+from ._clips_wrap import *
+from ._eclips_wrap import Environment, CurrentEnvironment
+from ._license import license
+from ._version import version, version_string
 
 
 # provide our __dict__ to the _clips_wrap in order to set up stock classes:
