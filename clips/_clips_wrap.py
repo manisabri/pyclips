@@ -2796,7 +2796,7 @@ class Module(object):
         return li
 
     # Deffacts
-    @_accepts_method((str, str, None)
+    @_accepts_method(str, str, None)
     @_forces_method(str, str, None)
     def BuildDeffacts(self, name, text, comment=None):
         """build a Deffacts object with specified name and body"""

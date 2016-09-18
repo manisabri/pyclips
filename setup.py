@@ -26,8 +26,8 @@ A Python module to interface the CLIPS expert system shell library."""
 
 
 __revision__ = "$Id: setup.py 342 2008-02-22 01:17:23Z Franz $"
-print "Module 'clips': Python to CLIPS interface"
-print "Setup revision: %s" % __revision__
+print("Module 'clips': Python to CLIPS interface")
+print("Setup revision: %s" % __revision__)
 
 
 # the following values generate the version number and some of them
@@ -313,7 +313,7 @@ from ._clips_wrap import Nil, Integer, Float, String, Symbol, InstanceName, \\
 
 
 # environment class:
-class Environment(object):
+class Environment:
     """class representing an environment: implements all global classes"""
 
 %(MEMBER_CLASSES)s
