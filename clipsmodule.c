@@ -9036,9 +9036,6 @@ static PyObject *g_forceCleanup(PyObject *self, PyObject *args) {
         ERROR_CLIPSSYS_CLEANUP();
         FAIL();
     }
-    PeriodicCleanup(env,
-        alldepths ? TRUE : PyObject_IsTrue(alldepths),
-        heuristics ? TRUE : PyObject_IsTrue(heuristics));
     RELEASE_MEMORY_ERROR();
     RETURN_NONE();
 
@@ -17609,9 +17606,6 @@ static PyObject *e_forceCleanup(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    PeriodicCleanup(env,
-        alldepths ? TRUE : PyObject_IsTrue(alldepths),
-        heuristics ? TRUE : PyObject_IsTrue(heuristics));
     RELEASE_MEMORY_ERROR();
     RETURN_NONE();
 
