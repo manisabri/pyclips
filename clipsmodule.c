@@ -9017,6 +9017,37 @@ BEGIN_FAIL
 END_FAIL
 }
 
+/* forceCleanup() [undocumented] */
+static char g_forceCleanup__doc__[] = "\
+forceCleanup([alldepths, heuristics])\n\
+attempt to force a garbage collection\n\
+arguments:\n\
+  alldepths (bool) - True to clean up all depths (default)\n\
+  heuristics (bool) - True to use heuristics (default)";
+static PyObject *g_forceCleanup(PyObject *self, PyObject *args) {
+    void *env = GetCurrentEnvironment();
+    PyObject *alldepths = NULL, *heuristics = NULL;
+
+    if(!PyArg_ParseTuple(args, "|OO", &alldepths, &heuristics))
+        FAIL();
+    ACQUIRE_MEMORY_ERROR();
+    if(EngineData(env)->ExecutingRule != NULL) {
+        RELEASE_MEMORY_ERROR();
+        ERROR_CLIPSSYS_CLEANUP();
+        FAIL();
+    }
+    PeriodicCleanup(env,
+        alldepths ? TRUE : PyObject_IsTrue(alldepths),
+        heuristics ? TRUE : PyObject_IsTrue(heuristics));
+    RELEASE_MEMORY_ERROR();
+    RETURN_NONE();
+
+BEGIN_FAIL
+    SKIP();
+END_FAIL
+}
+
+
 /* ======================================================================== */
 
 
@@ -17554,6 +17585,41 @@ BEGIN_FAIL
 END_FAIL
 }
 
+/* env_forceCleanup() [undocumented] */
+static char e_forceCleanup__doc__[] = "\
+env_forceCleanup(env [, alldepths, heuristics])\n\
+attempt to force a garbage collection\n\
+arguments:\n\
+  alldepths (bool) - true to clean up all depths (default)\n\
+  heuristics (bool) - true to use heuristics (default)";
+static PyObject *e_forceCleanup(PyObject *self, PyObject *args) {
+    clips_EnvObject *pyenv = NULL;
+    void *env = NULL;
+    PyObject *alldepths = NULL, *heuristics = NULL;
+
+    if(!PyArg_ParseTuple(args, "O!|OO",
+                         &clips_EnvType, &pyenv,
+                         &alldepths, &heuristics))
+        FAIL();
+    CHECK_NOCURENV(pyenv);
+    CHECK_VALID_ENVIRONMENT(pyenv);
+    env = clips_environment_value(pyenv);
+    if(EngineData(env)->ExecutingRule != NULL) {
+        ERROR_CLIPSSYS_CLEANUP();
+        FAIL();
+    }
+    ACQUIRE_MEMORY_ERROR();
+    PeriodicCleanup(env,
+        alldepths ? TRUE : PyObject_IsTrue(alldepths),
+        heuristics ? TRUE : PyObject_IsTrue(heuristics));
+    RELEASE_MEMORY_ERROR();
+    RETURN_NONE();
+
+BEGIN_FAIL
+    SKIP();
+END_FAIL
+}
+
 /* ======================================================================== */
 
 /* 8.2 - Memory Management */
@@ -17576,11 +17642,10 @@ arguments:\n\
   tell (bool) - True to print out a message\n\
   bytes (int) - bytes to free, all if omitted";
 static PyObject *m_releaseMem(PyObject *self, PyObject *args) {
-    PyObject *tell = NULL;
     int b = -1;
     long b1 = 0;
 
-    if(!PyArg_ParseTuple(args, "O|i", &tell, &b))
+    if(!PyArg_ParseTuple(args, "i", &b))
         FAIL();
     ACQUIRE_MEMORY_ERROR();
     b1 = ReleaseMem(b);
@@ -19005,6 +19070,7 @@ static PyMethodDef g_methods[] = {
     MMAP_ENTRY(removeClearFunction, g_removeClearFunction),
     MMAP_ENTRY(removePeriodicFunction, g_removePeriodicFunction),
     MMAP_ENTRY(removeResetFunction, g_removeResetFunction),
+    MMAP_ENTRY(forceCleanup, g_forceCleanup),
 
 /* -------------------------------------------------------------------- */
 
@@ -19284,6 +19350,7 @@ static PyMethodDef g_methods[] = {
     MMAP_ENTRY(env_removeClearFunction, e_removeClearFunction),
     MMAP_ENTRY(env_removePeriodicFunction, e_removePeriodicFunction),
     MMAP_ENTRY(env_removeResetFunction, e_removeResetFunction),
+    MMAP_ENTRY(env_forceCleanup, e_forceCleanup),
 
     /* -------------------------------------------------------------------- */
 
