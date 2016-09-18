@@ -184,6 +184,19 @@ globle BOOLEAN EnvClear_PY(
    EnvDeactivateRouter(theEnv,WTRACE);
 #endif
 
+   /*===========================================*/
+   /* Perform periodic cleanup if the clear was */
+   /* issued from an embedded controller.       */
+   /*===========================================*/
+
+   if ((EvaluationData(theEnv)->CurrentEvaluationDepth == 0) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL))
+     { PeriodicCleanup(theEnv,TRUE,FALSE); }
+
+   /*===========================*/
+   /* Clear has been completed. */
+   /*===========================*/
+
    ConstructData(theEnv)->ClearInProgress = FALSE;
    return TRUE;
   }
