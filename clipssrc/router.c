@@ -1,4 +1,4 @@
-   /*******************************************************/
+       /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
    /*             CLIPS Version 6.30  08/16/14            */
@@ -78,10 +78,7 @@ globle void InitializeDefaultRouters(
 #if (! RUN_TIME)
 /* INTENTIONALLY SKIPPED */
 #ifndef PYCLIPS
-/* INTENTIONALLY SKIPPED */
-#ifndef PYCLIPS
    EnvDefineFunction2(theEnv,"exit",    'v', PTIEF ExitCommand,    "ExitCommand", "*1i");
-#endif /* PYCLIPS */
 #endif /* PYCLIPS */
 #endif
    InitializeFileRouter(theEnv);
