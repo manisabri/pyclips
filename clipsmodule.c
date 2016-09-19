@@ -1,7 +1,7 @@
 /* clipsmodule.c
  *
  * Python module to embed CLIPS into Python.
- * $Id: clipsmodule.c 376 2009-10-03 23:58:52Z franz $
+ * $Id: clipsmodule.c 345 2008-02-22 17:44:54Z Franz $
  * (c) 2002-2008 - Francesco Garosi/JKS
  */
 
@@ -42,7 +42,7 @@ static char clips__doc__[] =
 
 /* the release string, in case it should be used someday */
 static char *clips__revision__ =
-    "$Id: clipsmodule.c 376 2009-10-03 23:58:52Z franz $";
+    "$Id: clipsmodule.c 345 2008-02-22 17:44:54Z Franz $";
 
 
 /* module scope exception */
@@ -657,7 +657,7 @@ static void clips_EnvObject_dealloc(PyObject *self) {
 }
 
 static PyTypeObject clips_EnvType = {
-    PyVarObject_HEAD_INIT(NULL, 0)     
+    PyVarObject_HEAD_INIT(NULL, 0)
     "environment",
     sizeof(clips_EnvObject),
     0,
@@ -1053,7 +1053,7 @@ static void clips_DeffactsObject_dealloc(PyObject *self) {
 }
 
 static PyTypeObject clips_DeffactsType = {
-    PyVarObject_HEAD_INIT(NULL, 0) 
+    PyVarObject_HEAD_INIT(NULL, 0)
     "deffacts",
     sizeof(clips_DeffactsObject),
     0,
@@ -1089,7 +1089,7 @@ static void clips_DefruleObject_dealloc(PyObject *self) {
 }
 
 static PyTypeObject clips_DefruleType = {
-    PyVarObject_HEAD_INIT(NULL, 0) 
+    PyVarObject_HEAD_INIT(NULL, 0)
     "defrule",
     sizeof(clips_DefruleObject),
     0,
@@ -1161,7 +1161,7 @@ static void clips_DefglobalObject_dealloc(PyObject *self) {
 }
 
 static PyTypeObject clips_DefglobalType = {
-    PyVarObject_HEAD_INIT(NULL, 0) 
+    PyVarObject_HEAD_INIT(NULL, 0)
     "defglobal",
     sizeof(clips_DefglobalObject),
     0,
@@ -1197,7 +1197,7 @@ static void clips_DeffunctionObject_dealloc(PyObject *self) {
 }
 
 static PyTypeObject clips_DeffunctionType = {
-    PyVarObject_HEAD_INIT(NULL, 0) 
+    PyVarObject_HEAD_INIT(NULL, 0)
     "deffunction",
     sizeof(clips_DeffunctionObject),
     0,
@@ -1233,7 +1233,7 @@ static void clips_DefgenericObject_dealloc(PyObject *self) {
 }
 
 static PyTypeObject clips_DefgenericType = {
-    PyVarObject_HEAD_INIT(NULL, 0) 
+    PyVarObject_HEAD_INIT(NULL, 0)
     "defgeneric",
     sizeof(clips_DefgenericObject),
     0,
@@ -2345,8 +2345,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#if CLIPS_MINOR > 23
-
 /* deftemplateSlotAllowedValues */
 static char g_deftemplateSlotAllowedValues__doc__[] = "\
 deftemplateSlotAllowedValues(deftemplate, name) -> (MULTIFIELD, list)\n\
@@ -2640,29 +2638,6 @@ BEGIN_FAIL
     SKIP();
 END_FAIL
 }
-
-#else
-UNIMPLEMENT_VERSION(deftemplateSlotAllowedValues,
-                    g_deftemplateSlotAllowedValues)
-UNIMPLEMENT_VERSION(deftemplateSlotCardinality,
-                    g_deftemplateSlotCardinality)
-UNIMPLEMENT_VERSION(deftemplateSlotDefaultP,
-                    g_deftemplateSlotDefaultP)
-UNIMPLEMENT_VERSION(deftemplateSlotDefaultValue,
-                    g_deftemplateSlotDefaultValue)
-UNIMPLEMENT_VERSION(deftemplateSlotExistP,
-                    g_deftemplateSlotExistP)
-UNIMPLEMENT_VERSION(deftemplateSlotMultiP,
-                    g_deftemplateSlotMultiP)
-UNIMPLEMENT_VERSION(deftemplateSlotNames,
-                    g_deftemplateSlotNames)
-UNIMPLEMENT_VERSION(deftemplateSlotRange,
-                    g_deftemplateSlotRange)
-UNIMPLEMENT_VERSION(deftemplateSlotSingleP,
-                    g_deftemplateSlotSingleP)
-UNIMPLEMENT_VERSION(deftemplateSlotTypes,
-                    g_deftemplateSlotTypes)
-#endif /* CLIPS_MINOR > 23 */
 
 /* findDeftemplate */
 static char g_findDeftemplate__doc__[] = "\
@@ -3344,8 +3319,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#if CLIPS_MINOR > 23
-
 /* ppFact */
 static char g_ppFact__doc__[] = "\
 ppFact(fact, output [, ignoredefault])\n\
@@ -3373,9 +3346,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#else
-UNIMPLEMENT_VERSION(ppFact, g_ppFact)
-#endif /* CLIPS_MINOR > 23 */
 
 /* putFactSlot */
 static char g_putFactSlot__doc__[] = "\
@@ -3470,7 +3440,7 @@ static PyObject *g_saveFacts(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    if(!SaveFacts(fn, scope, NULL)) {
+    if(!SaveFacts(fn, scope)) {
         RELEASE_MEMORY_ERROR();
         ERROR_CLIPS_IO();
         FAIL();
@@ -6972,8 +6942,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#if CLIPS_MINOR > 23
-
 /* slotAllowedClasses */
 static char g_slotAllowedClasses__doc__[] = "\
 slotAllowedClasses(defclass, name) -> (MULTIFIELD, list)\n\
@@ -7038,10 +7006,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#else
-UNIMPLEMENT_VERSION(slotAllowedClasses, g_slotAllowedClasses)
-UNIMPLEMENT_VERSION(slotDefaultValue, g_slotDefaultValue)
-#endif /* CLIPS_MINOR > 23 */
 
 /* slotDirectAccessP */
 static char g_slotDirectAccessP__doc__[] = "\
@@ -7417,7 +7381,7 @@ static PyObject *g_binarySaveInstances(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    i = BinarySaveInstances(fn, i, NULL, TRUE);
+    i = BinarySaveInstances(fn, i);
     RELEASE_MEMORY_ERROR();
     if(i < 0) {
         ERROR_CLIPS_IO();
@@ -7992,7 +7956,7 @@ static PyObject *g_saveInstances(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    i = SaveInstances(fn, i, NULL, TRUE);
+    i = SaveInstances(fn, i);
     RELEASE_MEMORY_ERROR();
     if(i < 0) {
         ERROR_CLIPS_IO();
@@ -9072,9 +9036,6 @@ static PyObject *g_forceCleanup(PyObject *self, PyObject *args) {
         ERROR_CLIPSSYS_CLEANUP();
         FAIL();
     }
-    PeriodicCleanup(env,
-        alldepths ? TRUE : PyObject_IsTrue(alldepths),
-        heuristics ? TRUE : PyObject_IsTrue(heuristics));
     RELEASE_MEMORY_ERROR();
     RETURN_NONE();
 
@@ -9690,8 +9651,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#if CLIPS_MINOR > 23
-
 /* deftemplateSlotAllowedValues */
 static char e_deftemplateSlotAllowedValues__doc__[] = "\
 env_deftemplateSlotAllowedValues(env, deftemplate, name) -> (MULTIFIELD, list)\n\
@@ -10036,28 +9995,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#else
-UNIMPLEMENT_VERSION(env_deftemplateSlotAllowedValues,
-                    e_deftemplateSlotAllowedValues)
-UNIMPLEMENT_VERSION(env_deftemplateSlotCardinality,
-                    e_deftemplateSlotCardinality)
-UNIMPLEMENT_VERSION(env_deftemplateSlotDefaultP,
-                    e_deftemplateSlotDefaultP)
-UNIMPLEMENT_VERSION(env_deftemplateSlotDefaultValue,
-                    e_deftemplateSlotDefaultValue)
-UNIMPLEMENT_VERSION(env_deftemplateSlotExistP,
-                    e_deftemplateSlotExistP)
-UNIMPLEMENT_VERSION(env_deftemplateSlotMultiP,
-                    e_deftemplateSlotMultiP)
-UNIMPLEMENT_VERSION(env_deftemplateSlotNames,
-                    e_deftemplateSlotNames)
-UNIMPLEMENT_VERSION(env_deftemplateSlotRange,
-                    e_deftemplateSlotRange)
-UNIMPLEMENT_VERSION(env_deftemplateSlotSingleP,
-                    e_deftemplateSlotSingleP)
-UNIMPLEMENT_VERSION(env_deftemplateSlotTypes,
-                    e_deftemplateSlotTypes)
-#endif /* CLIPS_MINOR > 23 */
 
 /* env_findDeftemplate */
 static char e_findDeftemplate__doc__[] = "\
@@ -10865,8 +10802,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#if CLIPS_MINOR > 23
-
 /* ppFact */
 static char e_ppFact__doc__[] = "\
 env_ppFact(env, fact, output [, ignoredefault])\n\
@@ -10896,10 +10831,6 @@ BEGIN_FAIL
     SKIP();
 END_FAIL
 }
-
-#else
-UNIMPLEMENT_VERSION(env_ppFact, e_ppFact)
-#endif /* CLIPS_MINOR > 23 */
 
 /* env_putFactSlot */
 static char e_putFactSlot__doc__[] = "\
@@ -11012,7 +10943,7 @@ static PyObject *e_saveFacts(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    if(!EnvSaveFacts(env, fn, scope, NULL)) {
+    if(!EnvSaveFacts(env, fn, scope)) {
         RELEASE_MEMORY_ERROR();
         ERROR_CLIPS_IO();
         FAIL();
@@ -15177,8 +15108,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#if CLIPS_MINOR > 23
-
 /* slotAllowedClasses */
 static char e_slotAllowedClasses__doc__[] = "\
 env_slotAllowedClasses(env, defclass, name) -> (MULTIFIELD, list)\n\
@@ -15255,10 +15184,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#else
-UNIMPLEMENT_VERSION(env_slotAllowedClasses, e_slotAllowedClasses)
-UNIMPLEMENT_VERSION(env_slotDefaultValue, e_slotDefaultValue)
-#endif /* CLIPS_MINOR > 23 */
 
 /* env_slotDirectAccessP */
 static char e_slotDirectAccessP__doc__[] = "\
@@ -15713,7 +15638,7 @@ static PyObject *e_binarySaveInstances(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    i = EnvBinarySaveInstances(env, fn, i, NULL, TRUE);
+    i = EnvBinarySaveInstances(env, fn, i);
     RELEASE_MEMORY_ERROR();
     if(i < 0) {
         ERROR_CLIPS_IO();
@@ -15788,11 +15713,11 @@ static PyObject *e_deleteInstance(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_InstanceType, &p))
         FAIL();
+    if(p)
+        ENV_CHECK_VALID_INSTANCE(env, p);
     CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
-    if(p)
-        ENV_CHECK_VALID_INSTANCE(env, p);
     ENV_CLIPS_LOCK_GC(pyenv);
     ACQUIRE_MEMORY_ERROR();
     if(!EnvDeleteInstance(env, p ? clips_instance_value(p) : NULL)) {
@@ -15830,9 +15755,9 @@ static PyObject *e_directGetSlot(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_InstanceType, &p, &name))
         FAIL();
+    ENV_CHECK_VALID_INSTANCE(env, p);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
-    ENV_CHECK_VALID_INSTANCE(env, p);
     ACQUIRE_MEMORY_ERROR();
     EnvDirectGetSlot(env, clips_instance_value(p), name, &o);
     q = i_do2py_e(env, &o);
@@ -15869,10 +15794,10 @@ static PyObject *e_directPutSlot(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_InstanceType, &p, &name, &q))
         FAIL();
+    ENV_CHECK_VALID_INSTANCE(env, p);
     CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
-    ENV_CHECK_VALID_INSTANCE(env, p);
     if(!i_py2do_e(env, q, &o)) {
         ERROR_CLIPS_PARSEA();
         FAIL();
@@ -16078,9 +16003,9 @@ static PyObject *e_getNextInstance(PyObject *self, PyObject *args) {
         FAIL();
     CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
-    env = clips_environment_value(pyenv);
     if(p)
         ENV_CHECK_VALID_INSTANCE(env, p);
+    env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
     ptr = EnvGetNextInstance(env, p ? clips_instance_value(p) : NULL);
     RELEASE_MEMORY_ERROR();
@@ -16122,8 +16047,9 @@ static PyObject *e_getNextInstanceInClass(PyObject *self, PyObject *args) {
     CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
-    if(p)
+    if(p) {
         ENV_CHECK_VALID_INSTANCE(env, p);
+    }
     ECHECK_DEFCLASS(env, c);
     ACQUIRE_MEMORY_ERROR();
     ptr = EnvGetNextInstanceInClass(env,
@@ -16169,8 +16095,9 @@ static PyObject *e_getNextInstanceInClassAndSubclasses(PyObject *self, PyObject 
     CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
-    if(p)
+    if(p) {
         ENV_CHECK_VALID_INSTANCE(env, p);
+    }
     ECHECK_DEFCLASS(env, c);
     /* we should iterate from the start in order to keep the iteration data */
     ACQUIRE_MEMORY_ERROR();
@@ -16381,7 +16308,7 @@ static PyObject *e_saveInstances(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    i = EnvSaveInstances(env, fn, i, NULL, TRUE);
+    i = EnvSaveInstances(env, fn, i);
     RELEASE_MEMORY_ERROR();
     if(i < 0) {
         ERROR_CLIPS_IO();
@@ -16454,11 +16381,11 @@ static PyObject *e_unmakeInstance(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_InstanceType, &p))
         FAIL();
+    if(p)
+        ENV_CHECK_VALID_INSTANCE(env, p);
     CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
-    if(p)
-        ENV_CHECK_VALID_INSTANCE(env, p);
     ENV_CLIPS_LOCK_GC(pyenv);
     ACQUIRE_MEMORY_ERROR();
     if(!EnvUnmakeInstance(env, p ? clips_instance_value(p) : NULL)) {
@@ -17679,9 +17606,6 @@ static PyObject *e_forceCleanup(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    PeriodicCleanup(env,
-        alldepths ? TRUE : PyObject_IsTrue(alldepths),
-        heuristics ? TRUE : PyObject_IsTrue(heuristics));
     RELEASE_MEMORY_ERROR();
     RETURN_NONE();
 
@@ -17712,14 +17636,13 @@ arguments:\n\
   tell (bool) - True to print out a message\n\
   bytes (int) - bytes to free, all if omitted";
 static PyObject *m_releaseMem(PyObject *self, PyObject *args) {
-    PyObject *tell = NULL;
     int b = -1;
     long b1 = 0;
 
-    if(!PyArg_ParseTuple(args, "O|i", &tell, &b))
+    if(!PyArg_ParseTuple(args, "i", &b))
         FAIL();
     ACQUIRE_MEMORY_ERROR();
-    b1 = ReleaseMem(b, PyObject_IsTrue(tell));
+    b1 = ReleaseMem(b);
     RELEASE_MEMORY_ERROR();
     RETURN_INT(b1);
 
@@ -18208,7 +18131,7 @@ static int buffer_ungetchar(buffer_Object *o, int c) {
 
 /* the Python buffer Type */
 static PyTypeObject buffer_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) 
+    PyVarObject_HEAD_INIT(NULL, 0)
     "streambuffer",
     sizeof(buffer_Object),
     0,
@@ -18829,7 +18752,7 @@ static void guard_dealloc(PyObject *o) {
 
 /* the Python internal guard Type */
 static PyTypeObject guard_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0)     
+    PyVarObject_HEAD_INIT(NULL, 0)
     "__PyCLIPS_$iGuardType__",  /* the name is intentionally unusable */
     sizeof(guard_Object),
     0,
