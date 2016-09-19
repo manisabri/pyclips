@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*        SYMBOL CONSTRUCT COMPILER HEADER FILE        */
    /*******************************************************/
@@ -13,23 +13,11 @@
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.24: Added environment parameter to GenClose.       */
-/*                                                           */
-/*            Corrected code to remove compiler warnings.    */
-/*                                                           */
-/*      6.30: Added support for path name argument to        */
-/*            constructs-to-c.                               */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -59,8 +47,8 @@
    LOCALE void                     PrintFloatReference(void *,FILE *,FLOAT_HN *);
    LOCALE void                     PrintIntegerReference(void *,FILE *,INTEGER_HN *);
    LOCALE void                     PrintBitMapReference(void *,FILE *,BITMAP_HN *);
-   LOCALE void                     AtomicValuesToCode(void *,const char *,const char *,char *);
+   LOCALE void                     AtomicValuesToCode(void *,char *);
 
-#endif /* _H_symblcmp */
+#endif
 
 

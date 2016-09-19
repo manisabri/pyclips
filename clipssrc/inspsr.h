@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,24 +10,11 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
-/*                                                           */
-/*            Changed name of variable exp to theExp         */
-/*            because of Unix compiler warnings of shadowed  */
-/*            definitions.                                   */
-/*                                                           */
-/*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Fixed ParseSlotOverrides memory release issue. */
 /*                                                           */
 /*************************************************************/
 
@@ -49,13 +36,16 @@
 #endif
 
 #if ! RUN_TIME
-   LOCALE EXPRESSION                    *ParseInitializeInstance(void *,EXPRESSION *,const char *);
-   LOCALE EXPRESSION                    *ParseSlotOverrides(void *,const char *,int *);
+LOCALE EXPRESSION *ParseInitializeInstance(void *,EXPRESSION *,char *);
+LOCALE EXPRESSION *ParseSlotOverrides(void *,char *,int *);
 #endif
 
-   LOCALE EXPRESSION                    *ParseSimpleInstance(void *,EXPRESSION *,const char *);
+LOCALE EXPRESSION *ParseSimpleInstance(void *,EXPRESSION *,char *);
 
-#endif /* _H_inspsr */
+#ifndef _INSCOM_SOURCE_
+#endif
+
+#endif
 
 
 

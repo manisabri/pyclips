@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*               PRETTY PRINT HEADER FILE              */
    /*******************************************************/
@@ -17,13 +17,6 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Used genstrcpy instead of strcpy.              */
-/*                                                           */             
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
 /*************************************************************/
 
 #ifndef _H_pprint
@@ -32,14 +25,14 @@
 #define PRETTY_PRINT_DATA 52
 
 struct prettyPrintData
-  { 
+  {
    int PPBufferStatus;
    int PPBufferEnabled;
    int IndentationDepth;
-   size_t PPBufferPos;
-   size_t PPBufferMax;
-   size_t PPBackupOnce;
-   size_t PPBackupTwice;
+   int PPBufferPos;
+   unsigned PPBufferMax;
+   int PPBackupOnce;
+   int PPBackupTwice;
    char *PrettyPrintBuffer;
   };
 
@@ -58,7 +51,7 @@ struct prettyPrintData
    LOCALE void                           InitializePrettyPrintData(void *);
    LOCALE void                           FlushPPBuffer(void *);
    LOCALE void                           DestroyPPBuffer(void *);
-   LOCALE void                           SavePPBuffer(void *,const char *);
+   LOCALE void                           SavePPBuffer(void *,char *);
    LOCALE void                           PPBackup(void *);
    LOCALE char                          *CopyPPBuffer(void *);
    LOCALE char                          *GetPPBuffer(void *);

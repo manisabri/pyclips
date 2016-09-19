@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.21  06/15/03            */
    /*                                                     */
    /*             STRING FUNCTIONS HEADER FILE            */
    /*******************************************************/
@@ -15,26 +15,6 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
-/*                                                           */
-/*      6.30: Support for long long integers.                */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW and       */
-/*            MAC_MCW).                                      */
-/*                                                           */
-/*            Used gensprintf instead of sprintf.            */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Changed garbage collection algorithm.          */
-/*                                                           */
-/*            Added support for UTF-8 strings to str-length, */
-/*            str-index, and sub-string functions.           */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -56,28 +36,31 @@
 #define LOCALE extern
 #endif
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-   LOCALE int                            Build(const char *);
-   LOCALE int                            Eval(const char *,DATA_OBJECT_PTR);
+#if ENVIRONMENT_API_ONLY
+#define Eval(theEnv,a,b) EnvEval(theEnv,a,b)
+#define Build(theEnv,a) EnvBuild(theEnv,a)
+#else
+#define Eval(a,b) EnvEval(GetCurrentEnvironment(),a,b)
+#define Build(a) EnvBuild(GetCurrentEnvironment(),a)
 #endif
 
-   LOCALE int                            EnvBuild(void *,const char *);
-   LOCALE int                            EnvEval(void *,const char *,DATA_OBJECT_PTR);
    LOCALE void                           StringFunctionDefinitions(void *);
    LOCALE void                           StrCatFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                           SymCatFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long long                      StrLengthFunction(void *);
+   LOCALE long int                       StrLengthFunction(void *);
    LOCALE void                           UpcaseFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                           LowcaseFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long long                      StrCompareFunction(void *);
+   LOCALE long int                       StrCompareFunction(void *);
    LOCALE void                          *SubStringFunction(void *);
    LOCALE void                           StrIndexFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                           EvalFunction(void *,DATA_OBJECT_PTR);
+   LOCALE int                            EnvEval(void *,char *,DATA_OBJECT_PTR);
    LOCALE int                            BuildFunction(void *);
+   LOCALE int                            EnvBuild(void *,char *);
    LOCALE void                           StringToFieldFunction(void *,DATA_OBJECT *);
-   LOCALE void                           StringToField(void *,const char *,DATA_OBJECT *);
+   LOCALE void                           StringToField(void *,char *,DATA_OBJECT *);
 
-#endif /* _H_strngfun */
+#endif
 
 
 

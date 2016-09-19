@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.22  06/15/04            */
    /*                                                     */
    /*            DEFGLOBAL CONSTRUCTS-TO-C MODULE         */
    /*******************************************************/
@@ -14,19 +14,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Added support for path name argument to        */
-/*            constructs-to-c.                               */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -48,7 +38,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+   static int                     ConstructToCode(void *,char *,int,FILE *,int,int);
    static void                    DefglobalToCode(void *,FILE *,struct defglobal *,
                                                  int,int,int);
    static void                    DefglobalModuleToCode(void *,FILE *,struct defmodule *,int,int,int);
@@ -63,7 +53,7 @@
 globle void DefglobalCompilerSetup(
   void *theEnv)
   {
-   DefglobalData(theEnv)->DefglobalCodeItem = 
+   DefglobalData(theEnv)->DefglobalCodeItem =
       AddCodeGeneratorItem(theEnv,"defglobal",0,BeforeDefglobalsToCode,
                            InitDefglobalsCode,ConstructToCode,2);
   }
@@ -83,13 +73,16 @@ static void BeforeDefglobalsToCode(
 /* InitDefglobalsCode: Writes out initialization */
 /*   code for defglobals for a run-time module.  */
 /*************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
 static void InitDefglobalsCode(
   void *theEnv,
   FILE *initFP,
   int imageID,
   int maxIndices)
   {
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(maxIndices)
 #pragma unused(imageID)
 #pragma unused(theEnv)
@@ -103,9 +96,7 @@ static void InitDefglobalsCode(
 /***********************************************************/
 static int ConstructToCode(
   void *theEnv,
-  const char *fileName,
-  const char *pathName,
-  char *fileNameBuffer,
+  char *fileName,
   int fileID,
   FILE *headerFP,
   int imageID,
@@ -135,7 +126,7 @@ static int ConstructToCode(
      {
       EnvSetCurrentModule(theEnv,(void *) theModule);
 
-      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "struct defglobalModule",ModulePrefix(DefglobalData(theEnv)->DefglobalCodeItem),
                                     FALSE,NULL);
@@ -154,7 +145,7 @@ static int ConstructToCode(
            theDefglobal != NULL;
            theDefglobal = (struct defglobal *) EnvGetNextDefglobal(theEnv,theDefglobal))
         {
-         defglobalFile = OpenFileIfNeeded(theEnv,defglobalFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+         defglobalFile = OpenFileIfNeeded(theEnv,defglobalFile,fileName,fileID,imageID,&fileCount,
                                          defglobalArrayVersion,headerFP,
                                          "struct defglobal",ConstructPrefix(DefglobalData(theEnv)->DefglobalCodeItem),
                                          FALSE,NULL);
@@ -210,6 +201,9 @@ static void CloseDefglobalFiles(
 /* DefglobalModuleToCode: Writes the C code representation */
 /*   of a single defglobal module to the specified file.   */
 /***********************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
 static void DefglobalModuleToCode(
   void *theEnv,
   FILE *theFile,
@@ -218,7 +212,7 @@ static void DefglobalModuleToCode(
   int maxIndices,
   int moduleCount)
   {
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(moduleCount)
 #endif
 

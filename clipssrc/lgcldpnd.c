@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*             LOGICAL DEPENDENCIES MODULE             */
    /*******************************************************/
@@ -23,8 +23,6 @@
 /*                                                           */
 /*            Rule with exists CE has incorrect activation.  */
 /*            DR0867                                         */
-/*                                                           */
-/*      6.30: Added support for hashed memories.             */
 /*                                                           */
 /*************************************************************/
 
@@ -57,6 +55,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
+   static struct partialMatch    *FindLogicalBind(struct joinNode *,struct partialMatch *);
    static struct dependency      *DetachAssociatedDependencies(void *,struct dependency *,void *);
 
 /***********************************************************************/
@@ -95,19 +94,16 @@ globle intBool AddLogicalDependencies(
    else if (existingEntity && (theEntity->dependents == NULL))
      { return(TRUE); }
 
-   /*===========================================================*/
-   /* Retrieve the partial match in the logical join associated */
-   /* with activation partial match (retrieved when the run     */
-   /* command was initiated). If the partial match's parent     */
-   /* links have been removed, then the partial match must have */
-   /* been deleted by a previous RHS action and the dependency  */
-   /* link should not be added.                                 */
-   /*===========================================================*/
+   /*============================================================*/
+   /* Find the partial match in the logical join associated with */
+   /* activation partial match. If the partial match cannot be   */
+   /* found, then the partial match must have been deleted by a  */
+   /* previous RHS action and the dependency link should not be  */
+   /* added.                                                     */
+   /*============================================================*/
 
-   theBinds = EngineData(theEnv)->TheLogicalBind;
+   theBinds = FindLogicalBind(EngineData(theEnv)->TheLogicalJoin,EngineData(theEnv)->GlobalLHSBinds);
    if (theBinds == NULL) return(FALSE);
-   if ((theBinds->leftParent == NULL) && (theBinds->rightParent == NULL))
-     { return(FALSE); }
 
    /*==============================================================*/
    /* Add a dependency link between the partial match and the data */
@@ -118,8 +114,9 @@ globle intBool AddLogicalDependencies(
 
    newDependency = get_struct(theEnv,dependency);
    newDependency->dPtr = (void *) theEntity;
-   newDependency->next = (struct dependency *) theBinds->dependents;
-   theBinds->dependents = (void *) newDependency;
+   newDependency->next = (struct dependency *)
+                         theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue;
+   theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue = (void *) newDependency;
 
    /*================================================================*/
    /* Add a dependency link between the entity and the partialMatch. */
@@ -142,28 +139,58 @@ globle intBool AddLogicalDependencies(
 /*   CE which will provide logical support for a data entity asserted   */
 /*   from the currently executing rule. The function is called when     */
 /*   creating logical support links between the data entity and         */
-/*   supporting partial matches.                                        */
+/*   supporting partial matches. It compares each partial match found   */
+/*   at a specified join to the partial match associated with a rule    */
+/*   activation until it finds the partial match that generated the     */
+/*   rule activation.                                                   */
 /************************************************************************/
-globle struct partialMatch *FindLogicalBind(
+static struct partialMatch *FindLogicalBind(
   struct joinNode *theJoin,
   struct partialMatch *theBinds)
   {
    struct partialMatch *compPtr;
-      
-   /*========================================================*/
-   /* Follow the parent link of the activation back through  */
-   /* the join network until the join containing the logical */
-   /* partial match is found. The partial match at this      */
-   /* join will have the dependency link assigned to it.     */
-   /*========================================================*/
-   
-   for (compPtr = theBinds;
+   unsigned int i;
+   int found;
+
+   /*==================================*/
+   /* Loop through each of the partial */
+   /* matches in the beta memory.      */
+   /*==================================*/
+
+   for (compPtr = theJoin->beta;
         compPtr != NULL;
-        compPtr = compPtr->leftParent)
+        compPtr = compPtr->next)
      {
-      if (compPtr->owner == theJoin)
-        { return(compPtr); }
+      /*==================================================*/
+      /* Compare each of the data entities in the partial */
+      /* match being examined and the partial match used  */
+      /* in the dependency link.                          */
+      /*==================================================*/
+
+      found = TRUE;
+
+      for (i = 0; i < compPtr->bcount; i++)
+        {
+         if (compPtr->binds[i].gm.theMatch != theBinds->binds[i].gm.theMatch)
+           {
+            found = FALSE;
+            break;
+           }
+        }
+
+      /*========================================================*/
+      /* If all of the data entities in the partial match are   */
+      /* identical to the partial match in the dependency link, */
+      /* then this is the partial match we're looking for.      */
+      /*========================================================*/
+
+      if (found) return(compPtr);
      }
+
+   /*========================================*/
+   /* The partial match corresponding to the */
+   /* logical dependency couldn't be found.  */
+   /*========================================*/
 
    return(NULL);
   }
@@ -205,9 +232,10 @@ globle void RemoveEntityDependencies(
       /*================================================================*/
 
       theBinds = (struct partialMatch *) fdPtr->dPtr;
-      theList = (struct dependency *) theBinds->dependents;
+      theList = (struct dependency *)
+                theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue;
       theList = DetachAssociatedDependencies(theEnv,theList,(void *) theEntity);
-      theBinds->dependents = (void *) theList;
+      theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue = (void *) theList;
 
       /*========================*/
       /* Return the dependency. */
@@ -228,7 +256,7 @@ globle void RemoveEntityDependencies(
 
    theEntity->dependents = NULL;
   }
-  
+
 /********************************************************************/
 /* ReturnEntityDependencies: Removes all logical support links from */
 /*   a pattern entity. This is unidirectional. The links from the   */
@@ -300,7 +328,7 @@ globle void RemovePMDependencies(
    struct dependency *fdPtr, *nextPtr, *theList;
    struct patternEntity *theEntity;
 
-   fdPtr = (struct dependency *) theBinds->dependents;
+   fdPtr = (struct dependency *) theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue;
 
    while (fdPtr != NULL)
      {
@@ -316,7 +344,7 @@ globle void RemovePMDependencies(
       fdPtr = nextPtr;
      }
 
-   theBinds->dependents = NULL;
+   theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue = NULL;
   }
 
 /************************************************************/
@@ -329,7 +357,7 @@ globle void DestroyPMDependencies(
   {
    struct dependency *fdPtr, *nextPtr;
 
-   fdPtr = (struct dependency *) theBinds->dependents;
+   fdPtr = (struct dependency *) theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue;
 
    while (fdPtr != NULL)
      {
@@ -339,7 +367,7 @@ globle void DestroyPMDependencies(
       fdPtr = nextPtr;
      }
 
-   theBinds->dependents = NULL;
+   theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue = NULL;
   }
 
 /************************************************************************/
@@ -364,14 +392,14 @@ globle void RemoveLogicalSupport(
    /* dependencies, then return.             */
    /*========================================*/
 
-   if (theBinds->dependents == NULL) return;
+   if (theBinds->dependentsf == FALSE) return;
 
    /*=======================================*/
    /* Loop through each of the dependencies */
    /* attached to the partial match.        */
    /*=======================================*/
 
-   dlPtr = (struct dependency *) theBinds->dependents;
+   dlPtr = (struct dependency *) theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue;
 
    while (dlPtr != NULL)
      {
@@ -421,7 +449,7 @@ globle void RemoveLogicalSupport(
    /* dependencies associated with it.    */
    /*=====================================*/
 
-   theBinds->dependents = NULL;
+   theBinds->binds[theBinds->bcount + theBinds->activationf].gm.theValue = NULL;
   }
 
 /********************************************************************/
@@ -533,7 +561,7 @@ globle void Dependents(
    struct dependency *fdPtr;
    struct partialMatch *theBinds;
    int found = FALSE;
-   
+
    /*=================================*/
    /* Loop through every data entity. */
    /*=================================*/

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*        FACT RETE FUNCTION GENERATION HEADER FILE    */
    /*******************************************************/
@@ -15,11 +15,6 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Support for performance optimizations.         */
-/*                                                           */
-/*            Increased maximum values for pattern/slot      */
-/*            indices.                                       */
 /*                                                           */
 /*************************************************************/
 
@@ -87,7 +82,7 @@ struct factGetVarPN3Call
 struct factConstantPN1Call
   {
    unsigned int testForEquality : 1;
-   unsigned short whichSlot;
+   unsigned int whichSlot : 8;
   };
 
 /******************************************************************/
@@ -101,8 +96,8 @@ struct factConstantPN2Call
   {
    unsigned int testForEquality : 1;
    unsigned int fromBeginning : 1;
-   unsigned short offset;
-   unsigned short whichSlot;
+   unsigned int offset : 8;
+   unsigned int whichSlot : 8;
   };
 
 /**********************************************************/
@@ -114,8 +109,6 @@ struct factGetVarJN1Call
   {
    unsigned int factAddress : 1;
    unsigned int allFields : 1;
-   unsigned int lhs : 1;
-   unsigned int rhs : 1;
    unsigned short whichPattern;
    unsigned short whichSlot;
    unsigned short whichField;
@@ -126,8 +119,6 @@ struct factGetVarJN1Call
 /**********************************************************/
 struct factGetVarJN2Call
   {
-   unsigned int lhs : 1;
-   unsigned int rhs : 1;
    unsigned short whichPattern;
    unsigned short whichSlot;
   };
@@ -139,8 +130,6 @@ struct factGetVarJN3Call
   {
    unsigned int fromBeginning : 1;
    unsigned int fromEnd : 1;
-   unsigned int lhs : 1;
-   unsigned int rhs : 1;
    unsigned short beginOffset;
    unsigned short endOffset;
    unsigned short whichPattern;
@@ -154,8 +143,8 @@ struct factCompVarsPN1Call
   {
    unsigned int pass : 1;
    unsigned int fail : 1;
-   unsigned short field1;
-   unsigned short field2;
+   unsigned int field1 : 7;
+   unsigned int field2 : 7;
   };
 
 /**********************************************************/
@@ -165,14 +154,9 @@ struct factCompVarsJN1Call
   {
    unsigned int pass : 1;
    unsigned int fail : 1;
-   unsigned int p1lhs: 1;
-   unsigned int p1rhs: 1;
-   unsigned int p2lhs: 1;
-   unsigned int p2rhs: 1;
-   unsigned short pattern1;
-   unsigned short pattern2;
-   unsigned short slot1;
-   unsigned short slot2;
+   unsigned int slot1 : 7;
+   unsigned int pattern2 : 8;
+   unsigned int slot2 : 7;
   };
 
 /**********************************************************/
@@ -182,18 +166,13 @@ struct factCompVarsJN2Call
   {
    unsigned int pass : 1;
    unsigned int fail : 1;
-   unsigned int p1lhs: 1;
-   unsigned int p1rhs: 1;
-   unsigned int p2lhs: 1;
-   unsigned int p2rhs: 1;
+   unsigned int slot1 : 7;
    unsigned int fromBeginning1 : 1;
+   unsigned int offset1 : 7;
+   unsigned int pattern2 : 8;
+   unsigned int slot2 : 7;
    unsigned int fromBeginning2 : 1;
-   unsigned short offset1;
-   unsigned short offset2;
-   unsigned short pattern1;
-   unsigned short pattern2;
-   unsigned short slot1;
-   unsigned short slot2;
+   unsigned int offset2 : 7;
   };
 
 /**********************************************************/
@@ -218,13 +197,13 @@ struct factCheckLengthPNCall
    LOCALE struct expr               *FactPNVariableComparison(void *,struct lhsParseNode *,
                                                               struct lhsParseNode *);
    LOCALE struct expr               *FactJNVariableComparison(void *,struct lhsParseNode *,
-                                                              struct lhsParseNode *,int);
-   LOCALE void                       FactReplaceGetvar(void *,struct expr *,struct lhsParseNode *,int);
+                                                              struct lhsParseNode *);
+   LOCALE void                       FactReplaceGetvar(void *,struct expr *,struct lhsParseNode *);
    LOCALE void                       FactReplaceGetfield(void *,struct expr *,struct lhsParseNode *);
    LOCALE struct expr               *FactGenPNConstant(void *,struct lhsParseNode *);
    LOCALE struct expr               *FactGenGetfield(void *,struct lhsParseNode *);
-   LOCALE struct expr               *FactGenGetvar(void *,struct lhsParseNode *,int);
+   LOCALE struct expr               *FactGenGetvar(void *,struct lhsParseNode *);
    LOCALE struct expr               *FactGenCheckLength(void *,struct lhsParseNode *);
    LOCALE struct expr               *FactGenCheckZeroLength(void *,unsigned);
 
-#endif /* _H_factgen */
+#endif

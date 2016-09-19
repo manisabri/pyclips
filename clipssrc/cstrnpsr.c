@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  01/25/15            */
+   /*             CLIPS Version 6.24  07/01/05            */
    /*                                                     */
    /*               CONSTRAINT PARSER MODULE              */
    /*******************************************************/
@@ -14,10 +14,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian Dantes                                         */
+/*      Brian Donnell                                        */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Changed name of variable exp to theExp         */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
@@ -25,13 +24,6 @@
 /*      6.24: Added allowed-classes slot facet.              */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Used gensprintf instead of sprintf.            */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Slot cardinality bug fix for minimum < 0.      */
 /*                                                           */
 /*************************************************************/
 
@@ -50,7 +42,6 @@
 #include "scanner.h"
 #include "cstrnutl.h"
 #include "cstrnchk.h"
-#include "sysdep.h"
 
 #include "cstrnpsr.h"
 
@@ -60,21 +51,21 @@
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    static intBool                 ParseRangeCardinalityAttribute(void *,
-                                                                 const char *,CONSTRAINT_RECORD *,
+                                                                 char *,CONSTRAINT_RECORD *,
                                                                  CONSTRAINT_PARSE_RECORD *,
-                                                                 const char *,int);
-   static intBool                 ParseTypeAttribute(void *,const char *,CONSTRAINT_RECORD *);
+                                                                 char *,int);
+   static intBool                 ParseTypeAttribute(void *,char *,CONSTRAINT_RECORD *);
    static void                    AddToRestrictionList(void *,int,CONSTRAINT_RECORD *,
                                                        CONSTRAINT_RECORD *);
-   static intBool                 ParseAllowedValuesAttribute(void *,const char *,const char *,
+   static intBool                 ParseAllowedValuesAttribute(void *,char *,char *,
                                                               CONSTRAINT_RECORD *,
                                                               CONSTRAINT_PARSE_RECORD *);
-   static int                     GetConstraintTypeFromAllowedName(const char *);
-   static int                     GetConstraintTypeFromTypeName(const char *);
-   static int                     GetAttributeParseValue(const char *,CONSTRAINT_PARSE_RECORD *);
+   static int                     GetConstraintTypeFromAllowedName(char *);
+   static int                     GetConstraintTypeFromTypeName(char *);
+   static int                     GetAttributeParseValue(char *,CONSTRAINT_PARSE_RECORD *);
    static void                    SetRestrictionFlag(int,CONSTRAINT_RECORD *,int);
-   static void                    SetParseFlag(CONSTRAINT_PARSE_RECORD *,const char *);
-   static void                    NoConjunctiveUseError(void *,const char *,const char *);
+   static void                    SetParseFlag(CONSTRAINT_PARSE_RECORD *,char *);
+   static void                    NoConjunctiveUseError(void *,char *,char *);
 #endif
 
 /********************************************************************/
@@ -203,8 +194,8 @@ globle intBool CheckConstraintParseConflicts(
 /********************************************************/
 globle void AttributeConflictErrorMessage(
   void *theEnv,
-  const char *attribute1,
-  const char *attribute2)
+  char *attribute1,
+  char *attribute2)
   {
    PrintErrorID(theEnv,"CSTRNPSR",1,TRUE);
    EnvPrintRouter(theEnv,WERROR,"The ");
@@ -243,7 +234,7 @@ globle void InitializeConstraintParseRecord(
 /*   standard constraints parseable by the routines in this module.     */
 /************************************************************************/
 globle intBool StandardConstraint(
-  const char *constraintName)
+  char *constraintName)
   {
    if ((strcmp(constraintName,"type") == 0) ||
        (strcmp(constraintName,"range") == 0) ||
@@ -269,8 +260,8 @@ globle intBool StandardConstraint(
 /***********************************************************************/
 globle intBool ParseStandardConstraint(
   void *theEnv,
-  const char *readSource,
-  const char *constraintName,
+  char *readSource,
+  char *constraintName,
   CONSTRAINT_RECORD *constraints,
   CONSTRAINT_PARSE_RECORD *parsedConstraints,
   int multipleValuesAllowed)
@@ -505,8 +496,8 @@ static void AddToRestrictionList(
 /*******************************************************************/
 static intBool ParseAllowedValuesAttribute(
   void *theEnv,
-  const char *readSource,
-  const char *constraintName,
+  char *readSource,
+  char *constraintName,
   CONSTRAINT_RECORD *constraints,
   CONSTRAINT_PARSE_RECORD *parsedConstraints)
   {
@@ -514,7 +505,7 @@ static intBool ParseAllowedValuesAttribute(
    int expectedType, restrictionType, error = FALSE;
    struct expr *newValue, *lastValue;
    int constantParsed = FALSE, variableParsed = FALSE;
-   const char *tempPtr = NULL;
+   char *tempPtr = NULL;
 
    /*======================================================*/
    /* The allowed-values attribute is not allowed if other */
@@ -634,7 +625,7 @@ static intBool ParseAllowedValuesAttribute(
      { expectedType = SYMBOL; }
    else
      { expectedType = restrictionType; }
-   
+
    /*=================================================*/
    /* Get the last value in the restriction list (the */
    /* allowed values will be appended there).         */
@@ -644,7 +635,7 @@ static intBool ParseAllowedValuesAttribute(
      { lastValue = constraints->classList; }
    else
      { lastValue = constraints->restrictionList; }
-     
+
    if (lastValue != NULL)
      { while (lastValue->nextArg != NULL) lastValue = lastValue->nextArg; }
 
@@ -709,7 +700,7 @@ static intBool ParseAllowedValuesAttribute(
            else
              {
               char tempBuffer[120];
-              gensprintf(tempBuffer,"%s attribute",constraintName);
+              sprintf(tempBuffer,"%s attribute",constraintName);
               SyntaxErrorMessage(theEnv,tempBuffer);
               return(FALSE);
              }
@@ -719,7 +710,7 @@ static intBool ParseAllowedValuesAttribute(
          default:
            {
             char tempBuffer[120];
-            gensprintf(tempBuffer,"%s attribute",constraintName);
+            sprintf(tempBuffer,"%s attribute",constraintName);
             SyntaxErrorMessage(theEnv,tempBuffer);
            }
            return(FALSE);
@@ -747,7 +738,7 @@ static intBool ParseAllowedValuesAttribute(
       if (constantParsed && variableParsed)
         {
          char tempBuffer[120];
-         gensprintf(tempBuffer,"%s attribute",constraintName);
+         sprintf(tempBuffer,"%s attribute",constraintName);
          SyntaxErrorMessage(theEnv,tempBuffer);
          return(FALSE);
         }
@@ -758,7 +749,7 @@ static intBool ParseAllowedValuesAttribute(
 
       newValue = GenConstant(theEnv,inputToken.type,inputToken.value);
       if (lastValue == NULL)
-        { 
+        {
          if (strcmp(constraintName,"allowed-classes") == 0)
            { constraints->classList = newValue; }
          else
@@ -782,7 +773,7 @@ static intBool ParseAllowedValuesAttribute(
    if ((! constantParsed) && (! variableParsed))
      {
       char tempBuffer[120];
-      gensprintf(tempBuffer,"%s attribute",constraintName);
+      sprintf(tempBuffer,"%s attribute",constraintName);
       SyntaxErrorMessage(theEnv,tempBuffer);
       return(FALSE);
      }
@@ -859,8 +850,8 @@ static intBool ParseAllowedValuesAttribute(
 /***********************************************************/
 static void NoConjunctiveUseError(
   void *theEnv,
-  const char *attribute1,
-  const char *attribute2)
+  char *attribute1,
+  char *attribute2)
   {
    PrintErrorID(theEnv,"CSTRNPSR",3,TRUE);
    EnvPrintRouter(theEnv,WERROR,"The ");
@@ -876,7 +867,7 @@ static void NoConjunctiveUseError(
 /**************************************************/
 static intBool ParseTypeAttribute(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   CONSTRAINT_RECORD *constraints)
   {
    int typeParsed = FALSE;
@@ -1022,15 +1013,15 @@ static intBool ParseTypeAttribute(
 /***************************************************************************/
 static intBool ParseRangeCardinalityAttribute(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   CONSTRAINT_RECORD *constraints,
   CONSTRAINT_PARSE_RECORD *parsedConstraints,
-  const char *constraintName,
+  char *constraintName,
   int multipleValuesAllowed)
   {
    struct token inputToken;
    int range;
-   const char *tempPtr = NULL;
+   char *tempPtr = NULL;
 
    /*=================================*/
    /* Determine if we're parsing the  */
@@ -1095,13 +1086,6 @@ static intBool ParseRangeCardinalityAttribute(
         }
       else
         {
-         if (ValueToLong(inputToken.value) < 0LL)
-           {
-            PrintErrorID(theEnv,"CSTRNPSR",6,TRUE);
-            EnvPrintRouter(theEnv,WERROR,"Minimum cardinality value must be greater than or equal to zero\n");
-            return(FALSE);
-           }
-
          ReturnExpression(theEnv,constraints->minFields);
          constraints->minFields = GenConstant(theEnv,inputToken.type,inputToken.value);
         }
@@ -1111,7 +1095,7 @@ static intBool ParseRangeCardinalityAttribute(
    else
      {
       char tempBuffer[120];
-      gensprintf(tempBuffer,"%s attribute",constraintName);
+      sprintf(tempBuffer,"%s attribute",constraintName);
       SyntaxErrorMessage(theEnv,tempBuffer);
       return(FALSE);
      }
@@ -1140,7 +1124,7 @@ static intBool ParseRangeCardinalityAttribute(
    else
      {
       char tempBuffer[120];
-      gensprintf(tempBuffer,"%s attribute",constraintName);
+      sprintf(tempBuffer,"%s attribute",constraintName);
       SyntaxErrorMessage(theEnv,tempBuffer);
       return(FALSE);
      }
@@ -1200,7 +1184,7 @@ static intBool ParseRangeCardinalityAttribute(
 /*   associated with an allowed-... attribute.                    */
 /******************************************************************/
 static int GetConstraintTypeFromAllowedName(
-  const char *constraintName)
+  char *constraintName)
   {
    if (strcmp(constraintName,"allowed-values") == 0) return(UNKNOWN_VALUE);
    else if (strcmp(constraintName,"allowed-symbols") == 0) return(SYMBOL);
@@ -1220,7 +1204,7 @@ static int GetConstraintTypeFromAllowedName(
 /*   to its equivalent integer type restriction.       */
 /*******************************************************/
 static int GetConstraintTypeFromTypeName(
-  const char *constraintName)
+  char *constraintName)
   {
    if (strcmp(constraintName,"SYMBOL") == 0) return(SYMBOL);
    else if (strcmp(constraintName,"STRING") == 0) return(STRING);
@@ -1242,7 +1226,7 @@ static int GetConstraintTypeFromTypeName(
 /*   whether a specific attribute has already been parsed.    */
 /**************************************************************/
 static int GetAttributeParseValue(
-  const char *constraintName,
+  char *constraintName,
   CONSTRAINT_PARSE_RECORD *parsedConstraints)
   {
    if (strcmp(constraintName,"type") == 0)
@@ -1331,7 +1315,7 @@ static void SetRestrictionFlag(
 /********************************************************************/
 static void SetParseFlag(
   CONSTRAINT_PARSE_RECORD *parsedConstraints,
-  const char *constraintName)
+  char *constraintName)
   {
    if (strcmp(constraintName,"range") == 0)
      { parsedConstraints->range = TRUE; }

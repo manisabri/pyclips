@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,20 +10,11 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
-/*                                                           */
-/*      6.30: Changed garbage collection algorithm.          */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -50,11 +41,11 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           CallDeffunction(void *,DEFFUNCTION *,EXPRESSION *,DATA_OBJECT *);
+LOCALE void CallDeffunction(void *,DEFFUNCTION *,EXPRESSION *,DATA_OBJECT *);
 
-#endif /* DEFFUNCTION_CONSTRUCT */
+#endif
 
-#endif /* _H_dffnxexe */
+#endif
 
 
 

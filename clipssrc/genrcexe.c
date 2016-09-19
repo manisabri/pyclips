@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,7 +10,7 @@
 /* Purpose: Generic Function Execution Routines              */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
@@ -18,15 +18,6 @@
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*      6.24: Removed IMPERATIVE_METHODS compilation flag.   */
-/*                                                           */
-/*      6.30: Changed garbage collection algorithm.          */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -38,8 +29,6 @@
 #include "setup.h"
 
 #if DEFGENERIC_CONSTRUCT
-
-#include <string.h>
 
 #if OBJECT_SYSTEM
 #include "classcom.h"
@@ -78,8 +67,8 @@
 static DEFMETHOD *FindApplicableMethod(void *,DEFGENERIC *,DEFMETHOD *);
 
 #if DEBUGGING_FUNCTIONS
-static void WatchGeneric(void *,const char *);
-static void WatchMethod(void *,const char *);
+static void WatchGeneric(void *,char *);
+static void WatchMethod(void *,char *);
 #endif
 
 #if OBJECT_SYSTEM
@@ -135,20 +124,12 @@ globle void GenericDispatch(
 #if PROFILING_FUNCTIONS
    struct profileFrameInfo profileFrame;
 #endif
-   struct garbageFrame newGarbageFrame;
-   struct garbageFrame *oldGarbageFrame;
 
    result->type = SYMBOL;
    result->value = EnvFalseSymbol(theEnv);
    EvaluationData(theEnv)->EvaluationError = FALSE;
    if (EvaluationData(theEnv)->HaltExecution)
      return;
-
-   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
-   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
-   newGarbageFrame.priorFrame = oldGarbageFrame;
-   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
-
    oldce = ExecutingConstruct(theEnv);
    SetExecutingConstruct(theEnv,TRUE);
    previousGeneric = DefgenericData(theEnv)->CurrentGeneric;
@@ -165,10 +146,7 @@ globle void GenericDispatch(
       DefgenericData(theEnv)->CurrentGeneric = previousGeneric;
       DefgenericData(theEnv)->CurrentMethod = previousMethod;
       EvaluationData(theEnv)->CurrentEvaluationDepth--;
-      
-      RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
-      CallPeriodicTasks(theEnv);
-     
+      PeriodicCleanup(theEnv,FALSE,TRUE);
       SetExecutingConstruct(theEnv,oldce);
       return;
      }
@@ -187,7 +165,7 @@ globle void GenericDispatch(
          EnvPrintRouter(theEnv,WERROR,"Generic function ");
          EnvPrintRouter(theEnv,WERROR,EnvGetDefgenericName(theEnv,(void *) gfunc));
          EnvPrintRouter(theEnv,WERROR," method #");
-         PrintLongInteger(theEnv,WERROR,(long long) meth->index);
+         PrintLongInteger(theEnv,WERROR,(long) meth->index);
          EnvPrintRouter(theEnv,WERROR," is not applicable to the given arguments.\n");
         }
      }
@@ -249,10 +227,8 @@ globle void GenericDispatch(
    DefgenericData(theEnv)->CurrentGeneric = previousGeneric;
    DefgenericData(theEnv)->CurrentMethod = previousMethod;
    EvaluationData(theEnv)->CurrentEvaluationDepth--;
-
-   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
-   CallPeriodicTasks(theEnv);
-   
+   PropagateReturnValue(theEnv,result);
+   PeriodicCleanup(theEnv,FALSE,TRUE);
    SetExecutingConstruct(theEnv,oldce);
   }
 
@@ -272,7 +248,7 @@ globle void UnboundMethodErr(
    EnvPrintRouter(theEnv,WERROR,"generic function ");
    EnvPrintRouter(theEnv,WERROR,EnvGetDefgenericName(theEnv,(void *) DefgenericData(theEnv)->CurrentGeneric));
    EnvPrintRouter(theEnv,WERROR," method #");
-   PrintLongInteger(theEnv,WERROR,(long long) DefgenericData(theEnv)->CurrentMethod->index);
+   PrintLongInteger(theEnv,WERROR,(long) DefgenericData(theEnv)->CurrentMethod->index);
    EnvPrintRouter(theEnv,WERROR,".\n");
   }
 
@@ -292,7 +268,7 @@ globle intBool IsMethodApplicable(
   DEFMETHOD *meth)
   {
    DATA_OBJECT temp;
-   short i,j,k;
+   register unsigned i,j,k;
    register RESTRICTION *rp;
 #if OBJECT_SYSTEM
    void *type;
@@ -303,7 +279,7 @@ globle intBool IsMethodApplicable(
    if ((ProceduralPrimitiveData(theEnv)->ProcParamArraySize < meth->minRestrictions) ||
        ((ProceduralPrimitiveData(theEnv)->ProcParamArraySize > meth->minRestrictions) && (meth->maxRestrictions != -1)))
      return(FALSE);
-   for (i = 0 , k = 0 ; i < ProceduralPrimitiveData(theEnv)->ProcParamArraySize ; i++)
+   for (i = 0 , k = 0 ; i < (unsigned) ProceduralPrimitiveData(theEnv)->ProcParamArraySize ; i++)
      {
       rp = &meth->restrictions[k];
       if (rp->tcnt != 0)
@@ -495,7 +471,7 @@ globle void CallSpecificMethod(
      return;
    if (EnvArgTypeCheck(theEnv,"call-specific-method",2,INTEGER,&temp) == FALSE)
      return;
-   mi = CheckMethodExists(theEnv,"call-specific-method",gfunc,(long) DOToLong(temp));
+   mi = CheckMethodExists(theEnv,"call-specific-method",gfunc,DOToInteger(temp));
    if (mi == -1)
      return;
    gfunc->methods[mi].busy++;
@@ -604,7 +580,7 @@ static DEFMETHOD *FindApplicableMethod(
  **********************************************************************/
 static void WatchGeneric(
   void *theEnv,
-  const char *tstring)
+  char *tstring)
   {
    EnvPrintRouter(theEnv,WTRACE,"GNC ");
    EnvPrintRouter(theEnv,WTRACE,tstring);
@@ -618,7 +594,7 @@ static void WatchGeneric(
    EnvPrintRouter(theEnv,WTRACE,ValueToString((void *) DefgenericData(theEnv)->CurrentGeneric->header.name));
    EnvPrintRouter(theEnv,WTRACE," ");
    EnvPrintRouter(theEnv,WTRACE," ED:");
-   PrintLongInteger(theEnv,WTRACE,(long long) EvaluationData(theEnv)->CurrentEvaluationDepth);
+   PrintLongInteger(theEnv,WTRACE,(long) EvaluationData(theEnv)->CurrentEvaluationDepth);
    PrintProcParamArray(theEnv,WTRACE);
   }
 
@@ -636,7 +612,7 @@ static void WatchGeneric(
  **********************************************************************/
 static void WatchMethod(
   void *theEnv,
-  const char *tstring)
+  char *tstring)
   {
    EnvPrintRouter(theEnv,WTRACE,"MTH ");
    EnvPrintRouter(theEnv,WTRACE,tstring);
@@ -651,10 +627,10 @@ static void WatchMethod(
    EnvPrintRouter(theEnv,WTRACE,":#");
    if (DefgenericData(theEnv)->CurrentMethod->system)
      EnvPrintRouter(theEnv,WTRACE,"SYS");
-   PrintLongInteger(theEnv,WTRACE,(long long) DefgenericData(theEnv)->CurrentMethod->index);
+   PrintLongInteger(theEnv,WTRACE,(long) DefgenericData(theEnv)->CurrentMethod->index);
    EnvPrintRouter(theEnv,WTRACE," ");
    EnvPrintRouter(theEnv,WTRACE," ED:");
-   PrintLongInteger(theEnv,WTRACE,(long long) EvaluationData(theEnv)->CurrentEvaluationDepth);
+   PrintLongInteger(theEnv,WTRACE,(long) EvaluationData(theEnv)->CurrentEvaluationDepth);
    PrintProcParamArray(theEnv,WTRACE);
   }
 

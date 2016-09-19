@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                 SCANNER HEADER FILE                 */
    /*******************************************************/
@@ -16,17 +16,6 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Added SetLineCount function.                   */
-/*                                                           */
-/*            Added UTF-8 support.                           */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -53,16 +42,16 @@ struct token
   {
    unsigned short type;
    void *value;
-   const char *printForm;
+   char *printForm;
   };
 
 #define SCANNER_DATA 57
 
 struct scannerData
-  { 
+  {
    char *GlobalString;
-   size_t GlobalMax;
-   size_t GlobalPos;
+   unsigned GlobalMax;
+   int GlobalPos;
    long LineCount;
    int IgnoreCompletionErrors;
   };
@@ -70,15 +59,14 @@ struct scannerData
 #define ScannerData(theEnv) ((struct scannerData *) GetEnvironmentData(theEnv,SCANNER_DATA))
 
    LOCALE void                           InitializeScannerData(void *);
-   LOCALE void                           GetToken(void *,const char *,struct token *);
+   LOCALE void                           GetToken(void *,char *,struct token *);
    LOCALE void                           CopyToken(struct token *,struct token *);
    LOCALE void                           ResetLineCount(void *);
    LOCALE long                           GetLineCount(void *);
-   LOCALE long                           SetLineCount(void *,long);
    LOCALE void                           IncrementLineCount(void *);
    LOCALE void                           DecrementLineCount(void *);
 
-#endif /* _H_scanner */
+#endif
 
 
 

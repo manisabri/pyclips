@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  07/01/05          */
    /*                                                     */
    /*                     MAIN MODULE                     */
    /*******************************************************/
@@ -41,7 +41,16 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include "clips.h"
+#include <stdio.h>
+#include "setup.h"
+#include "sysdep.h"
+#include "envrnmnt.h"
+#include "extnfunc.h"
+#include "commline.h"
+
+int main(int,char *[]);
+void UserFunctions(void);
+void EnvUserFunctions(void *);
 
 /****************************************/
 /* main: Starts execution of the expert */
@@ -72,9 +81,9 @@ int main(
    /* environments. Otherwise, you must explicitly call                */
    /* DestroyEnvironment for each environment you create.              */
    /*==================================================================*/
-   
+
    /* DeallocateEnvironmentData(); */
    /* DestroyEnvironment(theEnv); */
-   
+
    return(-1);
   }

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*         DEFTEMPLATE BSAVE/BLOAD HEADER FILE         */
    /*******************************************************/
@@ -13,21 +13,13 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.23: Added support for templates maintaining their  */
-/*            own list of facts.                             */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Support for deftemplate slot facets.           */
 /*                                                           */
 /*************************************************************/
 
 #if (! RUN_TIME)
-
 #ifndef _H_tmpltbin
 
 #define _H_tmpltbin
@@ -41,7 +33,6 @@ struct bsaveTemplateSlot
    unsigned int defaultDynamic : 1;
    long constraints;
    long defaultList;
-   long facetList;
    long next;
   };
 
@@ -69,7 +60,7 @@ struct bsaveDeftemplateModule
 #define TMPLTBIN_DATA 61
 
 struct deftemplateBinaryData
-  { 
+  {
    struct deftemplate *DeftemplateArray;
    long NumberOfDeftemplates;
    long NumberOfTemplateSlots;
@@ -77,7 +68,7 @@ struct deftemplateBinaryData
    struct templateSlot *SlotArray;
    struct deftemplateModule *ModuleArray;
   };
-  
+
 #define DeftemplateBinaryData(theEnv) ((struct deftemplateBinaryData *) GetEnvironmentData(theEnv,TMPLTBIN_DATA))
 
 #define DeftemplatePointer(i) ((struct deftemplate *) (&DeftemplateBinaryData(theEnv)->DeftemplateArray[i]))
@@ -99,9 +90,8 @@ struct deftemplateBinaryData
    LOCALE void                           DeftemplateBinarySetup(void *);
    LOCALE void                          *BloadDeftemplateModuleReference(void *,int);
 
-#endif /* _H_tmpltbin */
-
-#endif /* (! RUN_TIME) */
+#endif
+#endif
 
 
 

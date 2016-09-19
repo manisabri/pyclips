@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,12 +10,11 @@
 /* Purpose: Generic Functions Internal Routines              */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Changed name of variable log to logName        */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
@@ -23,24 +22,6 @@
 /*      6.24: Removed IMPERATIVE_METHODS compilation flag.   */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Converted API macros to function calls.        */
-/*                                                           */
-/*            Fixed linkage issue when DEBUGGING_FUNCTIONS   */
-/*            is set to 0 and PROFILING_FUNCTIONS is set to  */
-/*            1.                                             */
-/*                                                           */
-/*            Fixed typing issue when OBJECT_SYSTEM          */
-/*            compiler flag is set to 0.                     */
 /*                                                           */
 /*************************************************************/
 
@@ -71,7 +52,6 @@
 #include "memalloc.h"
 #include "prccode.h"
 #include "router.h"
-#include "sysdep.h"
 
 #define _GENRCFUN_SOURCE_
 #include "genrcfun.h"
@@ -204,7 +184,7 @@ globle int RemoveAllExplicitMethods(
   void *theEnv,
   DEFGENERIC *gfunc)
   {
-   long i,j;
+   register unsigned i,j;
    unsigned systemMethodCount = 0;
    DEFMETHOD *narr;
 
@@ -229,7 +209,7 @@ globle int RemoveAllExplicitMethods(
             i++;
            }
          rm(theEnv,(void *) gfunc->methods,(sizeof(DEFMETHOD) * gfunc->mcnt));
-         gfunc->mcnt = (short) systemMethodCount;
+         gfunc->mcnt = systemMethodCount;
          gfunc->methods = narr;
         }
       else
@@ -260,7 +240,7 @@ globle void RemoveDefgeneric(
   void *vgfunc)
   {
    DEFGENERIC *gfunc = (DEFGENERIC *) vgfunc;
-   long i;
+   register unsigned i;
 
    for (i = 0 ; i < gfunc->mcnt ; i++)
      DeleteMethodInfo(theEnv,gfunc,&gfunc->methods[i]);
@@ -268,7 +248,7 @@ globle void RemoveDefgeneric(
    if (gfunc->mcnt != 0)
      rm(theEnv,(void *) gfunc->methods,(sizeof(DEFMETHOD) * gfunc->mcnt));
    DecrementSymbolCount(theEnv,GetDefgenericNamePointer((void *) gfunc));
-   EnvSetDefgenericPPForm(theEnv,(void *) gfunc,NULL);
+   SetDefgenericPPForm((void *) gfunc,NULL);
    ClearUserDataList(theEnv,gfunc->header.usrData);
    rtn_struct(theEnv,defgeneric,gfunc);
   }
@@ -348,8 +328,8 @@ globle void DeleteMethodInfo(
   DEFGENERIC *gfunc,
   DEFMETHOD *meth)
   {
-   short j,k;
-   RESTRICTION *rptr;
+   register unsigned j,k;
+   register RESTRICTION *rptr;
 
    SaveBusyCount(gfunc);
    ExpressionDeinstall(theEnv,meth->actions);
@@ -357,7 +337,7 @@ globle void DeleteMethodInfo(
    ClearUserDataList(theEnv,meth->usrData);
    if (meth->ppForm != NULL)
      rm(theEnv,(void *) meth->ppForm,(sizeof(char) * (strlen(meth->ppForm)+1)));
-   for (j = 0 ; j < meth->restrictionCount ; j++)
+   for (j = 0 ; j < (unsigned) meth->restrictionCount ; j++)
      {
       rptr = &meth->restrictions[j];
 
@@ -378,7 +358,7 @@ globle void DeleteMethodInfo(
         (sizeof(RESTRICTION) * meth->restrictionCount));
    RestoreBusyCount(gfunc);
   }
-  
+
 /***************************************************
   NAME         : DestroyMethodInfo
   DESCRIPTION  : Deallocates all the data associated
@@ -390,6 +370,9 @@ globle void DeleteMethodInfo(
   SIDE EFFECTS : Nodes deallocated
   NOTES        : None
  ***************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
 globle void DestroyMethodInfo(
   void *theEnv,
   DEFGENERIC *gfunc,
@@ -397,12 +380,12 @@ globle void DestroyMethodInfo(
   {
    register int j;
    register RESTRICTION *rptr;
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(gfunc)
 #endif
 
    ReturnPackedExpression(theEnv,meth->actions);
-   
+
    ClearUserDataList(theEnv,meth->usrData);
    if (meth->ppForm != NULL)
      rm(theEnv,(void *) meth->ppForm,(sizeof(char) * (strlen(meth->ppForm)+1)));
@@ -434,14 +417,14 @@ globle void DestroyMethodInfo(
 globle int MethodsExecuting(
   DEFGENERIC *gfunc)
   {
-   long i;
+   register unsigned i;
 
    for (i = 0 ; i < gfunc->mcnt ; i++)
      if (gfunc->methods[i].busy > 0)
        return(TRUE);
    return(FALSE);
   }
-  
+
 #endif
 
 #if ! OBJECT_SYSTEM
@@ -490,85 +473,17 @@ globle intBool SubsumeType(
   SIDE EFFECTS : None
   NOTES        : None
  *****************************************************/
-globle long FindMethodByIndex(
+globle int FindMethodByIndex(
   DEFGENERIC *gfunc,
-  long theIndex)
+  unsigned theIndex)
   {
-   long i;
+   register unsigned i;
 
    for (i = 0 ; i < gfunc->mcnt ; i++)
      if (gfunc->methods[i].index == theIndex)
-       return(i);
+       return((int) i);
    return(-1);
   }
-
-#if DEBUGGING_FUNCTIONS || PROFILING_FUNCTIONS
-
-/******************************************************************
-  NAME         : PrintMethod
-  DESCRIPTION  : Lists a brief description of methods for a method
-  INPUTS       : 1) Buffer for method info
-                 2) Size of buffer (not including space for '\0')
-                 3) The method address
-  RETURNS      : Nothing useful
-  SIDE EFFECTS : None
-  NOTES        : A terminating newline is NOT included
- ******************************************************************/
-globle void PrintMethod(
-  void *theEnv,
-  char *buf,
-  size_t buflen,
-  DEFMETHOD *meth)
-  {
-#if MAC_XCD
-#pragma unused(theEnv)
-#endif
-   long j,k;
-   register RESTRICTION *rptr;
-   char numbuf[15];
-
-   buf[0] = '\0';
-   if (meth->system)
-     genstrncpy(buf,"SYS",(STD_SIZE) buflen);
-   gensprintf(numbuf,"%-2d ",meth->index);
-   genstrncat(buf,numbuf,(STD_SIZE) buflen-3);
-   for (j = 0 ; j < meth->restrictionCount ; j++)
-     {
-      rptr = &meth->restrictions[j];
-      if ((((int) j) == meth->restrictionCount-1) && (meth->maxRestrictions == -1))
-        {
-         if ((rptr->tcnt == 0) && (rptr->query == NULL))
-           {
-            genstrncat(buf,"$?",buflen-strlen(buf));
-            break;
-           }
-         genstrncat(buf,"($? ",buflen-strlen(buf));
-        }
-      else
-        genstrncat(buf,"(",buflen-strlen(buf));
-      for (k = 0 ; k < rptr->tcnt ; k++)
-        {
-#if OBJECT_SYSTEM
-         genstrncat(buf,EnvGetDefclassName(theEnv,rptr->types[k]),buflen-strlen(buf));
-#else
-         genstrncat(buf,TypeName(theEnv,ValueToInteger(rptr->types[k])),buflen-strlen(buf));
-#endif
-         if (((int) k) < (((int) rptr->tcnt) - 1))
-           genstrncat(buf," ",buflen-strlen(buf));
-        }
-      if (rptr->query != NULL)
-        {
-         if (rptr->tcnt != 0)
-           genstrncat(buf," ",buflen-strlen(buf));
-         genstrncat(buf,"<qry>",buflen-strlen(buf));
-        }
-      genstrncat(buf,")",buflen-strlen(buf));
-      if (((int) j) != (((int) meth->restrictionCount)-1))
-        genstrncat(buf," ",buflen-strlen(buf));
-     }
-  }
-
-#endif /* DEBUGGING_FUNCTIONS || PROFILING_FUNCTIONS */
 
 #if DEBUGGING_FUNCTIONS
 
@@ -631,7 +546,74 @@ globle void PreviewGeneric(
    SetExecutingConstruct(theEnv,oldce);
   }
 
-#endif /* DEBUGGING_FUNCTIONS */
+/******************************************************************
+  NAME         : PrintMethod
+  DESCRIPTION  : Lists a brief description of methods for a method
+  INPUTS       : 1) Buffer for method info
+                 2) Size of buffer (not including space for '\0')
+                 3) The method address
+  RETURNS      : Nothing useful
+  SIDE EFFECTS : None
+  NOTES        : A terminating newline is NOT included
+ ******************************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
+globle void PrintMethod(
+  void *theEnv,
+  char *buf,
+  int buflen,
+  DEFMETHOD *meth)
+  {
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
+#endif
+   register unsigned j,k;
+   register RESTRICTION *rptr;
+   char numbuf[15];
+
+   buf[0] = '\0';
+   if (meth->system)
+     strncpy(buf,"SYS",(STD_SIZE) buflen);
+   sprintf(numbuf,"%-2d ",meth->index);
+   strncat(buf,numbuf,(STD_SIZE) buflen-3);
+   for (j = 0 ; j < (unsigned) meth->restrictionCount ; j++)
+     {
+      rptr = &meth->restrictions[j];
+      if ((((int) j) == meth->restrictionCount-1) && (meth->maxRestrictions == -1))
+        {
+         if ((rptr->tcnt == 0) && (rptr->query == NULL))
+           {
+            strncat(buf,"$?",buflen-strlen(buf));
+            break;
+           }
+         strncat(buf,"($? ",buflen-strlen(buf));
+        }
+      else
+        strncat(buf,"(",buflen-strlen(buf));
+      for (k = 0 ; k < rptr->tcnt ; k++)
+        {
+#if OBJECT_SYSTEM
+         strncat(buf,EnvGetDefclassName(theEnv,rptr->types[k]),buflen-strlen(buf));
+#else
+         strncat(buf,TypeName(theEnv,ValueToInteger(rptr->types[k])),buflen-strlen(buf));
+#endif
+         if (((int) k) < (((int) rptr->tcnt) - 1))
+           strncat(buf," ",buflen-strlen(buf));
+        }
+      if (rptr->query != NULL)
+        {
+         if (rptr->tcnt != 0)
+           strncat(buf," ",buflen-strlen(buf));
+         strncat(buf,"<qry>",buflen-strlen(buf));
+        }
+      strncat(buf,")",buflen-strlen(buf));
+      if (((int) j) != (((int) meth->restrictionCount)-1))
+        strncat(buf," ",buflen-strlen(buf));
+     }
+  }
+
+#endif
 
 /***************************************************
   NAME         : CheckGenericExists
@@ -647,8 +629,8 @@ globle void PreviewGeneric(
  ***************************************************/
 globle DEFGENERIC *CheckGenericExists(
   void *theEnv,
-  const char *fname,
-  const char *gname)
+  char *fname,
+  char *gname)
   {
    DEFGENERIC *gfunc;
 
@@ -678,22 +660,22 @@ globle DEFGENERIC *CheckGenericExists(
   SIDE EFFECTS : None
   NOTES        : None
  ***************************************************/
-globle long CheckMethodExists(
+globle int CheckMethodExists(
   void *theEnv,
-  const char *fname,
+  char *fname,
   DEFGENERIC *gfunc,
-  long mi)
+  int mi)
   {
-   long fi;
+   int fi;
 
-   fi = FindMethodByIndex(gfunc,mi);
+   fi = FindMethodByIndex(gfunc,(unsigned) mi);
    if (fi == -1)
      {
       PrintErrorID(theEnv,"GENRCFUN",2,FALSE);
       EnvPrintRouter(theEnv,WERROR,"Unable to find method ");
       EnvPrintRouter(theEnv,WERROR,EnvGetDefgenericName(theEnv,(void *) gfunc));
       EnvPrintRouter(theEnv,WERROR," #");
-      PrintLongInteger(theEnv,WERROR,mi);
+      PrintLongInteger(theEnv,WERROR,(long) mi);
       EnvPrintRouter(theEnv,WERROR," in function ");
       EnvPrintRouter(theEnv,WERROR,fname);
       EnvPrintRouter(theEnv,WERROR,".\n");
@@ -717,7 +699,7 @@ globle long CheckMethodExists(
                  printed for unrecognized types
   NOTES        : Used only when COOL is not present
  *******************************************************/
-globle const char *TypeName(
+globle char *TypeName(
   void *theEnv,
   int tcode)
   {
@@ -760,7 +742,7 @@ globle const char *TypeName(
  ******************************************************/
 globle void PrintGenericName(
   void *theEnv,
-  const char *logName,
+  char *logName,
   DEFGENERIC *gfunc)
   {
    if (gfunc->header.whichModule->theModule != ((struct defmodule *) EnvGetCurrentModule(theEnv)))
@@ -794,7 +776,7 @@ static void DisplayGenericCore(
   void *theEnv,
   DEFGENERIC *gfunc)
   {
-   long i;
+   register unsigned i;
    char buf[256];
    int rtn = FALSE;
 

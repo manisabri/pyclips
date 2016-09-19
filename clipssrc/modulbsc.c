@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*             CLIPS Version 6.22  06/15/04            */
    /*                                                     */
    /*         DEFMODULE BASIC COMMANDS HEADER FILE        */
    /*******************************************************/
@@ -15,18 +15,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW and       */
-/*            MAC_MCW).                                      */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -46,7 +37,6 @@
 #include "router.h"
 #include "argacces.h"
 #include "bload.h"
-#include "multifld.h"
 #include "envrnmnt.h"
 
 #include "modulbsc.h"
@@ -57,7 +47,7 @@
 
    static void                    ClearDefmodules(void *);
 #if DEFMODULE_CONSTRUCT
-   static void                    SaveDefmodules(void *,void *,const char *);
+   static void                    SaveDefmodules(void *,void *,char *);
 #endif
 
 /*****************************************************************/
@@ -106,7 +96,7 @@ static void ClearDefmodules(
    CreateMainModule(theEnv);
    DefmoduleData(theEnv)->MainModuleRedefinable = TRUE;
 #else
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
@@ -121,9 +111,9 @@ static void ClearDefmodules(
 static void SaveDefmodules(
   void *theEnv,
   void *theModule,
-  const char *logicalName)
+  char *logicalName)
   {
-   const char *ppform;
+   char *ppform;
 
    ppform = EnvGetDefmodulePPForm(theEnv,theModule);
    if (ppform != NULL)
@@ -141,47 +131,7 @@ globle void EnvGetDefmoduleList(
   void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
-   void *theConstruct;
-   unsigned long count = 0;
-   struct multifield *theList;
-
-   /*====================================*/
-   /* Determine the number of constructs */
-   /* of the specified type.             */
-   /*====================================*/
-
-   for (theConstruct = EnvGetNextDefmodule(theEnv,NULL);
-        theConstruct != NULL;
-        theConstruct = EnvGetNextDefmodule(theEnv,theConstruct))
-     { count++; }
-
-   /*===========================*/
-   /* Create a multifield large */
-   /* enough to store the list. */
-   /*===========================*/
-
-   SetpType(returnValue,MULTIFIELD);
-   SetpDOBegin(returnValue,1);
-   SetpDOEnd(returnValue,(long) count);
-   theList = (struct multifield *) EnvCreateMultifield(theEnv,count);
-   SetpValue(returnValue,(void *) theList);
-
-   /*====================================*/
-   /* Store the names in the multifield. */
-   /*====================================*/
-
-   for (theConstruct = EnvGetNextDefmodule(theEnv,NULL), count = 1;
-        theConstruct != NULL;
-        theConstruct = EnvGetNextDefmodule(theEnv,theConstruct), count++)
-     {
-      if (EvaluationData(theEnv)->HaltExecution == TRUE)
-        {
-         EnvSetMultifieldErrorValue(theEnv,returnValue);
-         return;
-        }
-      SetMFType(theList,count,SYMBOL);
-      SetMFValue(theList,count,EnvAddSymbol(theEnv,EnvGetDefmoduleName(theEnv,theConstruct)));
-     }
+   OldGetConstructList(theEnv,returnValue,EnvGetNextDefmodule,EnvGetDefmoduleName);
   }
 
 #if DEBUGGING_FUNCTIONS
@@ -193,7 +143,7 @@ globle void EnvGetDefmoduleList(
 globle void PPDefmoduleCommand(
   void *theEnv)
   {
-   const char *defmoduleName;
+   char *defmoduleName;
 
    defmoduleName = GetConstructName(theEnv,"ppdefmodule","defmodule name");
    if (defmoduleName == NULL) return;
@@ -209,8 +159,8 @@ globle void PPDefmoduleCommand(
 /*************************************/
 globle int PPDefmodule(
   void *theEnv,
-  const char *defmoduleName,
-  const char *logicalName)
+  char *defmoduleName,
+  char *logicalName)
   {
    void *defmodulePtr;
 
@@ -244,7 +194,7 @@ globle void ListDefmodulesCommand(
 /***************************************/
 globle void EnvListDefmodules(
   void *theEnv,
-  const char *logicalName)
+  char *logicalName)
   {
    void *theModule;
    int count = 0;
@@ -262,30 +212,6 @@ globle void EnvListDefmodules(
   }
 
 #endif /* DEBUGGING_FUNCTIONS */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle void GetDefmoduleList(
-  DATA_OBJECT_PTR returnValue)
-  {
-   EnvGetDefmoduleList(GetCurrentEnvironment(),returnValue);
-  }
-
-#if DEBUGGING_FUNCTIONS
-
-globle void ListDefmodules(
-  const char *logicalName)
-  {
-   EnvListDefmodules(GetCurrentEnvironment(),logicalName);
-  }
-
-#endif /* DEBUGGING_FUNCTIONS */
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFMODULE_CONSTRUCT */
 

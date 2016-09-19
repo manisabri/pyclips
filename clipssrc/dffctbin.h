@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*           DEFFACTS BSAVE/BLOAD HEADER FILE          */
    /*******************************************************/
@@ -13,16 +13,13 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
 #if (! RUN_TIME)
-
 #ifndef _H_dffctbin
 
 #define _H_dffctbin
@@ -43,17 +40,17 @@ struct bsaveDeffactsModule
   {
    struct bsaveDefmoduleItemHeader header;
   };
-  
+
 #define DFFCTBIN_DATA 26
 
 struct deffactsBinaryData
-  { 
+  {
    struct deffacts *DeffactsArray;
    long NumberOfDeffacts;
    struct deffactsModule *ModuleArray;
    long NumberOfDeffactsModules;
   };
-  
+
 #define DeffactsBinaryData(theEnv) ((struct deffactsBinaryData *) GetEnvironmentData(theEnv,DFFCTBIN_DATA))
 
 #ifdef LOCALE
@@ -69,9 +66,8 @@ struct deffactsBinaryData
    LOCALE void                           DeffactsBinarySetup(void *);
    LOCALE void                          *BloadDeffactsModuleReference(void *,int);
 
-#endif /* _H_dffctbin */
-
-#endif /* (! RUN_TIME) */
+#endif
+#endif
 
 
 

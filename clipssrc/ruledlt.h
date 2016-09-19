@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*          RULE DELETION MODULE HEADER FILE           */
    /*******************************************************/
@@ -17,19 +17,6 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.24: Removed DYNAMIC_SALIENCE compilation flag.     */
-/*                                                           */
-/*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW and       */
-/*            MAC_MCW).                                      */
-/*                                                           */
-/*            Added support for hashed memories.             */
-/*                                                           */
-/*            Fixed linkage issue when BLOAD_ONLY compiler   */
-/*            flag is set to 1.                              */
 /*                                                           */
 /*************************************************************/
 
@@ -50,7 +37,7 @@
    LOCALE void                           ReturnDefrule(void *,void *);
    LOCALE void                           DestroyDefrule(void *,void *);
 
-#endif /* _H_ruledlt */
+#endif
 
 
 

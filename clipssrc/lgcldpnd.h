@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*          LOGICAL DEPENDENCIES HEADER FILE           */
    /*******************************************************/
@@ -17,14 +17,7 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Removed LOGICAL_DEPENDENCIES compilation flag. */
-/*                                                           */
-/*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*            Rule with exists CE has incorrect activation.  */
-/*            DR0867                                         */
-/*                                                           */
-/*      6.30: Added support for hashed memories.             */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -65,9 +58,8 @@ struct dependency
    LOCALE void                           DependenciesCommand(void *);
    LOCALE void                           DependentsCommand(void *);
    LOCALE void                           ReturnEntityDependencies(void *,struct patternEntity *);
-   LOCALE struct partialMatch           *FindLogicalBind(struct joinNode *,struct partialMatch *);
 
-#endif /* _H_lgcldpnd */
+#endif
 
 
 

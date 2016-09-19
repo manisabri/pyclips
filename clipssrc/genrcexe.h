@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,22 +10,13 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Removed IMPERATIVE_METHODS compilation flag.   */
-/*                                                           */
-/*      6.30: Changed garbage collection algorithm.          */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -52,20 +43,23 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           GenericDispatch(void *,DEFGENERIC *,DEFMETHOD *,DEFMETHOD *,EXPRESSION *,DATA_OBJECT *);
-   LOCALE void                           UnboundMethodErr(void *);
-   LOCALE intBool                        IsMethodApplicable(void *,DEFMETHOD *);
+LOCALE void GenericDispatch(void *,DEFGENERIC *,DEFMETHOD *,DEFMETHOD *,EXPRESSION *,DATA_OBJECT *);
+LOCALE void UnboundMethodErr(void *);
+LOCALE intBool IsMethodApplicable(void *,DEFMETHOD *);
 
-   LOCALE int                            NextMethodP(void *);
-   LOCALE void                           CallNextMethod(void *,DATA_OBJECT *);
-   LOCALE void                           CallSpecificMethod(void *,DATA_OBJECT *);
-   LOCALE void                           OverrideNextMethod(void *,DATA_OBJECT *);
+LOCALE int NextMethodP(void *);
+LOCALE void CallNextMethod(void *,DATA_OBJECT *);
+LOCALE void CallSpecificMethod(void *,DATA_OBJECT *);
+LOCALE void OverrideNextMethod(void *,DATA_OBJECT *);
 
-   LOCALE void                           GetGenericCurrentArgument(void *,DATA_OBJECT *);
+LOCALE void GetGenericCurrentArgument(void *,DATA_OBJECT *);
 
-#endif /* DEFGENERIC_CONSTRUCT */
+#ifndef _GENRCEXE_SOURCE_
+#endif
 
-#endif /* _H_genrcexe */
+#endif
+
+#endif
 
 
 

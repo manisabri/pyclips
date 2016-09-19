@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,7 +10,7 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
@@ -18,16 +18,6 @@
 /*                                                           */
 /*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
 /*            DEFRULE_CONSTRUCT.                             */
-/*                                                           */
-/*            ResetObjectMatchTimeTags did not pass in the   */
-/*            environment argument when BLOAD_ONLY was set.  */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Added support for hashed comparisons to        */
-/*            constants.                                     */
-/*                                                           */
-/*            Added support for hashed alpha memories.       */
 /*                                                           */
 /*************************************************************/
 
@@ -39,7 +29,7 @@
 #define OBJECTRETEBIN_DATA 34
 
 struct objectReteBinaryData
-  { 
+  {
    long AlphaNodeCount;
    long PatternNodeCount;
    OBJECT_ALPHA_NODE *AlphaArray;
@@ -59,11 +49,11 @@ struct objectReteBinaryData
 #define LOCALE extern
 #endif
 
-   LOCALE void                    SetupObjectPatternsBload(void *);
+LOCALE void SetupObjectPatternsBload(void *);
 
-#endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
+#endif
 
-#endif /* _H_objrtbin */
+#endif
 
 
 

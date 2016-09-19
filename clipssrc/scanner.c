@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                    SCANNER MODULE                   */
    /*******************************************************/
@@ -15,20 +15,9 @@
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Chris Culbert                                        */
-/*      Brian Dantes                                         */
+/*      Brian Donnell                                        */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Added SetLineCount function.                   */
-/*                                                           */
-/*            Added UTF-8 support.                           */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -39,7 +28,6 @@
 #define _STDIO_INCLUDED_
 #include <string.h>
 #include <limits.h>
-#include <errno.h>
 
 #include "setup.h"
 #include "constant.h"
@@ -48,7 +36,6 @@
 #include "symbol.h"
 #include "utility.h"
 #include "memalloc.h"
-#include "sysdep.h"
 
 #include "scanner.h"
 
@@ -58,9 +45,9 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                   *ScanSymbol(void *,const char *,int,unsigned short *);
-   static void                   *ScanString(void *,const char *);
-   static void                    ScanNumber(void *,const char *,struct token *);
+   static void                   *ScanSymbol(void *,char *,int,unsigned short *);
+   static void                   *ScanString(void *,char *);
+   static void                    ScanNumber(void *,char *,struct token *);
    static void                    DeallocateScannerData(void *);
 
 /************************************************/
@@ -72,7 +59,7 @@ globle void InitializeScannerData(
   {
    AllocateEnvironmentData(theEnv,SCANNER_DATA,sizeof(struct scannerData),DeallocateScannerData);
   }
-  
+
 /**************************************************/
 /* DeallocateScannerData: Deallocates environment */
 /*    data for scanner routines.                  */
@@ -94,7 +81,7 @@ static void DeallocateScannerData(
 /***********************************************************************/
 globle void GetToken(
  void *theEnv,
- const char *logicalName,
+ char *logicalName,
  struct token *theToken)
  {
    int inchar;
@@ -136,7 +123,7 @@ globle void GetToken(
    /* Process Symbolic Tokens. */
    /*==========================*/
 
-   if (isalpha(inchar) || IsUTF8MultiByteStart(inchar))
+   if (isalpha(inchar))
      {
       theToken->type = SYMBOL;
       EnvUngetcRouter(theEnv,inchar,logicalName);
@@ -183,7 +170,7 @@ globle void GetToken(
 
        case '?':
           inchar = EnvGetcRouter(theEnv,logicalName);
-          if (isalpha(inchar) || IsUTF8MultiByteStart(inchar)
+          if (isalpha(inchar)
 #if DEFGLOBAL_CONSTRUCT
               || (inchar == '*'))
 #else
@@ -229,7 +216,7 @@ globle void GetToken(
          if ((inchar = EnvGetcRouter(theEnv,logicalName)) == '?')
            {
             inchar = EnvGetcRouter(theEnv,logicalName);
-            if (isalpha(inchar) || IsUTF8MultiByteStart(inchar)
+            if (isalpha(inchar)
 #if DEFGLOBAL_CONSTRUCT
                  || (inchar == '*'))
 #else
@@ -384,7 +371,7 @@ globle void GetToken(
 /*************************************/
 static void *ScanSymbol(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   int count,
   unsigned short *type)
   {
@@ -403,9 +390,7 @@ static void *ScanSymbol(
            (inchar != '(') && (inchar != ')') &&
            (inchar != '&') && (inchar != '|') && (inchar != '~') &&
            (inchar != ' ') && (inchar != ';') &&
-           (isprint(inchar) ||
-            IsUTF8MultiByteStart(inchar) || 
-            IsUTF8MultiByteContinuation(inchar)))
+           isprint(inchar) )
      {
       ScannerData(theEnv)->GlobalString = ExpandStringWithChar(theEnv,inchar,ScannerData(theEnv)->GlobalString,&ScannerData(theEnv)->GlobalPos,&ScannerData(theEnv)->GlobalMax,ScannerData(theEnv)->GlobalMax+80);
 
@@ -462,11 +447,11 @@ static void *ScanSymbol(
 /*************************************/
 static void *ScanString(
   void *theEnv,
-  const char *logicalName)
+  char *logicalName)
   {
    int inchar;
-   size_t pos = 0;
-   size_t max = 0;
+   int pos = 0;
+   unsigned max = 0;
    char *theString = NULL;
    void *thePtr;
 
@@ -486,10 +471,7 @@ static void *ScanString(
      }
 
    if ((inchar == EOF) && (ScannerData(theEnv)->IgnoreCompletionErrors == FALSE))
-     { 
-      PrintErrorID(theEnv,"SCANNER",1,TRUE);
-      EnvPrintRouter(theEnv,WERROR,"Encountered End-Of-File while scanning a string\n"); 
-     }
+     { EnvPrintRouter(theEnv,WERROR,"\nEncountered End-Of-File while scanning a string\n"); }
 
    /*===============================================*/
    /* Add the string to the symbol table and return */
@@ -512,7 +494,7 @@ static void *ScanString(
 /**************************************/
 static void ScanNumber(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   struct token *theToken)
   {
    int count = 0;
@@ -520,7 +502,7 @@ static void ScanNumber(
    int digitFound = FALSE;
    int processFloat = FALSE;
    double fvalue;
-   long long lvalue;
+   long lvalue;
    unsigned short type;
 
    /* Phases:              */
@@ -605,7 +587,7 @@ static void ScanNumber(
                    (inchar == '(') || (inchar == ')') ||
                    (inchar == '&') || (inchar == '|') || (inchar == '~') ||
                    (inchar == ' ') || (inchar == ';') ||
-                   ((isprint(inchar) == 0) && (! IsUTF8MultiByteStart(inchar))) )
+                   (isprint(inchar) == 0) )
            { phase = 5; }
          else
            {
@@ -632,7 +614,7 @@ static void ScanNumber(
                    (inchar == '(') || (inchar == ')') ||
                    (inchar == '&') || (inchar == '|') || (inchar == '~') ||
                    (inchar == ' ') || (inchar == ';') ||
-                   ((isprint(inchar) == 0) && (! IsUTF8MultiByteStart(inchar))) )
+                   (isprint(inchar) == 0) )
            { phase = 5; }
          else
            {
@@ -659,7 +641,7 @@ static void ScanNumber(
                    (inchar == '(') || (inchar == ')') ||
                    (inchar == '&') || (inchar == '|') || (inchar == '~') ||
                    (inchar == ' ') || (inchar == ';') ||
-                   ((isprint(inchar) == 0) && (! IsUTF8MultiByteStart(inchar))) )
+                   (isprint(inchar) == 0) )
            {
             digitFound = FALSE;
             phase = 5;
@@ -682,7 +664,7 @@ static void ScanNumber(
                    (inchar == '(') || (inchar == ')') ||
                    (inchar == '&') || (inchar == '|') || (inchar == '~') ||
                    (inchar == ' ') || (inchar == ';') ||
-                   ((isprint(inchar) == 0) && (! IsUTF8MultiByteStart(inchar))) )
+                   (isprint(inchar) == 0) )
            {
             if ((ScannerData(theEnv)->GlobalString[count-1] == '+') || (ScannerData(theEnv)->GlobalString[count-1] == '-'))
               { digitFound = FALSE; }
@@ -732,16 +714,11 @@ static void ScanNumber(
      }
    else
      {
-      errno = 0;
-#if WIN_MVC
-      lvalue = _strtoi64(ScannerData(theEnv)->GlobalString,NULL,10);
-#else
-      lvalue = strtoll(ScannerData(theEnv)->GlobalString,NULL,10);
-#endif
-      if (errno)
+      lvalue = atol(ScannerData(theEnv)->GlobalString);
+      if ((lvalue == LONG_MAX) || (lvalue == LONG_MIN))
         {
          PrintWarningID(theEnv,"SCANNER",1,FALSE);
-         EnvPrintRouter(theEnv,WWARNING,"Over or underflow of long long integer.\n");
+         EnvPrintRouter(theEnv,WWARNING,"Over or underflow of long integer.\n");
         }
       theToken->type = INTEGER;
       theToken->value = (void *) EnvAddLong(theEnv,lvalue);
@@ -773,30 +750,13 @@ globle void ResetLineCount(
    ScannerData(theEnv)->LineCount = 0;
   }
 
-/***************************************************/
-/* GetLineCount: Returns the scanner's line count. */
-/***************************************************/
+/****************************************************/
+/* GettLineCount: Returns the scanner's line count. */
+/****************************************************/
 globle long GetLineCount(
   void *theEnv)
   {
    return(ScannerData(theEnv)->LineCount);
-  }
-
-/***********************************************/
-/* SetLineCount: Sets the scanner's line count */
-/*   and returns the previous value.           */
-/***********************************************/
-globle long SetLineCount(
-  void *theEnv,
-  long value)
-  {
-   long oldValue;
-   
-   oldValue = ScannerData(theEnv)->LineCount;
-   
-   ScannerData(theEnv)->LineCount = value;
-   
-   return(oldValue);
   }
 
 /**********************************/

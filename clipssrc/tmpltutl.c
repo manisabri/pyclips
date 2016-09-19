@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*            DEFTEMPLATE UTILITIES MODULE             */
    /*******************************************************/
@@ -13,10 +13,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Added support for templates maintaining their  */
 /*            own list of facts.                             */
 /*                                                           */
@@ -27,13 +26,6 @@
 /*                                                           */
 /*            Added additional arguments to                  */
 /*            PrintTemplateFact function.                    */
-/*                                                           */
-/*      6.30: Support for long long integers.                */
-/*                                                           */
-/*            Used gensprintf instead of sprintf.            */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -60,7 +52,6 @@
 #include "tmpltpsr.h"
 #include "modulutl.h"
 #include "watch.h"
-#include "sysdep.h"
 #include "tmpltbsc.h"
 #include "tmpltdef.h"
 
@@ -73,8 +64,8 @@
 /********************************************************/
 globle void InvalidDeftemplateSlotMessage(
   void *theEnv,
-  const char *slotName,
-  const char *deftemplateName,
+  char *slotName,
+  char *deftemplateName,
   int printCR)
   {
    PrintErrorID(theEnv,"TMPLTDEF",1,printCR);
@@ -92,7 +83,7 @@ globle void InvalidDeftemplateSlotMessage(
 /**********************************************************/
 globle void SingleFieldSlotCardinalityError(
   void *theEnv,
-  const char *slotName)
+  char *slotName)
   {
    PrintErrorID(theEnv,"TMPLTDEF",2,TRUE);
    EnvPrintRouter(theEnv,WERROR,"The single field slot ");
@@ -189,7 +180,7 @@ globle void CheckTemplateFact(
       rv = ConstraintCheckDataObject(theEnv,&theData,slotPtr->constraints);
       if (rv != NO_VIOLATION)
         {
-         gensprintf(thePlace,"fact f-%-5lld ",theFact->factIndex);
+         sprintf(thePlace,"fact f-%-5ld ",theFact->factIndex);
 
          PrintErrorID(theEnv,"CSTRNCHK",1,TRUE);
          EnvPrintRouter(theEnv,WERROR,"Slot value ");
@@ -214,10 +205,10 @@ globle intBool CheckRHSSlotTypes(
   void *theEnv,
   struct expr *rhsSlots,
   struct templateSlot *slotPtr,
-  const char *thePlace)
+  char *thePlace)
   {
    int rv;
-   const char *theName;
+   char *theName;
 
    if (EnvGetStaticConstraintChecking(theEnv) == FALSE) return(TRUE);
       rv = ConstraintCheckExpressionChain(theEnv,rhsSlots,slotPtr->constraints);
@@ -284,7 +275,7 @@ globle int FindSlotPosition(
 /*******************************************************************/
 globle void PrintTemplateFact(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   struct fact *theFact,
   int seperateLines,
   int ignoreDefaults)
@@ -295,7 +286,7 @@ globle void PrintTemplateFact(
    struct templateSlot *slotPtr;
    DATA_OBJECT tempDO;
    int slotPrinted = FALSE;
-   
+
    /*==============================*/
    /* Initialize some information. */
    /*==============================*/
@@ -318,22 +309,22 @@ globle void PrintTemplateFact(
 
    i = 0;
    while (slotPtr != NULL)
-     {         
+     {
       /*=================================================*/
       /* If we're ignoring slots with their original     */
       /* default value, check to see if the fact's slot  */
       /* value differs from the deftemplate default.     */
       /*=================================================*/
-      
+
       if (ignoreDefaults && (slotPtr->defaultDynamic == FALSE))
         {
          DeftemplateSlotDefault(theEnv,theDeftemplate,slotPtr,&tempDO,TRUE);
-         
+
          if (slotPtr->multislot == FALSE)
            {
             if ((GetType(tempDO) == sublist[i].type) &&
                 (GetValue(tempDO) == sublist[i].value))
-              {     
+              {
                i++;
                slotPtr = slotPtr->next;
                continue;
@@ -347,16 +338,16 @@ globle void PrintTemplateFact(
             continue;
            }
         }
-        
+
       /*===========================================*/
       /* Print the opening parenthesis of the slot */
       /* and the slot name.                        */
       /*===========================================*/
-     
-      if (! slotPrinted) 
-        { 
+
+      if (! slotPrinted)
+        {
          slotPrinted = TRUE;
-         EnvPrintRouter(theEnv,logicalName," "); 
+         EnvPrintRouter(theEnv,logicalName," ");
         }
 
       if (seperateLines)

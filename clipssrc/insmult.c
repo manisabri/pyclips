@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*              CLIPS Version 6.30  08/16/14           */
+   /*              CLIPS Version 6.24  06/05/06           */
    /*                                                     */
    /*           INSTANCE MULTIFIELD SLOT MODULE           */
    /*******************************************************/
@@ -10,20 +10,14 @@
 /* Purpose:  Access routines for Instance Multifield Slots   */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -63,9 +57,9 @@
    =========================================
    ***************************************** */
 
-static INSTANCE_TYPE *CheckMultifieldSlotInstance(void *,const char *);
-static INSTANCE_SLOT *CheckMultifieldSlotModify(void *,int,const char *,INSTANCE_TYPE *,
-                                       EXPRESSION *,long *,long *,DATA_OBJECT *);
+static INSTANCE_TYPE *CheckMultifieldSlotInstance(void *,char *);
+static INSTANCE_SLOT *CheckMultifieldSlotModify(void *,int,char *,INSTANCE_TYPE *,
+                                       EXPRESSION *,int *,int *,DATA_OBJECT *);
 static void AssignSlotToDataObject(DATA_OBJECT *,INSTANCE_SLOT *);
 
 /* =========================================
@@ -143,7 +137,7 @@ globle void MVSlotReplaceCommand(
    DATA_OBJECT newval,newseg,oldseg;
    INSTANCE_TYPE *ins;
    INSTANCE_SLOT *sp;
-   long rb,re;
+   int rb,re;
    EXPRESSION arg;
 
    result->type = SYMBOL;
@@ -183,7 +177,7 @@ globle void MVSlotInsertCommand(
    DATA_OBJECT newval,newseg,oldseg;
    INSTANCE_TYPE *ins;
    INSTANCE_SLOT *sp;
-   long theIndex;
+   int theIndex;
    EXPRESSION arg;
 
    result->type = SYMBOL;
@@ -224,7 +218,7 @@ globle void MVSlotDeleteCommand(
    DATA_OBJECT newseg,oldseg;
    INSTANCE_TYPE *ins;
    INSTANCE_SLOT *sp;
-   long rb,re;
+   int rb,re;
    EXPRESSION arg;
 
    result->type = SYMBOL;
@@ -260,7 +254,7 @@ globle intBool DirectMVReplaceCommand(
   {
    INSTANCE_SLOT *sp;
    INSTANCE_TYPE *ins;
-   long rb,re;
+   int rb,re;
    DATA_OBJECT newval,newseg,oldseg;
 
    if (CheckCurrentMessage(theEnv,"direct-slot-replace$",TRUE) == FALSE)
@@ -292,7 +286,7 @@ globle intBool DirectMVInsertCommand(
   {
    INSTANCE_SLOT *sp;
    INSTANCE_TYPE *ins;
-   long theIndex;
+   int theIndex;
    DATA_OBJECT newval,newseg,oldseg;
 
    if (CheckCurrentMessage(theEnv,"direct-slot-insert$",TRUE) == FALSE)
@@ -325,7 +319,7 @@ globle intBool DirectMVDeleteCommand(
   {
    INSTANCE_SLOT *sp;
    INSTANCE_TYPE *ins;
-   long rb,re;
+   int rb,re;
    DATA_OBJECT newseg,oldseg;
 
    if (CheckCurrentMessage(theEnv,"direct-slot-delete$",TRUE) == FALSE)
@@ -361,7 +355,7 @@ globle intBool DirectMVDeleteCommand(
  **********************************************************************/
 static INSTANCE_TYPE *CheckMultifieldSlotInstance(
   void *theEnv,
-  const char *func)
+  char *func)
   {
    INSTANCE_TYPE *ins;
    DATA_OBJECT temp;
@@ -421,11 +415,11 @@ static INSTANCE_TYPE *CheckMultifieldSlotInstance(
 static INSTANCE_SLOT *CheckMultifieldSlotModify(
   void *theEnv,
   int code,
-  const char *func,
+  char *func,
   INSTANCE_TYPE *ins,
   EXPRESSION *args,
-  long *rb,
-  long *re,
+  int *rb,
+  int *re,
   DATA_OBJECT *newval)
   {
    DATA_OBJECT temp;
@@ -468,7 +462,7 @@ static INSTANCE_SLOT *CheckMultifieldSlotModify(
       return(NULL);
      }
    args = args->nextArg->nextArg;
-   *rb = (long) ValueToLong(temp.value);
+   *rb = ValueToInteger(temp.value);
    if ((code == REPLACE) || (code == DELETE_OP))
      {
       EvaluateExpression(theEnv,args,&temp);
@@ -478,7 +472,7 @@ static INSTANCE_SLOT *CheckMultifieldSlotModify(
          SetEvaluationError(theEnv,TRUE);
          return(NULL);
         }
-      *re = (long) ValueToLong(temp.value);
+      *re = ValueToInteger(temp.value);
       args = args->nextArg;
      }
    if ((code == INSERT) || (code == REPLACE))

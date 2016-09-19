@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*       PROCEDURAL FUNCTIONS PARSER HEADER FILE       */
    /*******************************************************/
@@ -11,28 +11,13 @@
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.23: Changed name of variable exp to theExp         */
-/*            because of Unix compiler warnings of shadowed  */
-/*            definitions.                                   */
-/*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Local variables set with the bind function     */
-/*            persist until a reset/clear command is issued. */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Fixed linkage issue when BLOAD_ONLY compiler   */
-/*            flag is set to 1.                              */
 /*                                                           */
 /*************************************************************/
 
@@ -75,7 +60,7 @@ struct BindInfo
    LOCALE struct constraintRecord       *FindBindConstraints(void *,struct symbolHashNode *);
 #endif
 
-#endif /* _H_prcdrpsr */
+#endif
 
 
 

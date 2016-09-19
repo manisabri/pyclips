@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              RULE CONSTRAINTS MODULE                */
    /*******************************************************/
@@ -18,8 +18,6 @@
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Support for long long integers.                */
 /*                                                           */
 /*************************************************************/
 
@@ -201,7 +199,7 @@ static intBool MultifieldCardinalityViolation(
          /*=======================================*/
 
          if (tmpNode->constraints->minFields->value != SymbolData(theEnv)->NegativeInfinity)
-           { minFields += (long) ValueToLong(tmpNode->constraints->minFields->value); }
+           { minFields += ValueToLong(tmpNode->constraints->minFields->value); }
 
          /*=========================================*/
          /* The greatest maximum of all the min/max */
@@ -213,7 +211,7 @@ static intBool MultifieldCardinalityViolation(
          if (tmpMax->value == SymbolData(theEnv)->PositiveInfinity)
            { posInfinity = TRUE; }
          else
-           { maxFields += (long) ValueToLong(tmpMax->value); }
+           { maxFields += ValueToLong(tmpMax->value); }
         }
 
       /*================================================*/
@@ -235,9 +233,9 @@ static intBool MultifieldCardinalityViolation(
    else tempConstraint = CopyConstraintRecord(theEnv,theNode->constraints);
    ReturnExpression(theEnv,tempConstraint->minFields);
    ReturnExpression(theEnv,tempConstraint->maxFields);
-   tempConstraint->minFields = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long long) minFields));
+   tempConstraint->minFields = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long) minFields));
    if (posInfinity) tempConstraint->maxFields = GenConstant(theEnv,SYMBOL,SymbolData(theEnv)->PositiveInfinity);
-   else tempConstraint->maxFields = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long long) maxFields));
+   else tempConstraint->maxFields = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long) maxFields));
 
    /*================================================================*/
    /* Determine the final cardinality for the multifield slot by     */
@@ -451,7 +449,7 @@ globle void ConstraintReferenceErrorMessage(
    /*========================================*/
 
    EnvPrintRouter(theEnv,WERROR,"found in CE #");
-   PrintLongInteger(theEnv,WERROR,(long int) theExpression->whichCE);
+   PrintLongInteger(theEnv,WERROR,(long int) whichCE);
    if (slotName == NULL)
      {
       if (theField > 0)
@@ -735,11 +733,7 @@ globle intBool CheckRHSForConstraintErrors(
           i++;
           tmpPtr = expressionList->nextArg;
           expressionList->nextArg = NULL;
-          if (CheckRHSForConstraintErrors(theEnv,expressionList,theLHS))
-            {
-             expressionList->nextArg = tmpPtr;
-             return(TRUE);
-            }
+          if (CheckRHSForConstraintErrors(theEnv,expressionList,theLHS)) return(TRUE);
           expressionList->nextArg = tmpPtr;
           expressionList = expressionList->nextArg;
          }

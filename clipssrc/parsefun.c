@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/02/06            */
    /*                                                     */
    /*               PARSING FUNCTIONS MODULE              */
    /*******************************************************/
@@ -21,18 +21,6 @@
 /*                                                           */
 /*      6.24: Corrected code to remove run-time program      */
 /*            compiler warnings.                             */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Fixed function declaration issue when          */
-/*            BLOAD_ONLY compiler flag is set to 1.          */
 /*                                                           */
 /*************************************************************/
 
@@ -59,13 +47,13 @@
 #define PARSEFUN_DATA 11
 
 struct parseFunctionData
-  { 
+  {
    char *ErrorString;
-   size_t ErrorCurrentPosition;
-   size_t ErrorMaximumPosition;
+   int ErrorCurrentPosition;
+   unsigned ErrorMaximumPosition;
    char *WarningString;
-   size_t WarningCurrentPosition;
-   size_t WarningMaximumPosition;
+   int WarningCurrentPosition;
+   unsigned WarningMaximumPosition;
   };
 
 #define ParseFunctionData(theEnv) ((struct parseFunctionData *) GetEnvironmentData(theEnv,PARSEFUN_DATA))
@@ -75,8 +63,8 @@ struct parseFunctionData
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static int                     FindErrorCapture(void *,const char *);
-   static int                     PrintErrorCapture(void *,const char *,const char *);
+   static int                     FindErrorCapture(void *,char *);
+   static int                     PrintErrorCapture(void *,char *,char *);
    static void                    DeactivateErrorCapture(void *);
    static void                    SetErrorCaptureValues(void *,DATA_OBJECT_PTR);
 #endif
@@ -140,10 +128,10 @@ globle void CheckSyntaxFunction(
 /*********************************/
 globle int CheckSyntax(
   void *theEnv,
-  const char *theString,
+  char *theString,
   DATA_OBJECT_PTR returnValue)
   {
-   const char *name;
+   char *name;
    struct token theToken;
    struct expr *top;
    short rv;
@@ -282,7 +270,7 @@ globle int CheckSyntax(
 /**************************************************/
 static void DeactivateErrorCapture(
   void *theEnv)
-  {   
+  {
    if (ParseFunctionData(theEnv)->ErrorString != NULL)
      {
       rm(theEnv,ParseFunctionData(theEnv)->ErrorString,ParseFunctionData(theEnv)->ErrorMaximumPosition);
@@ -351,11 +339,14 @@ static void SetErrorCaptureValues(
 /* FindErrorCapture: Find routine */
 /*   for the check-syntax router. */
 /**********************************/
+#if IBM_TBC
+#pragma argsused
+#endif
 static int FindErrorCapture(
   void *theEnv,
-  const char *logicalName)
+  char *logicalName)
   {
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -372,8 +363,8 @@ static int FindErrorCapture(
 /************************************/
 static int PrintErrorCapture(
   void *theEnv,
-  const char *logicalName,
-  const char *str)
+  char *logicalName,
+  char *str)
   {
    if (strcmp(logicalName,WERROR) == 0)
      {
@@ -412,9 +403,14 @@ globle void CheckSyntaxFunction(
 /************************************************/
 globle int CheckSyntax(
   void *theEnv,
-  const char *theString,
+  char *theString,
   DATA_OBJECT_PTR returnValue)
   {
+#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
+#pragma unused(theString)
+#pragma unused(returnValue)
+#endif
+
    PrintErrorID(theEnv,"PARSEFUN",1,FALSE);
    EnvPrintRouter(theEnv,WERROR,"Function check-syntax does not work in run time modules.\n");
    SetpType(returnValue,SYMBOL);

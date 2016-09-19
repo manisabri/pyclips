@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.39  01/29/15            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*            MISCELLANEOUS FUNCTIONS MODULE           */
    /*******************************************************/
@@ -13,10 +13,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*            Corrected compilation errors for files         */
@@ -34,34 +33,6 @@
 /*            AUXILIARY_MESSAGE_HANDLERS compilation flags.  */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Support for long long integers.                */
-/*                                                           */
-/*            Used gensprintf instead of sprintf.            */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems.                   */
-/*                                                           */
-/*            Renamed EX_MATH compiler flag to               */
-/*            EXTENDED_MATH_FUNCTIONS.                       */
-/*                                                           */
-/*            Combined BASIC_IO and EXT_IO compilation       */
-/*            flags into the IO_FUNCTIONS compilation flag.  */
-/*                                                           */    
-/*            Removed code associated with HELP_FUNCTIONS    */
-/*            and EMACS_EDITOR compiler flags.               */
-/*                                                           */    
-/*            Added operating-system function.               */
-/*                                                           */ 
-/*            Added new function (for future use).           */
-/*                                                           */ 
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Removed deallocating message parameter from    */
-/*            EnvReleaseMem.                                 */
-/*                                                           */
-/*            Removed support for BLOCK_MEMORY.              */
 /*                                                           */
 /*************************************************************/
 
@@ -91,8 +62,8 @@
 #define MISCFUN_DATA 9
 
 struct miscFunctionData
-  { 
-   long long GensymNumber;
+  {
+   long int GensymNumber;
   };
 
 #define MiscFunctionData(theEnv) ((struct miscFunctionData *) GetEnvironmentData(theEnv,MISCFUN_DATA))
@@ -103,8 +74,7 @@ struct miscFunctionData
 
    static void                    ExpandFuncMultifield(void *,DATA_OBJECT *,EXPRESSION *,
                                                        EXPRESSION **,void *);
-   static int                     FindLanguageType(void *,const char *);
-   
+
 /*****************************************************************/
 /* MiscFunctionDefinitions: Initializes miscellaneous functions. */
 /*****************************************************************/
@@ -113,25 +83,24 @@ globle void MiscFunctionDefinitions(
   {
    AllocateEnvironmentData(theEnv,MISCFUN_DATA,sizeof(struct miscFunctionData),NULL);
    MiscFunctionData(theEnv)->GensymNumber = 1;
-   
+
 #if ! RUN_TIME
    EnvDefineFunction2(theEnv,"gensym",           'w', PTIEF GensymFunction,      "GensymFunction", "00");
    EnvDefineFunction2(theEnv,"gensym*",          'w', PTIEF GensymStarFunction,  "GensymStarFunction", "00");
-   EnvDefineFunction2(theEnv,"setgen",           'g', PTIEF SetgenFunction,      "SetgenFunction", "11i");
+   EnvDefineFunction2(theEnv,"setgen",           'l', PTIEF SetgenFunction,      "SetgenFunction", "11i");
    EnvDefineFunction2(theEnv,"system",           'v', PTIEF gensystem,           "gensystem", "1*k");
-   EnvDefineFunction2(theEnv,"length",           'g', PTIEF LengthFunction,      "LengthFunction", "11q");
-   EnvDefineFunction2(theEnv,"length$",          'g', PTIEF LengthFunction,      "LengthFunction", "11q");
+   EnvDefineFunction2(theEnv,"length",           'l', PTIEF LengthFunction,      "LengthFunction", "11q");
+   EnvDefineFunction2(theEnv,"length$",          'l', PTIEF LengthFunction,      "LengthFunction", "11q");
    EnvDefineFunction2(theEnv,"time",             'd', PTIEF TimeFunction,        "TimeFunction", "00");
-   EnvDefineFunction2(theEnv,"random",           'g', PTIEF RandomFunction,      "RandomFunction", "02i");
+   EnvDefineFunction2(theEnv,"random",           'l', PTIEF RandomFunction,      "RandomFunction", "02i");
    EnvDefineFunction2(theEnv,"seed",             'v', PTIEF SeedFunction,        "SeedFunction", "11i");
    EnvDefineFunction2(theEnv,"conserve-mem",     'v', PTIEF ConserveMemCommand,  "ConserveMemCommand", "11w");
-   EnvDefineFunction2(theEnv,"release-mem",      'g', PTIEF ReleaseMemCommand,   "ReleaseMemCommand", "00");
+   EnvDefineFunction2(theEnv,"release-mem",      'l', PTIEF ReleaseMemCommand,   "ReleaseMemCommand", "00");
 #if DEBUGGING_FUNCTIONS
-   EnvDefineFunction2(theEnv,"mem-used",         'g', PTIEF MemUsedCommand,      "MemUsedCommand", "00");
-   EnvDefineFunction2(theEnv,"mem-requests",     'g', PTIEF MemRequestsCommand,  "MemRequestsCommand", "00");
+   EnvDefineFunction2(theEnv,"mem-used",         'l', PTIEF MemUsedCommand,      "MemUsedCommand", "00");
+   EnvDefineFunction2(theEnv,"mem-requests",     'l', PTIEF MemRequestsCommand,  "MemRequestsCommand", "00");
 #endif
    EnvDefineFunction2(theEnv,"options",          'v', PTIEF OptionsCommand,      "OptionsCommand", "00");
-   EnvDefineFunction2(theEnv,"operating-system", 'w', PTIEF OperatingSystemFunction,"OperatingSystemFunction", "00");
    EnvDefineFunction2(theEnv,"(expansion-call)", 'u', PTIEF ExpandFuncCall,      "ExpandFuncCall",NULL);
    EnvDefineFunction2(theEnv,"expand$",'u', PTIEF DummyExpandFuncMultifield,
                                            "DummyExpandFuncMultifield","11m");
@@ -149,8 +118,6 @@ globle void MiscFunctionDefinitions(
    EnvDefineFunction2(theEnv,"apropos",   'v', PTIEF AproposCommand,  "AproposCommand", "11w");
    EnvDefineFunction2(theEnv,"get-function-list",   'm', PTIEF GetFunctionListFunction,  "GetFunctionListFunction", "00");
    EnvDefineFunction2(theEnv,"funcall",'u', PTIEF FuncallFunction,"FuncallFunction","1**k");
-   EnvDefineFunction2(theEnv,"new",'u', PTIEF NewFunction,"NewFunction","1*uw");
-   EnvDefineFunction2(theEnv,"call",'u', PTIEF CallFunction,"CallFunction","1*u");
    EnvDefineFunction2(theEnv,"timer",'d', PTIEF TimerFunction,"TimerFunction","**");
 #endif
   }
@@ -168,10 +135,10 @@ globle void CreateFunction(
 /*****************************************************************/
 /* SetgenFunction: H/L access routine for the setgen function.   */
 /*****************************************************************/
-globle long long SetgenFunction(
+globle long int SetgenFunction(
   void *theEnv)
   {
-   long long theLong;
+   long theLong;
    DATA_OBJECT theValue;
 
    /*==========================================================*/
@@ -187,7 +154,7 @@ globle long long SetgenFunction(
 
    theLong = ValueToLong(theValue.value);
 
-   if (theLong < 1LL)
+   if (theLong < 1L)
      {
       ExpectedTypeError1(theEnv,"setgen",1,"number (greater than or equal to 1)");
       return(MiscFunctionData(theEnv)->GensymNumber);
@@ -209,8 +176,8 @@ globle long long SetgenFunction(
 globle void *GensymFunction(
   void *theEnv)
   {
-   char genstring[128];
-   
+   char genstring[15];
+
    /*===========================================*/
    /* The gensym function accepts no arguments. */
    /*===========================================*/
@@ -222,7 +189,7 @@ globle void *GensymFunction(
    /* as the postfix.                                */
    /*================================================*/
 
-   gensprintf(genstring,"gen%lld",MiscFunctionData(theEnv)->GensymNumber);
+   sprintf(genstring,"gen%ld",MiscFunctionData(theEnv)->GensymNumber);
    MiscFunctionData(theEnv)->GensymNumber++;
 
    /*====================*/
@@ -259,8 +226,8 @@ globle void *GensymStarFunction(
 globle void *GensymStar(
   void *theEnv)
   {
-   char genstring[128];
-   
+   char genstring[15];
+
    /*=======================================================*/
    /* Create a symbol using the current gensym index as the */
    /* postfix. If the symbol is already present in the      */
@@ -270,7 +237,7 @@ globle void *GensymStar(
 
    do
      {
-      gensprintf(genstring,"gen%lld",MiscFunctionData(theEnv)->GensymNumber);
+      sprintf(genstring,"gen%ld",MiscFunctionData(theEnv)->GensymNumber);
       MiscFunctionData(theEnv)->GensymNumber++;
      }
    while (FindSymbolHN(theEnv,genstring) != NULL);
@@ -286,13 +253,13 @@ globle void *GensymStar(
 /* RandomFunction: H/L access routine for   */
 /*   the random function.                   */
 /********************************************/
-globle long long RandomFunction(
+globle long RandomFunction(
   void *theEnv)
   {
    int argCount;
-   long long rv;
+   long rv;
    DATA_OBJECT theValue;
-   long long begin, end;
+   long begin, end;
 
    /*====================================*/
    /* The random function accepts either */
@@ -300,11 +267,11 @@ globle long long RandomFunction(
    /*====================================*/
 
    argCount = EnvRtnArgCount(theEnv);
-   
+
    if ((argCount != 0) && (argCount != 2))
      {
       PrintErrorID(theEnv,"MISCFUN",2,FALSE);
-      EnvPrintRouter(theEnv,WERROR,"Function random expected either 0 or 2 arguments\n"); 
+      EnvPrintRouter(theEnv,WERROR,"Function random expected either 0 or 2 arguments\n");
      }
 
    /*========================================*/
@@ -312,7 +279,7 @@ globle long long RandomFunction(
    /*========================================*/
 
    rv = genrand();
-   
+
    if (argCount == 2)
      {
       if (EnvArgTypeCheck(theEnv,"random",1,INTEGER,&theValue) == FALSE) return(rv);
@@ -322,14 +289,14 @@ globle long long RandomFunction(
       if (end < begin)
         {
          PrintErrorID(theEnv,"MISCFUN",3,FALSE);
-         EnvPrintRouter(theEnv,WERROR,"Function random expected argument #1 to be less than argument #2\n"); 
+         EnvPrintRouter(theEnv,WERROR,"Function random expected argument #1 to be less than argument #2\n");
          return(rv);
         }
-        
+
       rv = begin + (rv % ((end - begin) + 1));
      }
-   
-   
+
+
    return(rv);
   }
 
@@ -360,7 +327,7 @@ globle void SeedFunction(
 /* LengthFunction: H/L access routine for   */
 /*   the length$ function.                  */
 /********************************************/
-globle long long LengthFunction(
+globle long int LengthFunction(
   void *theEnv)
   {
    DATA_OBJECT item;
@@ -402,21 +369,21 @@ globle long long LengthFunction(
 /* ReleaseMemCommand: H/L access routine   */
 /*   for the release-mem function.         */
 /*******************************************/
-globle long long ReleaseMemCommand(
+globle long ReleaseMemCommand(
   void *theEnv)
   {
    /*================================================*/
    /* The release-mem function accepts no arguments. */
    /*================================================*/
 
-   if (EnvArgCountCheck(theEnv,"release-mem",EXACTLY,0) == -1) return(0LL);
+   if (EnvArgCountCheck(theEnv,"release-mem",EXACTLY,0) == -1) return(0);
 
    /*========================================*/
    /* Release memory to the operating system */
    /* and return the amount of memory freed. */
    /*========================================*/
 
-   return(EnvReleaseMem(theEnv,-1L));
+   return(EnvReleaseMem(theEnv,-1L,FALSE));
   }
 
 /******************************************/
@@ -426,7 +393,7 @@ globle long long ReleaseMemCommand(
 globle void ConserveMemCommand(
   void *theEnv)
   {
-   const char *argument;
+   char *argument;
    DATA_OBJECT theValue;
 
    /*===================================*/
@@ -477,7 +444,7 @@ globle void ConserveMemCommand(
 /* MemUsedCommand: H/L access routine   */
 /*   for the mem-used command.          */
 /****************************************/
-globle long long MemUsedCommand(
+globle long int MemUsedCommand(
   void *theEnv)
   {
    /*=============================================*/
@@ -498,7 +465,7 @@ globle long long MemUsedCommand(
 /* MemRequestsCommand: H/L access routine   */
 /*   for the mem-requests command.          */
 /********************************************/
-globle long long MemRequestsCommand(
+globle long int MemRequestsCommand(
   void *theEnv)
   {
    /*=================================================*/
@@ -524,7 +491,7 @@ globle long long MemRequestsCommand(
 globle void AproposCommand(
   void *theEnv)
   {
-   const char *argument;
+   char *argument;
    DATA_OBJECT argPtr;
    struct symbolHashNode *hashPtr = NULL;
    size_t theLength;
@@ -586,23 +553,32 @@ globle void OptionsCommand(
 #if UNIX_V
    EnvPrintRouter(theEnv,WDISPLAY,"UNIX System V or 4.2BSD ");
 #endif
-#if DARWIN
-   EnvPrintRouter(theEnv,WDISPLAY,"Darwin ");
-#endif
-#if LINUX
-   EnvPrintRouter(theEnv,WDISPLAY,"Linux ");
-#endif
 #if UNIX_7
    EnvPrintRouter(theEnv,WDISPLAY,"UNIX System III Version 7 or Sun Unix ");
+#endif
+#if MAC_MCW
+   EnvPrintRouter(theEnv,WDISPLAY,"Apple Macintosh with CodeWarrior");
 #endif
 #if MAC_XCD
    EnvPrintRouter(theEnv,WDISPLAY,"Apple Macintosh with Xcode");
 #endif
-#if WIN_MVC
-   EnvPrintRouter(theEnv,WDISPLAY,"Microsoft Windows with Microsoft Visual C++");
+#if IBM_MSC
+   EnvPrintRouter(theEnv,WDISPLAY,"IBM PC with Microsoft C");
 #endif
-#if WIN_GCC
-   EnvPrintRouter(theEnv,WDISPLAY,"Microsoft Windows with DJGPP");
+#if IBM_ZTC
+   EnvPrintRouter(theEnv,WDISPLAY,"IBM PC with Zortech C");
+#endif
+#if IBM_SC
+   EnvPrintRouter(theEnv,WDISPLAY,"IBM PC with Symantec C++");
+#endif
+#if IBM_ICB
+   EnvPrintRouter(theEnv,WDISPLAY,"IBM PC with Intel C Code Builder");
+#endif
+#if IBM_TBC
+   EnvPrintRouter(theEnv,WDISPLAY,"IBM PC with Turbo C");
+#endif
+#if IBM_MCW
+   EnvPrintRouter(theEnv,WDISPLAY,"IBM PC with Metrowerks CodeWarrior");
 #endif
 EnvPrintRouter(theEnv,WDISPLAY,"\n");
 
@@ -705,15 +681,22 @@ EnvPrintRouter(theEnv,WDISPLAY,"  Binary saving of instances is ");
 
 #endif
 
-EnvPrintRouter(theEnv,WDISPLAY,"Extended math function package is ");
-#if EXTENDED_MATH_FUNCTIONS
+EnvPrintRouter(theEnv,WDISPLAY,"Extended math package is ");
+#if EX_MATH
   EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
 #else
   EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
 #endif
 
-EnvPrintRouter(theEnv,WDISPLAY,"Text processing function package is ");
+EnvPrintRouter(theEnv,WDISPLAY,"Text processing package is ");
 #if TEXTPRO_FUNCTIONS
+  EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
+#else
+  EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
+#endif
+
+EnvPrintRouter(theEnv,WDISPLAY,"Help system is ");
+#if HELP_FUNCTIONS
   EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
 #else
   EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
@@ -734,6 +717,13 @@ EnvPrintRouter(theEnv,WDISPLAY,"Bload capability is ");
 #endif
 EnvPrintRouter(theEnv,WDISPLAY,"\n");
 
+EnvPrintRouter(theEnv,WDISPLAY,"EMACS Editor is ");
+#if EMACS_EDITOR
+  EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
+#else
+  EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
+#endif
+
 EnvPrintRouter(theEnv,WDISPLAY,"Construct compiler is ");
 #if CONSTRUCT_COMPILER
   EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
@@ -741,8 +731,15 @@ EnvPrintRouter(theEnv,WDISPLAY,"Construct compiler is ");
   EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
 #endif
 
-EnvPrintRouter(theEnv,WDISPLAY,"I/O function package is ");
-#if IO_FUNCTIONS
+EnvPrintRouter(theEnv,WDISPLAY,"Basic I/O is ");
+#if BASIC_IO
+  EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
+#else
+  EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
+#endif
+
+EnvPrintRouter(theEnv,WDISPLAY,"Extended I/O is ");
+#if EXT_IO
   EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
 #else
   EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
@@ -762,8 +759,15 @@ EnvPrintRouter(theEnv,WDISPLAY,"Multifield function package is ");
   EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
 #endif
 
-EnvPrintRouter(theEnv,WDISPLAY,"Debugging function package is ");
+EnvPrintRouter(theEnv,WDISPLAY,"Debugging functions are ");
 #if DEBUGGING_FUNCTIONS
+  EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
+#else
+  EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
+#endif
+
+EnvPrintRouter(theEnv,WDISPLAY,"Block memory is ");
+#if BLOCK_MEMORY
   EnvPrintRouter(theEnv,WDISPLAY,"ON\n");
 #else
   EnvPrintRouter(theEnv,WDISPLAY,"OFF\n");
@@ -791,54 +795,6 @@ EnvPrintRouter(theEnv,WDISPLAY,"Run time module is ");
 #endif
   }
 
-/***********************************************/
-/* OperatingSystemFunction: H/L access routine */
-/*   for the operating system function.        */
-/***********************************************/
-globle void *OperatingSystemFunction(
-  void *theEnv)
-  {
-   EnvArgCountCheck(theEnv,"operating-system",EXACTLY,0);
-
-#if GENERIC
-   return(EnvAddSymbol(theEnv,"UNKNOWN"));
-#endif
-
-#if VAX_VMS
-   return(EnvAddSymbol(theEnv,"VMS"));
-#endif
-
-#if UNIX_V
-   return(EnvAddSymbol(theEnv,"UNIX-V"));
-#endif
-
-#if UNIX_7
-   return(EnvAddSymbol(theEnv,"UNIX-7"));
-#endif
-
-#if LINUX
-   return(EnvAddSymbol(theEnv,"LINUX"));
-#endif
-
-#if DARWIN
-   return(EnvAddSymbol(theEnv,"DARWIN"));
-#endif
-
-#if MAC_XCD
-   return(EnvAddSymbol(theEnv,"MAC-OS-X"));
-#endif
-
-#if IBM && (! WINDOW_INTERFACE)
-   return(EnvAddSymbol(theEnv,"DOS"));
-#endif
-
-#if IBM && WINDOW_INTERFACE
-   return(EnvAddSymbol(theEnv,"WINDOWS"));
-#endif
-
-   return(EnvAddSymbol(theEnv,"UNKNOWN"));
-  }
-  
 /********************************************************************
   NAME         : ExpandFuncCall
   DESCRIPTION  : This function is a wrap-around for a normal
@@ -1137,32 +1093,31 @@ globle void FuncallFunction(
    int argCount, i, j;
    DATA_OBJECT theValue;
    FUNCTION_REFERENCE theReference;
-   const char *name;
+   char *name;
    struct multifield *theMultifield;
    struct expr *lastAdd = NULL, *nextAdd, *multiAdd;
-   struct FunctionDefinition *theFunction;
-    
+
    /*==================================*/
    /* Set up the default return value. */
    /*==================================*/
-   
+
    SetpType(returnValue,SYMBOL);
    SetpValue(returnValue,EnvFalseSymbol(theEnv));
-   
+
    /*=================================================*/
    /* The funcall function has at least one argument: */
    /* the name of the function being called.          */
    /*=================================================*/
-   
+
    if ((argCount = EnvArgCountCheck(theEnv,"funcall",AT_LEAST,1)) == -1) return;
-   
+
    /*============================================*/
    /* Get the name of the function to be called. */
    /*============================================*/
-   
-   if (EnvArgTypeCheck(theEnv,"funcall",1,SYMBOL_OR_STRING,&theValue) == FALSE) 
+
+   if (EnvArgTypeCheck(theEnv,"funcall",1,SYMBOL_OR_STRING,&theValue) == FALSE)
      { return; }
-   
+
    /*====================*/
    /* Find the function. */
    /*====================*/
@@ -1171,39 +1126,24 @@ globle void FuncallFunction(
    if (! GetFunctionReference(theEnv,name,&theReference))
      {
       ExpectedTypeError1(theEnv,"funcall",1,"function, deffunction, or generic function name");
-      return; 
+      return;
      }
-     
-   /*====================================*/
-   /* Functions with specialized parsers */
-   /* cannot be used with funcall.       */
-   /*====================================*/
 
-   if (theReference.type == FCALL)
-     {
-      theFunction = FindFunction(theEnv,name);
-      if (theFunction->parser != NULL)
-        {
-         ExpectedTypeError1(theEnv,"funcall",1,"function without specialized parser");
-         return; 
-        }
-     }
+   ExpressionInstall(theEnv,&theReference);
 
    /*======================================*/
    /* Add the arguments to the expression. */
    /*======================================*/
-     
-   ExpressionInstall(theEnv,&theReference);
 
    for (i = 2; i <= argCount; i++)
      {
       EnvRtnUnknown(theEnv,i,&theValue);
       if (GetEvaluationError(theEnv))
-        {  
+        {
          ExpressionDeinstall(theEnv,&theReference);
-         return; 
+         return;
         }
-      
+
       switch(GetType(theValue))
         {
          case MULTIFIELD:
@@ -1229,7 +1169,7 @@ globle void FuncallFunction(
 
            ExpressionInstall(theEnv,lastAdd);
            break;
-         
+
          default:
            nextAdd = GenConstant(theEnv,GetType(theValue),GetValue(theValue));
            if (lastAdd == NULL)
@@ -1238,7 +1178,7 @@ globle void FuncallFunction(
              { lastAdd->nextArg = nextAdd; }
            lastAdd = nextAdd;
            ExpressionInstall(theEnv,lastAdd);
-           break;    
+           break;
         }
      }
 
@@ -1255,188 +1195,27 @@ globle void FuncallFunction(
          EnvPrintRouter(theEnv,WERROR,"Function funcall called with the wrong number of arguments for deffunction ");
          EnvPrintRouter(theEnv,WERROR,EnvGetDeffunctionName(theEnv,theReference.value));
          EnvPrintRouter(theEnv,WERROR,"\n");
-         ExpressionDeinstall(theEnv,&theReference);   
+         ExpressionDeinstall(theEnv,&theReference);
          ReturnExpression(theEnv,theReference.argList);
          return;
         }
      }
 #endif
-     
+
    /*======================*/
    /* Call the expression. */
    /*======================*/
-   
+
    EvaluateExpression(theEnv,&theReference,returnValue);
-   
+
    /*========================================*/
    /* Return the expression data structures. */
    /*========================================*/
-   
+
    ExpressionDeinstall(theEnv,&theReference);
    ReturnExpression(theEnv,theReference.argList);
   }
-  
-/***********************************/
-/* NewFunction: H/L access routine */
-/*   for the new function.         */
-/***********************************/
-globle void NewFunction(
-  void *theEnv,
-  DATA_OBJECT *returnValue)
-  {
-   int theType;
-   DATA_OBJECT theValue;
-   const char *name;
-    
-   /*==================================*/
-   /* Set up the default return value. */
-   /*==================================*/
-   
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvFalseSymbol(theEnv));
-   
-   /*================================================================*/
-   /* The new function has at least two arguments: the language type */
-   /* of the class (e.g. java, .net, c++) and the name of the class. */
-   /*================================================================*/
-   
-   if (EnvArgCountCheck(theEnv,"new",AT_LEAST,1) == -1) return;
-   
-   /*====================================*/
-   /* Get the name of the language type. */
-   /*====================================*/
-   
-   if (EnvArgTypeCheck(theEnv,"new",1,SYMBOL,&theValue) == FALSE) 
-     { return; }
-   
-   /*=========================*/
-   /* Find the language type. */
-   /*=========================*/
 
-   name = DOToString(theValue);
-   
-   theType = FindLanguageType(theEnv,name);
-   
-   if (theType == -1)
-     {
-      ExpectedTypeError1(theEnv,"new",1,"external language");
-      return; 
-     }
-
-   /*====================================================*/
-   /* Invoke the new function for the specific language. */
-   /*====================================================*/
-   
-   if ((EvaluationData(theEnv)->ExternalAddressTypes[theType] != NULL) &&
-       (EvaluationData(theEnv)->ExternalAddressTypes[theType]->newFunction != NULL))
-     { (*EvaluationData(theEnv)->ExternalAddressTypes[theType]->newFunction)(theEnv,returnValue); }
-  }
-  
-/************************************/
-/* CallFunction: H/L access routine */
-/*   for the new function.          */
-/************************************/
-globle void CallFunction(
-  void *theEnv,
-  DATA_OBJECT *returnValue)
-  {
-   int theType;
-   DATA_OBJECT theValue;
-   const char *name;
-   int argumentCount;
-   struct externalAddressHashNode *theEA;
-    
-   /*==================================*/
-   /* Set up the default return value. */
-   /*==================================*/
-   
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvFalseSymbol(theEnv));
-   
-   /*=====================================================*/
-   /* The call function has at least one argument: either */
-   /* an external address or the language type of the     */
-   /* method being called (e.g. java, .net, c++).         */
-   /*=====================================================*/
-   
-   if ((argumentCount = EnvArgCountCheck(theEnv,"call",AT_LEAST,1)) == -1) return;
-      
-   /*=========================*/
-   /* Get the first argument. */
-   /*=========================*/
-   
-   EnvRtnUnknown(theEnv,1,&theValue);
-
-   /*============================================*/
-   /* If the first argument is a symbol, then it */
-   /* should be an external language type.       */
-   /*============================================*/
-   
-   if (GetType(theValue) == SYMBOL)
-     { 
-      name = DOToString(theValue);
-      
-      theType = FindLanguageType(theEnv,name);
-      
-      if (theType == -1)
-        { 
-         ExpectedTypeError1(theEnv,"call",1,"external language symbol or external address");
-         return;
-        }
-
-      /*====================================================================*/
-      /* Invoke the call function for the specific language. Typically this */
-      /* will invoke a static method of a class (specified with the third   */
-      /* and second arguments to the call function.                         */
-      /*====================================================================*/
-      
-      if ((EvaluationData(theEnv)->ExternalAddressTypes[theType] != NULL) &&
-          (EvaluationData(theEnv)->ExternalAddressTypes[theType]->callFunction != NULL))
-        { (*EvaluationData(theEnv)->ExternalAddressTypes[theType]->callFunction)(theEnv,&theValue,returnValue); }
-        
-      return;
-     }
-
-   /*===============================================*/
-   /* If the first argument is an external address, */
-   /* then we can determine the external language   */
-   /* type be examining the pointer.                */
-   /*===============================================*/
-   
-   if (GetType(theValue) == EXTERNAL_ADDRESS)
-     { 
-      theEA = (struct externalAddressHashNode *) GetValue(theValue);
-      
-      theType = theEA->type;
-      
-      if ((EvaluationData(theEnv)->ExternalAddressTypes[theType] != NULL) &&
-          (EvaluationData(theEnv)->ExternalAddressTypes[theType]->callFunction != NULL))
-        { (*EvaluationData(theEnv)->ExternalAddressTypes[theType]->callFunction)(theEnv,&theValue,returnValue); }
-        
-      return;
-     }
-     
-   ExpectedTypeError1(theEnv,"call",1,"external language symbol or external address");
-  }
-
-/************************************/
-/* FindLanguageType:    */
-/************************************/
-static int FindLanguageType(
-  void *theEnv,
-  const char *languageName)
-  {
-   int theType;
-   
-   for (theType = 0; theType < EvaluationData(theEnv)->numberOfAddressTypes; theType++)
-     {
-      if (strcmp(EvaluationData(theEnv)->ExternalAddressTypes[theType]->name,languageName) == 0)
-        { return(theType); }
-     }
-     
-   return -1;
-  }
-     
 /************************************/
 /* TimeFunction: H/L access routine */
 /*   for the time function.         */
@@ -1469,7 +1248,7 @@ globle double TimerFunction(
    DATA_OBJECT returnValue;
 
    startTime = gentime();
-   
+
    numa = EnvRtnArgCount(theEnv);
 
    i = 1;

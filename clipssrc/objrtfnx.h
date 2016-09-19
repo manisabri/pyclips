@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,7 +10,7 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
@@ -20,17 +20,6 @@
 /*            DEFRULE_CONSTRUCT.                             */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Support for long long integers.                */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Added support for hashed alpha memories.       */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -62,20 +51,16 @@ struct ObjectMatchVar1
    unsigned short whichField;
    unsigned objectAddress : 1;
    unsigned allFields     : 1;
-   unsigned lhs           : 1;
-   unsigned rhs           : 1;
   };
 
 struct ObjectMatchVar2
   {
    unsigned short whichSlot;
    unsigned short whichPattern;
-   unsigned short beginningOffset;
-   unsigned short endOffset;
    unsigned fromBeginning   : 1;
+   unsigned beginningOffset : 7;
    unsigned fromEnd         : 1;
-   unsigned lhs           : 1;
-   unsigned rhs           : 1;
+   unsigned endOffset       : 7;
   };
 
 struct ObjectMatchLength
@@ -86,7 +71,7 @@ struct ObjectMatchLength
 
 struct ObjectCmpPNConstant
   {
-   unsigned short offset;
+   unsigned offset        : 7;
    unsigned pass          : 1;
    unsigned fail          : 1;
    unsigned general       : 1;
@@ -105,9 +90,9 @@ struct ObjectCmpPNSingleSlotVars2
   {
    unsigned short firstSlot;
    unsigned short secondSlot;
-   unsigned short offset;
    unsigned pass          : 1;
    unsigned fail          : 1;
+   unsigned offset        : 7;
    unsigned fromBeginning : 1;
   };
 
@@ -115,11 +100,11 @@ struct ObjectCmpPNSingleSlotVars3
   {
    unsigned short firstSlot;
    unsigned short secondSlot;
-   unsigned short firstOffset;
-   unsigned short secondOffset;
    unsigned pass                : 1;
    unsigned fail                : 1;
+   unsigned firstOffset         : 7;
    unsigned firstFromBeginning  : 1;
+   unsigned secondOffset        : 7;
    unsigned secondFromBeginning : 1;
   };
 
@@ -131,10 +116,6 @@ struct ObjectCmpJoinSingleSlotVars1
    unsigned short secondPattern;
    unsigned pass          : 1;
    unsigned fail          : 1;
-   unsigned int firstPatternLHS : 1;
-   unsigned int firstPatternRHS : 1;
-   unsigned int secondPatternLHS : 1;
-   unsigned int secondPatternRHS : 1;
   };
 
 struct ObjectCmpJoinSingleSlotVars2
@@ -143,14 +124,10 @@ struct ObjectCmpJoinSingleSlotVars2
    unsigned short secondSlot;
    unsigned short firstPattern;
    unsigned short secondPattern;
-   unsigned short offset;
    unsigned pass          : 1;
    unsigned fromBeginning : 1;
+   unsigned offset        : 7;
    unsigned fail          : 1;
-   unsigned int firstPatternLHS : 1;
-   unsigned int firstPatternRHS : 1;
-   unsigned int secondPatternLHS : 1;
-   unsigned int secondPatternRHS : 1;
   };
 
 struct ObjectCmpJoinSingleSlotVars3
@@ -159,50 +136,47 @@ struct ObjectCmpJoinSingleSlotVars3
    unsigned short secondSlot;
    unsigned short firstPattern;
    unsigned short secondPattern;
-   unsigned short firstOffset;
-   unsigned short secondOffset;
    unsigned pass                : 1;
    unsigned fail                : 1;
+   unsigned firstOffset         : 7;
    unsigned firstFromBeginning  : 1;
+   unsigned secondOffset        : 7;
    unsigned secondFromBeginning : 1;
-   unsigned int firstPatternLHS : 1;
-   unsigned int firstPatternRHS : 1;
-   unsigned int secondPatternLHS : 1;
-   unsigned int secondPatternRHS : 1;
   };
 
 #define OBJECT_RETE_DATA 35
 
 struct objectReteData
-  { 
+  {
    INSTANCE_TYPE *CurrentPatternObject;
    INSTANCE_SLOT *CurrentPatternObjectSlot;
    unsigned CurrentObjectSlotLength;
    struct multifieldMarker *CurrentPatternObjectMarks;
-   struct entityRecord ObjectGVInfo1;  
+   struct entityRecord ObjectGVInfo1;
    struct entityRecord ObjectGVInfo2;
    struct entityRecord ObjectGVPNInfo1;
    struct entityRecord ObjectGVPNInfo2;
-   struct entityRecord ObjectCmpConstantInfo; 
-   struct entityRecord LengthTestInfo; 
-   struct entityRecord PNSimpleCompareInfo1; 
-   struct entityRecord PNSimpleCompareInfo2; 
-   struct entityRecord PNSimpleCompareInfo3; 
-   struct entityRecord JNSimpleCompareInfo1; 
-   struct entityRecord JNSimpleCompareInfo2; 
-   struct entityRecord JNSimpleCompareInfo3; 
+   struct entityRecord ObjectCmpConstantInfo;
+   struct entityRecord LengthTestInfo;
+   struct entityRecord PNSimpleCompareInfo1;
+   struct entityRecord PNSimpleCompareInfo2;
+   struct entityRecord PNSimpleCompareInfo3;
+   struct entityRecord JNSimpleCompareInfo1;
+   struct entityRecord JNSimpleCompareInfo2;
+   struct entityRecord JNSimpleCompareInfo3;
    OBJECT_MATCH_ACTION *ObjectMatchActionQueue;
    OBJECT_PATTERN_NODE *ObjectPatternNetworkPointer;
    OBJECT_ALPHA_NODE *ObjectPatternNetworkTerminalPointer;
    intBool DelayObjectPatternMatching;
-   unsigned long long CurrentObjectMatchTimeTag;
-   long long UseEntityTimeTag;
+   unsigned long CurrentObjectMatchTimeTag;
+   long UseEntityTimeTag;
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM && CONSTRUCT_COMPILER && (! RUN_TIME)
    struct CodeGeneratorItem *ObjectPatternCodeItem;
 #endif
   };
 
 #define ObjectReteData(theEnv) ((struct objectReteData *) GetEnvironmentData(theEnv,OBJECT_RETE_DATA))
+
 
 #ifdef LOCALE
 #undef LOCALE
@@ -214,12 +188,12 @@ struct objectReteData
 #define LOCALE extern
 #endif
 
-   LOCALE void                    InstallObjectPrimitives(void *);
-   LOCALE intBool                 ObjectCmpConstantFunction(void *,void *,DATA_OBJECT *);
+LOCALE void InstallObjectPrimitives(void *);
+LOCALE intBool ObjectCmpConstantFunction(void *,void *,DATA_OBJECT *);
 
-#endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
+#endif
 
-#endif /* _H_objrtfnx */
+#endif
 
 
 

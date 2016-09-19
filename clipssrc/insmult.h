@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,20 +10,13 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
-/*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -45,17 +38,20 @@
 #endif
 
 #if (! RUN_TIME)
-   LOCALE void                           SetupInstanceMultifieldCommands(void *);
+LOCALE void SetupInstanceMultifieldCommands(void *);
 #endif
 
-   LOCALE void                           MVSlotReplaceCommand(void *,DATA_OBJECT *);
-   LOCALE void                           MVSlotInsertCommand(void *,DATA_OBJECT *);
-   LOCALE void                           MVSlotDeleteCommand(void *,DATA_OBJECT *);
-   LOCALE intBool                        DirectMVReplaceCommand(void *);
-   LOCALE intBool                        DirectMVInsertCommand(void *);
-   LOCALE intBool                        DirectMVDeleteCommand(void *);
+LOCALE void MVSlotReplaceCommand(void *,DATA_OBJECT *);
+LOCALE void MVSlotInsertCommand(void *,DATA_OBJECT *);
+LOCALE void MVSlotDeleteCommand(void *,DATA_OBJECT *);
+LOCALE intBool DirectMVReplaceCommand(void *);
+LOCALE intBool DirectMVInsertCommand(void *);
+LOCALE intBool DirectMVDeleteCommand(void *);
 
-#endif /* _H_insmult */
+#ifndef _INSMULT_SOURCE_
+#endif
+
+#endif
 
 
 

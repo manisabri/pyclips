@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*             BASIC MATH FUNCTIONS MODULE             */
    /*******************************************************/
@@ -22,10 +22,6 @@
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
-/*      6.30: Support for long long integers.                */
-/*                                                           */
-/*            Converted API macros to function calls.        */
-/*                                                           */
 /*************************************************************/
 
 #define _BMATHFUN_SOURCE_
@@ -45,7 +41,7 @@
 #define BMATHFUN_DATA 6
 
 struct basicMathFunctionData
-  { 
+  {
    intBool AutoFloatDividend;
   };
 
@@ -56,24 +52,24 @@ struct basicMathFunctionData
 /***************************************************************/
 globle void BasicMathFunctionDefinitions(
   void *theEnv)
-  {   
+  {
    AllocateEnvironmentData(theEnv,BMATHFUN_DATA,sizeof(struct basicMathFunctionData),NULL);
-   
+
    BasicMathFunctionData(theEnv)->AutoFloatDividend = TRUE;
 
 #if ! RUN_TIME
    EnvDefineFunction2(theEnv,"+", 'n',PTIEF AdditionFunction, "AdditionFunction", "2*n");
    EnvDefineFunction2(theEnv,"*", 'n', PTIEF MultiplicationFunction, "MultiplicationFunction", "2*n");
    EnvDefineFunction2(theEnv,"-", 'n', PTIEF SubtractionFunction, "SubtractionFunction", "2*n");
-    
+
    EnvDefineFunction2(theEnv,"/", 'n', PTIEF DivisionFunction, "DivisionFunction", "2*n");
-   EnvDefineFunction2(theEnv,"div", 'g', PTIEF DivFunction, "DivFunction", "2*n");
+   EnvDefineFunction2(theEnv,"div", 'l', PTIEF DivFunction, "DivFunction", "2*n");
    EnvDefineFunction2(theEnv,"set-auto-float-dividend", 'b',
                    SetAutoFloatDividendCommand, "SetAutoFloatDividendCommand", "11");
    EnvDefineFunction2(theEnv,"get-auto-float-dividend", 'b',
                   GetAutoFloatDividendCommand, "GetAutoFloatDividendCommand", "00");
 
-   EnvDefineFunction2(theEnv,"integer", 'g', PTIEF IntegerFunction, "IntegerFunction", "11n");
+   EnvDefineFunction2(theEnv,"integer", 'l', PTIEF IntegerFunction, "IntegerFunction", "11n");
    EnvDefineFunction2(theEnv,"float", 'd', PTIEF FloatFunction, "FloatFunction", "11n");
    EnvDefineFunction2(theEnv,"abs", 'n', PTIEF AbsFunction, "AbsFunction", "11n");
    EnvDefineFunction2(theEnv,"min", 'n', PTIEF MinFunction, "MinFunction", "2*n");
@@ -90,7 +86,7 @@ globle void AdditionFunction(
   DATA_OBJECT_PTR returnValue)
   {
    double ftotal = 0.0;
-   long long ltotal = 0LL;
+   long ltotal = 0L;
    intBool useFloatTotal = FALSE;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
@@ -152,7 +148,7 @@ globle void MultiplicationFunction(
   DATA_OBJECT_PTR returnValue)
   {
    double ftotal = 1.0;
-   long long ltotal = 1LL;
+   long ltotal = 1L;
    intBool useFloatTotal = FALSE;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
@@ -213,7 +209,7 @@ globle void SubtractionFunction(
   DATA_OBJECT_PTR returnValue)
   {
    double ftotal = 0.0;
-   long long ltotal = 0LL;
+   long ltotal = 0L;
    intBool useFloatTotal = FALSE;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
@@ -294,14 +290,14 @@ globle void DivisionFunction(
   DATA_OBJECT_PTR returnValue)
   {
    double ftotal = 1.0;
-   long long ltotal = 1LL;
+   long ltotal = 1L;
    intBool useFloatTotal;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
    int pos = 1;
 
    useFloatTotal = BasicMathFunctionData(theEnv)->AutoFloatDividend;
-   
+
    /*===================================================*/
    /* Get the first argument. This number which will be */
    /* the starting product from which all subsequent    */
@@ -386,14 +382,14 @@ globle void DivisionFunction(
 /* DivFunction: H/L access routine   */
 /*   for the div function.           */
 /*************************************/
-globle long long DivFunction(
+globle long DivFunction(
   void *theEnv)
   {
-   long long total = 1LL;
+   long total = 1L;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
    int pos = 1;
-   long long theNumber;
+   long theNumber;
 
    /*===================================================*/
    /* Get the first argument. This number which will be */
@@ -410,7 +406,7 @@ globle long long DivFunction(
       if (theArgument.type == INTEGER)
         { total = ValueToLong(theArgument.value); }
       else
-        { total = (long long) ValueToDouble(theArgument.value); }
+        { total = (long) ValueToDouble(theArgument.value); }
       pos++;
      }
 
@@ -427,10 +423,10 @@ globle long long DivFunction(
       else theExpression = GetNextArgument(theExpression);
 
       if (theArgument.type == INTEGER) theNumber = ValueToLong(theArgument.value);
-      else if (theArgument.type == FLOAT) theNumber = (long long) ValueToDouble(theArgument.value);
+      else if (theArgument.type == FLOAT) theNumber = (long) ValueToDouble(theArgument.value);
       else theNumber = 1;
 
-      if (theNumber == 0LL)
+      if (theNumber == 0L)
         {
          DivideByZeroErrorMessage(theEnv,"div");
          SetHaltExecution(theEnv,TRUE);
@@ -441,7 +437,7 @@ globle long long DivFunction(
       if (theArgument.type == INTEGER)
         { total /= ValueToLong(theArgument.value); }
       else
-        { total = total / (long long) ValueToDouble(theArgument.value); }
+        { total = total / (long) ValueToDouble(theArgument.value); }
 
       pos++;
      }
@@ -543,7 +539,7 @@ globle intBool EnvSetAutoFloatDividend(
 /* IntegerFunction: H/L access routine   */
 /*   for the integer function.           */
 /*****************************************/
-globle long long IntegerFunction(
+globle long int IntegerFunction(
   void *theEnv)
   {
    DATA_OBJECT valstruct;
@@ -552,7 +548,7 @@ globle long long IntegerFunction(
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   if (EnvArgCountCheck(theEnv,"integer",EXACTLY,1) == -1) return(0LL);
+   if (EnvArgCountCheck(theEnv,"integer",EXACTLY,1) == -1) return(0L);
 
    /*================================================================*/
    /* Check for the correct type of argument. Note that ArgTypeCheck */
@@ -560,7 +556,7 @@ globle long long IntegerFunction(
    /* (which is the purpose of the integer function).                */
    /*================================================================*/
 
-   if (EnvArgTypeCheck(theEnv,"integer",1,INTEGER,&valstruct) == FALSE) return(0LL);
+   if (EnvArgTypeCheck(theEnv,"integer",1,INTEGER,&valstruct) == FALSE) return(0L);
 
    /*===================================================*/
    /* Return the numeric value converted to an integer. */
@@ -820,17 +816,3 @@ globle void MaxFunction(
    return;
   }
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle intBool GetAutoFloatDividend()
-  {
-   return EnvGetAutoFloatDividend(GetCurrentEnvironment());
-  }
-
-globle intBool SetAutoFloatDividend(
-  int value)
-  {
-   return EnvSetAutoFloatDividend(GetCurrentEnvironment(),value);
-  }
-
-#endif

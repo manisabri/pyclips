@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                 FACT HASHING MODULE                 */
    /*******************************************************/
@@ -16,17 +16,7 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Removed LOGICAL_DEPENDENCIES compilation flag. */
-/*                                                           */
-/*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Fact hash table is resizable.                  */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Added FactWillBeAsserted.                      */
-/*                                                           */
-/*            Converted API macros to function calls.        */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -46,7 +36,7 @@ struct factHashEntry
    struct factHashEntry *next;
   };
 
-#define SIZE_FACT_HASH 16231
+#define SIZE_FACT_HASH  7717
 
 #ifdef LOCALE
 #undef LOCALE
@@ -57,23 +47,23 @@ struct factHashEntry
 #define LOCALE extern
 #endif
 
-   LOCALE void                           AddHashedFact(void *,struct fact *,unsigned long);
+#if ENVIRONMENT_API_ONLY
+#define GetFactDuplication(theEnv) EnvGetFactDuplication(theEnv)
+#define SetFactDuplication(theEnv,a) EnvSetFactDuplication(theEnv,a)
+#else
+#define GetFactDuplication() EnvGetFactDuplication(GetCurrentEnvironment())
+#define SetFactDuplication(a) EnvSetFactDuplication(GetCurrentEnvironment(),a)
+#endif
+
+   LOCALE void                           AddHashedFact(void *,struct fact *,int);
    LOCALE intBool                        RemoveHashedFact(void *,struct fact *);
-   LOCALE unsigned long                  HandleFactDuplication(void *,void *,intBool *);
+   LOCALE int                            HandleFactDuplication(void *,void *);
    LOCALE intBool                        EnvGetFactDuplication(void *);
    LOCALE intBool                        EnvSetFactDuplication(void *,int);
    LOCALE void                           InitializeFactHashTable(void *);
    LOCALE void                           ShowFactHashTable(void *);
-   LOCALE unsigned long                  HashFact(struct fact *);
-   LOCALE intBool                        FactWillBeAsserted(void *,void *);
+   LOCALE int                            HashFact(struct fact *);
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                        GetFactDuplication(void);
-   LOCALE intBool                        SetFactDuplication(int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
-
-#endif /* _H_facthsh */
+#endif
 
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,14 +10,11 @@
 /* Purpose: Definstances Construct Compiler Code             */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Added support for path name argument to        */
-/*            constructs-to-c.                               */
 /*                                                           */
 /*************************************************************/
 
@@ -41,11 +38,11 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           SetupDefinstancesCompiler(void *);
-   LOCALE void                           DefinstancesCModuleReference(void *,FILE *,int,int,int);
+LOCALE void SetupDefinstancesCompiler(void *);
+LOCALE void DefinstancesCModuleReference(void *,FILE *,int,int,int);
 
-#endif /* DEFINSTANCES_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME) */
+#endif
 
-#endif /* _H_dfinscmp */
+#endif
 
 

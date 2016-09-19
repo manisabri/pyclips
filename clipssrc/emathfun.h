@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  12/27/07            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*          EXTENDED MATH FUNCTIONS HEADER FILE        */
    /*******************************************************/
@@ -21,18 +21,6 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW and       */
-/*            MAC_MCW).                                      */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Renamed EX_MATH compiler flag to               */
-/*            EXTENDED_MATH_FUNCTIONS.                       */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
 /*************************************************************/
 
 #ifndef _H_emathfun
@@ -50,7 +38,7 @@
 #endif
 
    LOCALE void                           ExtendedMathFunctionDefinitions(void *theEnv);
-#if EXTENDED_MATH_FUNCTIONS
+#if EX_MATH
    LOCALE double                         CosFunction(void *);
    LOCALE double                         SinFunction(void *);
    LOCALE double                         TanFunction(void *);
@@ -75,7 +63,7 @@
    LOCALE double                         AsechFunction(void *);
    LOCALE double                         AcschFunction(void *);
    LOCALE double                         AcothFunction(void *);
-   LOCALE long long                      RoundFunction(void *);
+   LOCALE long                           RoundFunction(void *);
    LOCALE void                           ModFunction(void *,DATA_OBJECT_PTR);
    LOCALE double                         ExpFunction(void *);
    LOCALE double                         LogFunction(void *);
@@ -89,7 +77,7 @@
    LOCALE double                         PowFunction(void *);
 #endif
 
-#endif /* _H_emathfun */
+#endif
 
 
 

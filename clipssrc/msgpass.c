@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  01/13/15          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*              OBJECT MESSAGE DISPATCH CODE           */
    /*******************************************************/
@@ -10,36 +10,17 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*      6.24: Removed IMPERATIVE_MESSAGE_HANDLERS and        */
 /*            AUXILIARY_MESSAGE_HANDLERS compilation flags.  */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: The return value of DirectMessage indicates    */
-/*            whether an execution error has occurred.       */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Changed garbage collection algorithm.          */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Converted API macros to function calls.        */
-/*                                                           */
-/*            It's no longer necessary for a defclass to be  */
-/*            in scope in order to sent a message to an      */
-/*            instance of that class.                        */
 /*                                                           */
 /*************************************************************/
 
@@ -88,7 +69,7 @@
    =========================================
    ***************************************** */
 
-static intBool PerformMessage(void *,DATA_OBJECT *,EXPRESSION *,SYMBOL_HN *);
+static void PerformMessage(void *,DATA_OBJECT *,EXPRESSION *,SYMBOL_HN *);
 static HANDLER_LINK *FindApplicableHandlers(void *,DEFCLASS *,SYMBOL_HN *);
 static void CallHandlers(void *,DATA_OBJECT *);
 static void EarlySlotBindError(void *,INSTANCE_TYPE *,DEFCLASS *,unsigned);
@@ -108,12 +89,11 @@ static void EarlySlotBindError(void *,INSTANCE_TYPE *,DEFCLASS *,unsigned);
                  3) Address of DATA_OBJECT buffer
                     (NULL if don't care)
                  4) Message argument expressions
-  RETURNS      : Returns FALSE is an execution error occurred
-                 or execution is halted, otherwise TRUE
+  RETURNS      : Nothing useful
   SIDE EFFECTS : Side effects of message execution
   NOTES        : None
  *****************************************************/
-globle intBool DirectMessage(
+globle void DirectMessage(
   void *theEnv,
   SYMBOL_HN *msg,
   INSTANCE_TYPE *ins,
@@ -129,7 +109,7 @@ globle intBool DirectMessage(
    args.argList = NULL;
    args.type = INSTANCE_ADDRESS;
    args.value = (void *) ins;
-   return PerformMessage(theEnv,resultbuf,&args,msg);
+   PerformMessage(theEnv,resultbuf,&args,msg);
   }
 
 /***************************************************
@@ -149,20 +129,17 @@ globle intBool DirectMessage(
 globle void EnvSend(
   void *theEnv,
   DATA_OBJECT *idata,
-  const char *msg,
-  const char *args,
+  char *msg,
+  char *args,
   DATA_OBJECT *result)
   {
    int error;
    EXPRESSION *iexp;
    SYMBOL_HN *msym;
 
-   if ((UtilityData(theEnv)->CurrentGarbageFrame->topLevel) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
-       (EvaluationData(theEnv)->CurrentExpression == NULL) && (UtilityData(theEnv)->GarbageCollectionLocks == 0))
-     {
-      CleanCurrentGarbageFrame(theEnv,NULL);
-      CallPeriodicTasks(theEnv);
-     }
+   if ((EvaluationData(theEnv)->CurrentEvaluationDepth == 0) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL))
+     { PeriodicCleanup(theEnv,TRUE,FALSE); }
 
    SetEvaluationError(theEnv,FALSE);
    result->type = SYMBOL;
@@ -549,9 +526,12 @@ globle HANDLER_LINK *JoinHandlerLinks(
   SIDE EFFECTS : Expression printed
   NOTES        : None
  ***************************************************/
+#if IBM_TBC && (! DEVELOPER)
+#pragma argsused
+#endif
 globle void PrintHandlerSlotGetFunction(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
@@ -567,7 +547,7 @@ globle void PrintHandlerSlotGetFunction(
    sd = theDefclass->instanceTemplate[theDefclass->slotNameMap[theReference->slotID] - 1];
    EnvPrintRouter(theEnv,logicalName,ValueToString(sd->slotName->name));
 #else
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
@@ -669,9 +649,12 @@ HandlerGetError:
   SIDE EFFECTS : Expression printed
   NOTES        : None
  ***************************************************/
+#if IBM_TBC && (! DEVELOPER)
+#pragma argsused
+#endif
 globle void PrintHandlerSlotPutFunction(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
@@ -693,7 +676,7 @@ globle void PrintHandlerSlotPutFunction(
      }
    EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
@@ -946,41 +929,31 @@ globle void DynamicHandlerPutSlot(
                  2) Message argument expressions
                     (including implicit object)
                  3) Message name
-  RETURNS      : Returns FALSE is an execution error occurred
-                 or execution is halted, otherwise TRUE
+  RETURNS      : Nothing useful
   SIDE EFFECTS : Any side-effects of message execution
                     and caller's result buffer set
-  NOTES        : It's no longer necessary for a defclass
-                 to be in scope in order to sent a message
-                 to an instance of that class.
+  NOTES        : None
  *****************************************************/
-static intBool PerformMessage(
+static void PerformMessage(
   void *theEnv,
   DATA_OBJECT *result,
   EXPRESSION *args,
   SYMBOL_HN *mname)
   {
    int oldce;
-   /* HANDLER_LINK *oldCore; */
+   HANDLER_LINK *oldCore;
    DEFCLASS *cls = NULL;
    INSTANCE_TYPE *ins = NULL;
    SYMBOL_HN *oldName;
 #if PROFILING_FUNCTIONS
    struct profileFrameInfo profileFrame;
 #endif
-   struct garbageFrame newGarbageFrame;
-   struct garbageFrame *oldGarbageFrame;
 
    result->type = SYMBOL;
    result->value = EnvFalseSymbol(theEnv);
    EvaluationData(theEnv)->EvaluationError = FALSE;
    if (EvaluationData(theEnv)->HaltExecution)
-     return FALSE;
-
-   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
-   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
-   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
-
+     return;
    oldce = ExecutingConstruct(theEnv);
    SetExecutingConstruct(theEnv,TRUE);
    oldName = MessageHandlerData(theEnv)->CurrentMessageName;
@@ -996,12 +969,9 @@ static intBool PerformMessage(
      {
       EvaluationData(theEnv)->CurrentEvaluationDepth--;
       MessageHandlerData(theEnv)->CurrentMessageName = oldName;
-      
-      RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
-      CallPeriodicTasks(theEnv);      
-      
+      PeriodicCleanup(theEnv,FALSE,TRUE);
       SetExecutingConstruct(theEnv,oldce);
-      return FALSE;
+      return;
      }
 
    if (ProceduralPrimitiveData(theEnv)->ProcParamArray->type == INSTANCE_ADDRESS)
@@ -1012,8 +982,8 @@ static intBool PerformMessage(
          StaleInstanceAddress(theEnv,"send",0);
          SetEvaluationError(theEnv,TRUE);
         }
-      //else if (DefclassInScope(theEnv,ins->cls,(struct defmodule *) EnvGetCurrentModule(theEnv)) == FALSE)
-      //  NoInstanceError(theEnv,ValueToString(ins->name),"send");
+      else if (DefclassInScope(theEnv,ins->cls,(struct defmodule *) EnvGetCurrentModule(theEnv)) == FALSE)
+        NoInstanceError(theEnv,ValueToString(ins->name),"send");
       else
         {
          cls = ins->cls;
@@ -1049,20 +1019,12 @@ static intBool PerformMessage(
       PopProcParameters(theEnv);
       EvaluationData(theEnv)->CurrentEvaluationDepth--;
       MessageHandlerData(theEnv)->CurrentMessageName = oldName;
-         
-      RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
-      CallPeriodicTasks(theEnv);
-
+      PeriodicCleanup(theEnv,FALSE,TRUE);
       SetExecutingConstruct(theEnv,oldce);
-      return FALSE;
+      return;
      }
 
-   /* oldCore = MessageHandlerData(theEnv)->TopOfCore; */
-
-   if (MessageHandlerData(theEnv)->TopOfCore != NULL)
-     { MessageHandlerData(theEnv)->TopOfCore->nxtInStack = MessageHandlerData(theEnv)->OldCore; }
-   MessageHandlerData(theEnv)->OldCore = MessageHandlerData(theEnv)->TopOfCore;
-   
+   oldCore = MessageHandlerData(theEnv)->TopOfCore;
    MessageHandlerData(theEnv)->TopOfCore = FindApplicableHandlers(theEnv,cls,mname);
 
    if (MessageHandlerData(theEnv)->TopOfCore != NULL)
@@ -1129,11 +1091,7 @@ static intBool PerformMessage(
       MessageHandlerData(theEnv)->NextInCore = oldNext;
      }
 
-   /* MessageHandlerData(theEnv)->TopOfCore = oldCore; */
-   MessageHandlerData(theEnv)->TopOfCore = MessageHandlerData(theEnv)->OldCore;
-   if (MessageHandlerData(theEnv)->OldCore != NULL)
-     { MessageHandlerData(theEnv)->OldCore = MessageHandlerData(theEnv)->OldCore->nxtInStack; }
-
+   MessageHandlerData(theEnv)->TopOfCore = oldCore;
    ProcedureFunctionData(theEnv)->ReturnFlag = FALSE;
 
    if (ins != NULL)
@@ -1145,20 +1103,15 @@ static intBool PerformMessage(
    PopProcParameters(theEnv);
    EvaluationData(theEnv)->CurrentEvaluationDepth--;
    MessageHandlerData(theEnv)->CurrentMessageName = oldName;
-
-   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
-   CallPeriodicTasks(theEnv);
-
+   PropagateReturnValue(theEnv,result);
+   PeriodicCleanup(theEnv,FALSE,TRUE);
    SetExecutingConstruct(theEnv,oldce);
 
    if (EvaluationData(theEnv)->EvaluationError)
      {
       result->type = SYMBOL;
       result->value = EnvFalseSymbol(theEnv);
-      return FALSE;
      }
-     
-   return TRUE;
   }
 
 /*****************************************************************************
@@ -1222,7 +1175,11 @@ static void CallHandlers(
   void *theEnv,
   DATA_OBJECT *result)
   {
+#if IBM_TBC
+   HANDLER_LINK *oldCurrent,*oldNext;                /* prevents warning */
+#else
    HANDLER_LINK *oldCurrent = NULL,*oldNext = NULL;  /* prevents warning */
+#endif
    DATA_OBJECT temp;
 #if PROFILING_FUNCTIONS
    struct profileFrameInfo profileFrame;
@@ -1404,22 +1361,5 @@ static void EarlySlotBindError(
    PrintInstanceNameAndClass(theEnv,WERROR,theInstance,TRUE);
   }
 
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle void Send(
-  DATA_OBJECT *idata,
-  const char *msg,
-  const char *args,
-  DATA_OBJECT *result)
-  {
-   EnvSend(GetCurrentEnvironment(),idata,msg,args,result);
-  }
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
-
-#endif /* OBJECT_SYSTEM */
+#endif
 

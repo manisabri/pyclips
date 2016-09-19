@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              DEFMODULE PARSER MODULE                */
    /*******************************************************/
@@ -13,19 +13,11 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: GetConstructNameAndComment API change.         */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Fixed linkage issue when DEFMODULE_CONSTRUCT   */
-/*            compiler flag is set to 0.                     */
 /*                                                           */
 /*************************************************************/
 
@@ -61,16 +53,26 @@
 /***************************************/
 
    static int                        ParsePortSpecifications(void *,
-                                                             const char *,struct token *,
+                                                             char *,struct token *,
                                                              struct defmodule *);
-   static int                        ParseImportSpec(void *,const char *,struct token *,
+   static int                        ParseImportSpec(void *,char *,struct token *,
                                                      struct defmodule *);
-   static int                        ParseExportSpec(void *,const char *,struct token *,
+   static int                        ParseExportSpec(void *,char *,struct token *,
                                                      struct defmodule *,
                                                      struct defmodule *);
    static intBool                    DeleteDefmodule(void *,void *);
    static int                        FindMultiImportConflict(void *,struct defmodule *);
-   static void                       NotExportedErrorMessage(void *,const char *,const char *,const char *);
+   static void                       NotExportedErrorMessage(void *,char *,char *,char *);
+
+/*********************************************/
+/* GetNumberOfDefmodules: Returns the number */
+/*   of defmodules currently defined.        */
+/*********************************************/
+globle long GetNumberOfDefmodules(
+  void *theEnv)
+  {
+   return(DefmoduleData(theEnv)->NumberOfDefmodules);
+  }
 
 /******************************************/
 /* SetNumberOfDefmodules: Sets the number */
@@ -90,7 +92,7 @@ globle void SetNumberOfDefmodules(
 /****************************************************/
 globle void AddAfterModuleDefinedFunction(
   void *theEnv,
-  const char *name,
+  char *name,
   void (*func)(void *),
   int priority)
   {
@@ -104,7 +106,7 @@ globle void AddAfterModuleDefinedFunction(
 /******************************************************/
 globle void AddPortConstructItem(
   void *theEnv,
-  const char *theName,
+  char *theName,
   int theType)
   {
    struct portConstructItem *newItem;
@@ -123,7 +125,7 @@ globle void AddPortConstructItem(
 /******************************************************/
 globle int ParseDefmodule(
   void *theEnv,
-  const char *readSource)
+  char *readSource)
   {
    SYMBOL_HN *defmoduleName;
    struct defmodule *newDefmodule;
@@ -169,7 +171,7 @@ globle int ParseDefmodule(
 
    defmoduleName = GetConstructNameAndComment(theEnv,readSource,&inputToken,"defmodule",
                                               EnvFindDefmodule,DeleteDefmodule,"+",
-                                              TRUE,TRUE,FALSE,FALSE);
+                                              TRUE,TRUE,FALSE);
    if (defmoduleName == NULL) { return(TRUE); }
 
    if (strcmp(ValueToString(defmoduleName),"MAIN") == 0)
@@ -374,7 +376,7 @@ static intBool DeleteDefmodule(
 /*********************************************************/
 static int ParsePortSpecifications(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   struct token *theToken,
   struct defmodule *theDefmodule)
   {
@@ -473,7 +475,7 @@ static int ParsePortSpecifications(
 /**********************************************************/
 static int ParseImportSpec(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   struct token *theToken,
   struct defmodule *newModule)
   {
@@ -634,7 +636,7 @@ static int ParseImportSpec(
 /**********************************************************/
 static int ParseExportSpec(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   struct token *theToken,
   struct defmodule *newModule,
   struct defmodule *importModule)
@@ -642,7 +644,7 @@ static int ParseExportSpec(
    struct portItem *newPort;
    SYMBOL_HN *theConstruct, *moduleName;
    struct portConstructItem *thePortConstruct;
-   const char *errorMessage;
+   char *errorMessage;
 
    /*===========================================*/
    /* Set up some variables for error messages. */
@@ -912,7 +914,7 @@ static int ParseExportSpec(
 /*************************************************************/
 globle struct portConstructItem *ValidPortConstructItem(
   void *theEnv,
-  const char *theName)
+  char *theName)
   {
    struct portConstructItem *theItem;
 
@@ -1022,9 +1024,9 @@ static int FindMultiImportConflict(
 /******************************************************/
 static void NotExportedErrorMessage(
   void *theEnv,
-  const char *theModule,
-  const char *theConstruct,
-  const char *theName)
+  char *theModule,
+  char *theConstruct,
+  char *theName)
   {
    PrintErrorID(theEnv,"MODULPSR",1,TRUE);
    EnvPrintRouter(theEnv,WERROR,"Module ");
@@ -1058,9 +1060,9 @@ static void NotExportedErrorMessage(
 /*************************************************************/
 globle int FindImportExportConflict(
   void *theEnv,
-  const char *constructName,
+  char *constructName,
   struct defmodule *matchModule,
-  const char *findName)
+  char *findName)
   {
    struct defmodule *theModule;
    struct moduleItem *theModuleItem;
@@ -1128,19 +1130,5 @@ globle int FindImportExportConflict(
   }
 
 #endif /* DEFMODULE_CONSTRUCT && (! RUN_TIME) && (! BLOAD_ONLY) */
-
-/*********************************************/
-/* GetNumberOfDefmodules: Returns the number */
-/*   of defmodules currently defined.        */
-/*********************************************/
-globle long GetNumberOfDefmodules(
-  void *theEnv)
-  {
-#if DEFMODULE_CONSTRUCT && (! RUN_TIME) && (! BLOAD_ONLY)
-   return(DefmoduleData(theEnv)->NumberOfDefmodules);
-#else
-   return 1L;
-#endif
-  }
 
 

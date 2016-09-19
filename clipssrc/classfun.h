@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,7 +10,7 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
@@ -20,19 +20,6 @@
 /*            DEFRULE_CONSTRUCT.                             */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Borland C (IBM_TBC) and Metrowerks CodeWarrior */
-/*            (MAC_MCW, IBM_MCW) are no longer supported.    */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Changed garbage collection algorithm.          */
-/*                                                           */
-/*            Used genstrcpy and genstrcat instead of strcpy */
-/*            and strcat.                                    */
-/*                                                           */             
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -73,12 +60,12 @@ LOCALE intBool InstancesPurge(void *theEnv);
 LOCALE void InitializeClasses(void *);
 #endif
 LOCALE SLOT_DESC *FindClassSlot(DEFCLASS *,SYMBOL_HN *);
-LOCALE void ClassExistError(void *,const char *,const char *);
+LOCALE void ClassExistError(void *,char *,char *);
 LOCALE void DeleteClassLinks(void *,CLASS_LINK *);
-LOCALE void PrintClassName(void *,const char *,DEFCLASS *,intBool);
+LOCALE void PrintClassName(void *,char *,DEFCLASS *,intBool);
 
 #if DEBUGGING_FUNCTIONS || ((! BLOAD_ONLY) && (! RUN_TIME))
-LOCALE void PrintPackedClassLinks(void *,const char *,const char *,PACKED_CLASS_LINKS *);
+LOCALE void PrintPackedClassLinks(void *,char *,char *,PACKED_CLASS_LINKS *);
 #endif
 
 #if ! RUN_TIME
@@ -86,11 +73,10 @@ LOCALE void PutClassInTable(void *,DEFCLASS *);
 LOCALE void RemoveClassFromTable(void *,DEFCLASS *);
 LOCALE void AddClassLink(void *,PACKED_CLASS_LINKS *,DEFCLASS *,int);
 LOCALE void DeleteSubclassLink(void *,DEFCLASS *,DEFCLASS *);
-LOCALE void DeleteSuperclassLink(void *,DEFCLASS *,DEFCLASS *);
 LOCALE DEFCLASS *NewClass(void *,SYMBOL_HN *);
 LOCALE void DeletePackedClassLinks(void *,PACKED_CLASS_LINKS *,int);
 LOCALE void AssignClassID(void *,DEFCLASS *);
-LOCALE SLOT_NAME *AddSlotName(void *,SYMBOL_HN *,int,int);
+LOCALE SLOT_NAME *AddSlotName(void *,SYMBOL_HN *,unsigned,int);
 LOCALE void DeleteSlotName(void *,SLOT_NAME *);
 LOCALE void RemoveDefclass(void *,void *);
 LOCALE void InstallClass(void *,DEFCLASS *,int);
@@ -105,8 +91,8 @@ LOCALE void MarkBitMapSubclasses(char *,DEFCLASS *,int);
 #endif
 
 LOCALE short FindSlotNameID(void *,SYMBOL_HN *);
-LOCALE SYMBOL_HN *FindIDSlotName(void *,int);
-LOCALE SLOT_NAME *FindIDSlotNameHash(void *,int);
+LOCALE SYMBOL_HN *FindIDSlotName(void *,unsigned);
+LOCALE SLOT_NAME *FindIDSlotNameHash(void *,unsigned);
 LOCALE int GetTraversalID(void *);
 LOCALE void ReleaseTraversalID(void *);
 LOCALE unsigned HashClass(SYMBOL_HN *);
@@ -126,7 +112,7 @@ extern unsigned WatchInstances,WatchSlots;
 #define PRIMITIVE_CLASSES 9
 
 struct defclassData
-  { 
+  {
    struct construct *DefclassConstruct;
    int DefclassModuleIndex;
    ENTITY_RECORD DefclassEntityRecord;

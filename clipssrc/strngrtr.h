@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*            STRING I/O ROUTER HEADER FILE            */
    /*******************************************************/
@@ -17,17 +17,6 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.30: Used genstrcpy instead of strcpy.              */
-/*                                                           */             
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
 /*************************************************************/
 
 #ifndef _H_strngrtr
@@ -42,18 +31,16 @@
 
 struct stringRouter
   {
-   const char *name;
-   const char *readString;
-   char *writeString;
-   //char *str;
-   size_t currentPosition;
-   size_t maximumPosition;
+   char *name;
+   char *str;
+   int currentPosition;
+   unsigned maximumPosition;
    int readWriteType;
    struct stringRouter *next;
   };
 
 struct stringRouterData
-  { 
+  {
    struct stringRouter *ListOfStringRouters;
   };
 
@@ -74,12 +61,12 @@ struct stringRouterData
 /**************************/
 
    LOCALE void                           InitializeStringRouter(void *);
-   LOCALE int                            OpenStringSource(void *,const char *,const char *,size_t);
-   LOCALE int                            OpenTextSource(void *,const char *,const char *,size_t,size_t);
-   LOCALE int                            CloseStringSource(void *,const char *);
-   LOCALE int                            OpenStringDestination(void *,const char *,char *,size_t);
-   LOCALE int                            CloseStringDestination(void *,const char *);
+   LOCALE int                            OpenStringSource(void *,char *,char *,int);
+   LOCALE int                            OpenTextSource(void *,char *,char *,int,unsigned);
+   LOCALE int                            CloseStringSource(void *,char *);
+   LOCALE int                            OpenStringDestination(void *,char *,char *,unsigned);
+   LOCALE int                            CloseStringDestination(void *,char *);
 
-#endif /* _H_strngrtr */
+#endif
 
 

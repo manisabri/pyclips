@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*           CONSTRUCT CONSTRUCTS-TO-C HEADER          */
    /*******************************************************/
@@ -17,8 +17,6 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Removed ANSI_COMPILER compilation flag.        */
 /*                                                           */
 /*************************************************************/
 
@@ -40,9 +38,13 @@
 #include <stdio.h>
 #endif
 
+#if ANSI_COMPILER
    LOCALE void                           MarkConstructHeaders(int);
+#else
+   LOCALE void                           MarkConstructHeaders();
+#endif
 
-#endif /* _H_cstrccmp */
+#endif
 
 
 

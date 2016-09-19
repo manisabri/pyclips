@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*          CONSTRAINT CONSTRUCTS-TO-C HEADER          */
    /*******************************************************/
@@ -16,16 +16,6 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.24: Added allowed-classes slot facet.              */
-/*                                                           */
-/*            Added environment parameter to GenClose.       */
-/*                                                           */
-/*      6.30: Added support for path name argument to        */
-/*            constructs-to-c.                               */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -56,7 +46,7 @@
 
    LOCALE void                           PrintConstraintReference(void *,FILE *,CONSTRAINT_RECORD *,int,int);
    LOCALE void                           ConstraintRecordToCode(FILE *,CONSTRAINT_RECORD *);
-   LOCALE int                            ConstraintsToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+   LOCALE int                            ConstraintsToCode(void *,char *,int,FILE *,int,int);
 
-#endif /* _H_cstrncmp */
+#endif
 

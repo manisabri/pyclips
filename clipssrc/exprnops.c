@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*             EXPRESSION OPERATIONS MODULE            */
    /*******************************************************/
@@ -14,16 +14,11 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Add NegateExpression function.                 */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -350,7 +345,7 @@ globle struct expr *GenConstant(
 /*************************************************/
 globle void PrintExpression(
   void *theEnv,
-  const char *fileid,
+  char *fileid,
   struct expr *theExpression)
   {
    struct expr *oldExpression;
@@ -504,43 +499,6 @@ globle struct expr *CombineExpressions(
    tempPtr = GenConstant(theEnv,FCALL,ExpressionData(theEnv)->PTR_AND);
    tempPtr->argList = expr1;
    expr1->nextArg = expr2;
-   return(tempPtr);
-  }
-
-/*********************/
-/* NegateExpression: */
-/*********************/
-globle struct expr *NegateExpression(
-  void *theEnv,
-  struct expr *theExpression)
-  {
-   struct expr *tempPtr;
-
-   /*=========================================*/
-   /* If the expression is NULL, return NULL. */
-   /*=========================================*/
-
-   if (theExpression == NULL) return(NULL);
-
-   /*==================================================*/
-   /* The expression is already wrapped within a "not" */
-   /* function call, just remove the function call.    */
-   /*==================================================*/
-
-   if (theExpression->value == ExpressionData(theEnv)->PTR_NOT)
-     {
-      tempPtr = theExpression->argList;
-      rtn_struct(theEnv,expr,theExpression);
-      return(tempPtr);
-     }
-
-   /*===================================================*/
-   /* Wrap the expression within a "not" function call. */
-   /*===================================================*/
-
-   tempPtr = GenConstant(theEnv,FCALL,ExpressionData(theEnv)->PTR_NOT);
-   tempPtr->argList = theExpression;
-
    return(tempPtr);
   }
 

@@ -1,7 +1,8 @@
+
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                FACT BSAVE/BLOAD MODULE              */
    /*******************************************************/
@@ -14,13 +15,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Added support for hashed alpha memories.       */
-/*                                                           */
-/*            Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -89,7 +86,7 @@ globle void FactBinarySetup(
   void *theEnv)
   {
    AllocateEnvironmentData(theEnv,FACTBIN_DATA,sizeof(struct factBinaryData),DeallocateFactBloadData);
-   
+
 #if BLOAD_AND_BSAVE
    AddBinaryItem(theEnv,"facts",0,BsaveFind,NULL,
                             BsaveStorage,BsaveFactPatterns,
@@ -102,7 +99,7 @@ globle void FactBinarySetup(
                             ClearBload);
 #endif
   }
-  
+
 /****************************************************/
 /* DeallocateFactBloadData: Deallocates environment */
 /*    data for the fact bsave functionality.        */
@@ -110,14 +107,14 @@ globle void FactBinarySetup(
 static void DeallocateFactBloadData(
   void *theEnv)
   {
-   size_t space;
+   unsigned long space;
    int i;
-   
+
    for (i = 0; i < FactBinaryData(theEnv)->NumberOfPatterns; i++)
-     { DestroyAlphaMemory(theEnv,&FactBinaryData(theEnv)->FactPatternArray[i].header,FALSE); }
+     { DestroyAlphaBetaMemory(theEnv,FactBinaryData(theEnv)->FactPatternArray[i].header.alphaMemory); }
 
    space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct factPatternNode);
-   if (space != 0) genfree(theEnv,(void *) FactBinaryData(theEnv)->FactPatternArray,space);
+   if (space != 0) genlongfree(theEnv,(void *) FactBinaryData(theEnv)->FactPatternArray,space);
   }
 
 #if BLOAD_AND_BSAVE
@@ -225,11 +222,11 @@ static void BsaveStorage(
   void *theEnv,
   FILE *fp)
   {
-   size_t space;
+   unsigned long space;
 
    space = sizeof(long);
-   GenWrite(&space,sizeof(size_t),fp);
-   GenWrite(&FactBinaryData(theEnv)->NumberOfPatterns,sizeof(long int),fp);
+   GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
+   GenWrite(&FactBinaryData(theEnv)->NumberOfPatterns,(unsigned long) sizeof(long int),fp);
   }
 
 /*****************************************************/
@@ -240,7 +237,7 @@ static void BsaveFactPatterns(
   void *theEnv,
   FILE *fp)
   {
-   size_t space;
+   unsigned long int space;
    struct deftemplate *theDeftemplate;
    struct defmodule *theModule;
 
@@ -251,7 +248,7 @@ static void BsaveFactPatterns(
    /*========================================*/
 
    space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct bsaveFactPatternNode);
-   GenWrite(&space,sizeof(size_t),fp);
+   GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
 
    /*===========================*/
    /* Loop through each module. */
@@ -294,7 +291,7 @@ static void BsavePatternNode(
   {
    struct bsaveFactPatternNode tempNode;
 
-   AssignBsavePatternHeaderValues(theEnv,&tempNode.header,&thePattern->header);
+   AssignBsavePatternHeaderValues(&tempNode.header,&thePattern->header);
 
    tempNode.whichField = thePattern->whichField;
    tempNode.leaveFields = thePattern->leaveFields;
@@ -317,15 +314,15 @@ static void BsavePatternNode(
 static void BloadStorage(
   void *theEnv)
   {
-   size_t space;
+   unsigned long space;
 
    /*=========================================*/
    /* Determine the number of factPatternNode */
    /* data structures to be read.             */
    /*=========================================*/
 
-   GenReadBinary(theEnv,&space,sizeof(size_t));
-   GenReadBinary(theEnv,&FactBinaryData(theEnv)->NumberOfPatterns,sizeof(long int));
+   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
+   GenReadBinary(theEnv,&FactBinaryData(theEnv)->NumberOfPatterns,(unsigned long) sizeof(long int));
 
    /*===================================*/
    /* Allocate the space needed for the */
@@ -339,7 +336,7 @@ static void BloadStorage(
      }
 
    space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct factPatternNode);
-   FactBinaryData(theEnv)->FactPatternArray = (struct factPatternNode *) genalloc(theEnv,space);
+   FactBinaryData(theEnv)->FactPatternArray = (struct factPatternNode *) genlongalloc(theEnv,space);
   }
 
 /************************************************************/
@@ -349,8 +346,7 @@ static void BloadStorage(
 static void BloadBinaryItem(
   void *theEnv)
   {
-   size_t space;
-   long i;
+   unsigned long space;
 
    /*======================================================*/
    /* Read in the amount of space used by the binary image */
@@ -358,7 +354,7 @@ static void BloadBinaryItem(
    /* is not available in the version being run).          */
    /*======================================================*/
 
-   GenReadBinary(theEnv,&space,sizeof(size_t));
+   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
 
    /*=============================================*/
    /* Read in the factPatternNode data structures */
@@ -367,18 +363,6 @@ static void BloadBinaryItem(
 
    BloadandRefresh(theEnv,FactBinaryData(theEnv)->NumberOfPatterns,(unsigned) sizeof(struct bsaveFactPatternNode),
                    UpdateFactPatterns);
-                   
-   for (i = 0; i < FactBinaryData(theEnv)->NumberOfPatterns; i++)
-     {
-      if ((FactBinaryData(theEnv)->FactPatternArray[i].lastLevel != NULL) &&
-          (FactBinaryData(theEnv)->FactPatternArray[i].lastLevel->header.selector))
-        { 
-         AddHashedPatternNode(theEnv,FactBinaryData(theEnv)->FactPatternArray[i].lastLevel,
-                                     &FactBinaryData(theEnv)->FactPatternArray[i],
-                                     FactBinaryData(theEnv)->FactPatternArray[i].networkTest->type,
-                                     FactBinaryData(theEnv)->FactPatternArray[i].networkTest->value); 
-        }
-     }
   }
 
 /*************************************************/
@@ -415,24 +399,10 @@ static void UpdateFactPatterns(
 static void ClearBload(
   void *theEnv)
   {
-   size_t space;
-   long i;
-   
-   for (i = 0; i < FactBinaryData(theEnv)->NumberOfPatterns; i++)
-     {
-      if ((FactBinaryData(theEnv)->FactPatternArray[i].lastLevel != NULL) &&
-          (FactBinaryData(theEnv)->FactPatternArray[i].lastLevel->header.selector))
-        { 
-         RemoveHashedPatternNode(theEnv,FactBinaryData(theEnv)->FactPatternArray[i].lastLevel,
-                                        &FactBinaryData(theEnv)->FactPatternArray[i],
-                                        FactBinaryData(theEnv)->FactPatternArray[i].networkTest->type,
-                                        FactBinaryData(theEnv)->FactPatternArray[i].networkTest->value); 
-        }
-     }
-
+   unsigned long int space;
 
    space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct factPatternNode);
-   if (space != 0) genfree(theEnv,(void *) FactBinaryData(theEnv)->FactPatternArray,space);
+   if (space != 0) genlongfree(theEnv,(void *) FactBinaryData(theEnv)->FactPatternArray,space);
    FactBinaryData(theEnv)->NumberOfPatterns = 0;
   }
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,17 +10,11 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -32,7 +26,7 @@
 #define GENRCBIN_DATA 28
 
 struct defgenericBinaryData
-  { 
+  {
    DEFGENERIC *DefgenericArray;
    long ModuleCount;
    long GenericCount;
@@ -44,7 +38,7 @@ struct defgenericBinaryData
    RESTRICTION *RestrictionArray;
    void **TypeArray;
   };
-  
+
 #define DefgenericBinaryData(theEnv) ((struct defgenericBinaryData *) GetEnvironmentData(theEnv,GENRCBIN_DATA))
 
 #define GenericPointer(i) (((i) == -1L) ? NULL : (DEFGENERIC *) &DefgenericBinaryData(theEnv)->DefgenericArray[i])
@@ -59,10 +53,10 @@ struct defgenericBinaryData
 #define LOCALE extern
 #endif
 
-   LOCALE void                           SetupGenericsBload(void *);
-   LOCALE void                          *BloadDefgenericModuleReference(void *,int);
+LOCALE void SetupGenericsBload(void *);
+LOCALE void *BloadDefgenericModuleReference(void *,int);
 
-#endif /* _H_genrcbin */
+#endif
 
 
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*             CLIPS Version 6.24  07/01/05            */
    /*                                                     */
    /*                SORT FUNCTIONS MODULE                */
    /*******************************************************/
@@ -15,15 +15,11 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*      6.24: The sort function leaks memory when called     */
 /*            with a multifield value of length zero.        */
 /*            DR0864                                         */
-/*                                                           */
-/*      6.30: Added environment cleanup call function        */
-/*            DeallocateSortFunctionData.                    */
 /*                                                           */
 /*************************************************************/
 
@@ -45,7 +41,7 @@
 #define SORTFUN_DATA 7
 
 struct sortFunctionData
-  { 
+  {
    struct expr *SortComparisonFunction;
   };
 
@@ -59,8 +55,7 @@ struct sortFunctionData
                                               unsigned long,unsigned long,unsigned long,
                                               int (*)(void *,DATA_OBJECT *,DATA_OBJECT *));
    static int                     DefaultCompareSwapFunction(void *,DATA_OBJECT *,DATA_OBJECT *);
-   static void                    DeallocateSortFunctionData(void *);
-   
+
 /****************************************/
 /* SortFunctionDefinitions: Initializes */
 /*   the sorting functions.             */
@@ -68,20 +63,10 @@ struct sortFunctionData
 globle void SortFunctionDefinitions(
   void *theEnv)
   {
-   AllocateEnvironmentData(theEnv,SORTFUN_DATA,sizeof(struct sortFunctionData),DeallocateSortFunctionData);
+   AllocateEnvironmentData(theEnv,SORTFUN_DATA,sizeof(struct sortFunctionData),NULL);
 #if ! RUN_TIME
    EnvDefineFunction2(theEnv,"sort",'u', PTIEF SortFunction,"SortFunction","1**w");
 #endif
-  }
-
-/*******************************************************/
-/* DeallocateSortFunctionData: Deallocates environment */
-/*    data for the sort function.                      */
-/*******************************************************/
-static void DeallocateSortFunctionData(
-  void *theEnv)
-  {
-   ReturnExpression(theEnv,SortFunctionData(theEnv)->SortComparisonFunction);
   }
 
 /**************************************/
@@ -121,7 +106,7 @@ globle void SortFunction(
    DATA_OBJECT *theArguments, *theArguments2;
    DATA_OBJECT theArg;
    struct multifield *theMultifield, *tempMultifield;
-   const char *functionName;
+   char *functionName;
    struct expr *functionReference;
    int argumentSize = 0;
    struct FunctionDefinition *fptr;
@@ -162,7 +147,7 @@ globle void SortFunction(
    /* For an external function, verify the */
    /* correct number of arguments.         */
    /*======================================*/
-   
+
    if (functionReference->type == FCALL)
      {
       fptr = (struct FunctionDefinition *) functionReference->value;
@@ -175,12 +160,12 @@ globle void SortFunction(
          return;
         }
      }
-     
+
    /*=======================================*/
    /* For a deffunction, verify the correct */
    /* number of arguments.                  */
    /*=======================================*/
-  
+
 #if DEFFUNCTION_CONSTRUCT
    if (functionReference->type == PCALL)
      {
@@ -207,7 +192,7 @@ globle void SortFunction(
       ReturnExpression(theEnv,functionReference);
       return;
      }
-     
+
    /*=====================================*/
    /* Retrieve the arguments to be sorted */
    /* and determine how many there are.   */
@@ -223,20 +208,20 @@ globle void SortFunction(
       else
         { argumentSize++; }
      }
-     
+
    if (argumentSize == 0)
-     {   
+     {
       genfree(theEnv,theArguments,(argumentCount - 1) * sizeof(DATA_OBJECT)); /* Bug Fix */
       EnvSetMultifieldErrorValue(theEnv,returnValue);
       ReturnExpression(theEnv,functionReference);
       return;
      }
-   
+
    /*====================================*/
    /* Pack all of the items to be sorted */
    /* into a data object array.          */
    /*====================================*/
-   
+
    theArguments2 = (DATA_OBJECT *) genalloc(theEnv,argumentSize * sizeof(DATA_OBJECT));
 
    for (i = 2; i <= argumentCount; i++)
@@ -257,7 +242,7 @@ globle void SortFunction(
          k++;
         }
      }
-     
+
    genfree(theEnv,theArguments,(argumentCount - 1) * sizeof(DATA_OBJECT));
 
    functionReference->nextArg = SortFunctionData(theEnv)->SortComparisonFunction;
@@ -267,7 +252,7 @@ globle void SortFunction(
      { ValueInstall(theEnv,&theArguments2[i]); }
 
    MergeSort(theEnv,(unsigned long) argumentSize,theArguments2,DefaultCompareSwapFunction);
-  
+
    for (i = 0; i < argumentSize; i++)
      { ValueDeinstall(theEnv,&theArguments2[i]); }
 
@@ -282,7 +267,7 @@ globle void SortFunction(
       SetMFType(theMultifield,i+1,GetType(theArguments2[i]));
       SetMFValue(theMultifield,i+1,GetValue(theArguments2[i]));
      }
-     
+
    genfree(theEnv,theArguments2,argumentSize * sizeof(DATA_OBJECT));
 
    SetpType(returnValue,MULTIFIELD);

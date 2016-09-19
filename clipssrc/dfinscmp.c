@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*              CLIPS Version 6.30  08/16/14           */
+   /*              CLIPS Version 6.20  01/31/02           */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,17 +10,11 @@
 /* Purpose: Definstances Construct Compiler Code             */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Added support for path name argument to        */
-/*            constructs-to-c.                               */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -47,7 +41,7 @@
    ***************************************** */
 
 static void ReadyDefinstancesForCode(void *);
-static int DefinstancesToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+static int DefinstancesToCode(void *,char *,int,FILE *,int,int);
 static void CloseDefinstancesFiles(void *,FILE *,FILE *,int);
 static void DefinstancesModuleToCode(void *,FILE *,struct defmodule *,int,int);
 static void SingleDefinstancesToCode(void *,FILE *,DEFINSTANCES *,int,int,int);
@@ -140,9 +134,7 @@ static void ReadyDefinstancesForCode(
  *******************************************************/
 static int DefinstancesToCode(
   void *theEnv,
-  const char *fileName,
-  const char *pathName,
-  char *fileNameBuffer,
+  char *fileName,
   int fileID,
   FILE *headerFP,
   int imageID,
@@ -170,7 +162,7 @@ static int DefinstancesToCode(
      {
       EnvSetCurrentModule(theEnv,(void *) theModule);
 
-      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "DEFINSTANCES_MODULE",ModulePrefix(DefinstancesData(theEnv)->DefinstancesCodeItem),
                                     FALSE,NULL);
@@ -189,7 +181,7 @@ static int DefinstancesToCode(
 
       while (theDefinstances != NULL)
         {
-         definstancesFile = OpenFileIfNeeded(theEnv,definstancesFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+         definstancesFile = OpenFileIfNeeded(theEnv,definstancesFile,fileName,fileID,imageID,&fileCount,
                                              definstancesArrayVersion,headerFP,
                                              "DEFINSTANCES",ConstructPrefix(DefinstancesData(theEnv)->DefinstancesCodeItem),
                                              FALSE,NULL);

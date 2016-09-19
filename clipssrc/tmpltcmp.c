@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.23  01/31/05            */
    /*                                                     */
    /*          DEFTEMPLATE CONSTRUCTS-TO-C MODULE         */
    /*******************************************************/
@@ -14,28 +14,11 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Added support for templates maintaining their  */
 /*            own list of facts.                             */
-/*                                                           */
-/*      6.30: Added support for path name argument to        */
-/*            constructs-to-c.                               */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Support for deftemplate slot facets.           */
-/*                                                           */
-/*            Added code for deftemplate run time            */
-/*            initialization of hashed comparisons to        */
-/*            constants.                                     */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -62,13 +45,12 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+   static int                     ConstructToCode(void *,char *,int,FILE *,int,int);
    static void                    SlotToCode(void *,FILE *,struct templateSlot *,int,int,int);
    static void                    DeftemplateModuleToCode(void *,FILE *,struct defmodule *,int,int,int);
    static void                    DeftemplateToCode(void *,FILE *,struct deftemplate *,
                                                  int,int,int,int);
    static void                    CloseDeftemplateFiles(void *,FILE *,FILE *,FILE *,int);
-   static void                    InitDeftemplateCode(void *,FILE *,int,int);
 
 /*********************************************************/
 /* DeftemplateCompilerSetup: Initializes the deftemplate */
@@ -77,7 +59,7 @@
 globle void DeftemplateCompilerSetup(
   void *theEnv)
   {
-   DeftemplateData(theEnv)->DeftemplateCodeItem = AddCodeGeneratorItem(theEnv,"deftemplate",0,NULL,InitDeftemplateCode,ConstructToCode,3);
+   DeftemplateData(theEnv)->DeftemplateCodeItem = AddCodeGeneratorItem(theEnv,"deftemplate",0,NULL,NULL,ConstructToCode,3);
   }
 
 /*************************************************************/
@@ -86,9 +68,7 @@ globle void DeftemplateCompilerSetup(
 /*************************************************************/
 static int ConstructToCode(
   void *theEnv,
-  const char *fileName,
-  const char *pathName,
-  char *fileNameBuffer,
+  char *fileName,
   int fileID,
   FILE *headerFP,
   int imageID,
@@ -121,7 +101,7 @@ static int ConstructToCode(
      {
       EnvSetCurrentModule(theEnv,(void *) theModule);
 
-      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "struct deftemplateModule",ModulePrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
                                     FALSE,NULL);
@@ -144,7 +124,7 @@ static int ConstructToCode(
 
       while (theTemplate != NULL)
         {
-         templateFile = OpenFileIfNeeded(theEnv,templateFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+         templateFile = OpenFileIfNeeded(theEnv,templateFile,fileName,fileID,imageID,&fileCount,
                                          templateArrayVersion,headerFP,
                                          "struct deftemplate",ConstructPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
                                          FALSE,NULL);
@@ -167,7 +147,7 @@ static int ConstructToCode(
          slotPtr = theTemplate->slotList;
          while (slotPtr != NULL)
            {
-            slotFile = OpenFileIfNeeded(theEnv,slotFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+            slotFile = OpenFileIfNeeded(theEnv,slotFile,fileName,fileID,imageID,&fileCount,
                                         slotArrayVersion,headerFP,
                                        "struct templateSlot",SlotPrefix(),FALSE,NULL);
             if (slotFile == NULL)
@@ -236,6 +216,9 @@ static void CloseDeftemplateFiles(
 /* DeftemplateModuleToCode: Writes the C code representation */
 /*   of a single deftemplate module to the specified file.   */
 /*************************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
 static void DeftemplateModuleToCode(
   void *theEnv,
   FILE *theFile,
@@ -244,7 +227,7 @@ static void DeftemplateModuleToCode(
   int maxIndices,
   int moduleCount)
   {
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(moduleCount)
 #endif
 
@@ -314,7 +297,7 @@ static void DeftemplateToCode(
    /* Print the factList and lastFact references */
    /* and close the structure.                   */
    /*============================================*/
-   
+
    fprintf(theFile,",NULL,NULL}");
   }
 
@@ -356,13 +339,6 @@ static void SlotToCode(
 
    fprintf(theFile,",");
    PrintHashedExpressionReference(theEnv,theFile,theSlot->defaultList,imageID,maxIndices);
-   
-   /*============*/
-   /* Facet List */
-   /*============*/
-   
-   fprintf(theFile,",");
-   PrintHashedExpressionReference(theEnv,theFile,theSlot->facetList,imageID,maxIndices);
    fprintf(theFile,",");
 
    /*===========*/
@@ -419,25 +395,6 @@ globle void DeftemplateCConstructReference(
                       theTemplate->header.bsaveID % maxIndices);
      }
 
-  }
-  
-/*******************************************/
-/* InitDeftemplateCode: Writes out runtime */
-/*   initialization code for deftemplates. */
-/*******************************************/
-static void InitDeftemplateCode(
-  void *theEnv,
-  FILE *initFP,
-  int imageID,
-  int maxIndices)
-  {
-#if MAC_XCD
-#pragma unused(theEnv)
-#pragma unused(imageID)
-#pragma unused(maxIndices)
-#endif
-
-   fprintf(initFP,"   DeftemplateRunTimeInitialize(theEnv);\n");
   }
 
 #endif /* DEFTEMPLATE_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME) */

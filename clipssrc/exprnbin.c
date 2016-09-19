@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.23  01/31/05            */
    /*                                                     */
    /*             EXPRESSION BSAVE/BLOAD MODULE           */
    /*******************************************************/
@@ -14,11 +14,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -82,15 +80,15 @@
 globle void AllocateExpressions(
   void *theEnv)
   {
-   size_t space;
+   unsigned long space;
 
-   GenReadBinary(theEnv,(void *) &ExpressionData(theEnv)->NumberOfExpressions,sizeof(long));
+   GenReadBinary(theEnv,(void *) &ExpressionData(theEnv)->NumberOfExpressions,(unsigned long) sizeof(long));
    if (ExpressionData(theEnv)->NumberOfExpressions == 0L)
      ExpressionData(theEnv)->ExpressionArray = NULL;
    else
      {
       space = ExpressionData(theEnv)->NumberOfExpressions * sizeof(struct expr);
-      ExpressionData(theEnv)->ExpressionArray = (struct expr *) genalloc(theEnv,space);
+      ExpressionData(theEnv)->ExpressionArray = (struct expr *) genlongalloc(theEnv,space);
      }
   }
 
@@ -248,8 +246,7 @@ static void UpdateExpression(
 globle void ClearBloadedExpressions(
   void *theEnv)
   {
-   unsigned long int i;
-   size_t space;
+   unsigned long int i, space;
 
    /*===============================================*/
    /* Update the busy counts of atomic data values. */
@@ -300,7 +297,7 @@ globle void ClearBloadedExpressions(
    /*===================================*/
 
    space = ExpressionData(theEnv)->NumberOfExpressions * sizeof(struct expr);
-   if (space != 0) genfree(theEnv,(void *) ExpressionData(theEnv)->ExpressionArray,space);
+   if (space != 0) genlongfree(theEnv,(void *) ExpressionData(theEnv)->ExpressionArray,space);
    ExpressionData(theEnv)->ExpressionArray = 0;
   }
 

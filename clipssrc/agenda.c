@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                    AGENDA MODULE                    */
    /*******************************************************/
@@ -15,7 +15,7 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
 /*      6.23: Corrected compilation errors for files         */
@@ -27,20 +27,6 @@
 /*            Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*            Added EnvGetActivationBasisPPForm function.    */
-/*                                                           */
-/*      6.30: Added salience groups to improve performance   */
-/*            with large numbers of activations of different */
-/*            saliences.                                     */
-/*                                                           */
-/*            Borland C (IBM_TBC) and Metrowerks CodeWarrior */
-/*            (MAC_MCW, IBM_MCW) are no longer supported.    */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -79,14 +65,11 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                    PrintActivation(void *,const char *,void *);
+   static void                    PrintActivation(void *,char *,void *);
    static void                    AgendaClearFunction(void *);
-   static const char             *SalienceEvaluationName(int);
+   static char                   *SalienceEvaluationName(int);
    static int                     EvaluateSalience(void *,void *);
-   static struct salienceGroup   *ReuseOrCreateSalienceGroup(void *,struct defruleModule *,int);
-   static struct salienceGroup   *FindSalienceGroup(struct defruleModule *,int);
-   static void                    RemoveActivationFromGroup(void *,struct activation *,struct defruleModule *);
-   
+
 /*************************************************/
 /* InitializeAgenda: Initializes the activations */
 /*   watch item and the H/L commands for         */
@@ -94,13 +77,13 @@
 /*************************************************/
 globle void InitializeAgenda(
   void *theEnv)
-  {   
+  {
    AllocateEnvironmentData(theEnv,AGENDA_DATA,sizeof(struct agendaData),NULL);
-   
+
    AgendaData(theEnv)->SalienceEvaluation = WHEN_DEFINED;
 
    AgendaData(theEnv)->Strategy = DEFAULT_STRATEGY;
-   
+
    EnvAddClearFunction(theEnv,"agenda",AgendaClearFunction,0);
 #if DEBUGGING_FUNCTIONS
    AddWatchItem(theEnv,"activations",1,&AgendaData(theEnv)->WatchActivations,40,DefruleWatchAccess,DefruleWatchPrint);
@@ -140,7 +123,6 @@ globle void AddActivation(
    struct defrule *theRule = (struct defrule *) vTheRule;
    struct partialMatch *binds = (struct partialMatch *) vBinds;
    struct defruleModule *theModuleItem;
-   struct salienceGroup *theGroup;
 
    /*=======================================*/
    /* Focus on the module if the activation */
@@ -164,6 +146,7 @@ globle void AddActivation(
    newActivation->timetag = AgendaData(theEnv)->CurrentTimetag++;
    newActivation->salience = EvaluateSalience(theEnv,theRule);
 
+   newActivation->sortedBasis = NULL;
    newActivation->randomID = genrand();
    newActivation->prev = NULL;
    newActivation->next = NULL;
@@ -175,7 +158,7 @@ globle void AddActivation(
    /* the link between the join network and the agenda.     */
    /*=======================================================*/
 
-   binds->marker = (void *) newActivation;
+   binds->binds[binds->bcount].gm.theValue = (void *) newActivation;
 
    /*====================================================*/
    /* If activations are being watch, display a message. */
@@ -195,75 +178,9 @@ globle void AddActivation(
     /*=====================================*/
 
     theModuleItem = (struct defruleModule *) theRule->header.whichModule;
-    
-    theGroup = ReuseOrCreateSalienceGroup(theEnv,theModuleItem,newActivation->salience);
-    
-    PlaceActivation(theEnv,&(theModuleItem->agenda),newActivation,theGroup);
+    PlaceActivation(theEnv,&(theModuleItem->agenda),newActivation);
    }
 
-/***************************************************************/
-/* ReuseOrCreateSalienceGroup: */
-/***************************************************************/
-static struct salienceGroup *ReuseOrCreateSalienceGroup(
-  void *theEnv,
-  struct defruleModule *theRuleModule,
-  int salience)
-  {
-   struct salienceGroup *theGroup, *lastGroup, *newGroup;
-   
-   for (lastGroup = NULL, theGroup = theRuleModule->groupings;
-        theGroup != NULL;
-        lastGroup = theGroup, theGroup = theGroup->next)
-     {
-      if (theGroup->salience == salience)
-        { return(theGroup); }
-        
-      if (theGroup->salience < salience)
-        { break; }
-     }
-     
-   newGroup = get_struct(theEnv,salienceGroup);
-   newGroup->salience = salience;
-   newGroup->first = NULL;
-   newGroup->last = NULL;
-   newGroup->next = theGroup;
-   newGroup->prev = lastGroup;
-   
-   if (newGroup->next != NULL)
-     { newGroup->next->prev = newGroup; }
-
-   if (newGroup->prev != NULL)
-     { newGroup->prev->next = newGroup; }
-   
-   if (lastGroup == NULL)
-     { theRuleModule->groupings = newGroup; }
-     
-   return newGroup;
-  }
-
-/***************************************************************/
-/* FindSalienceGroup: */
-/***************************************************************/
-static struct salienceGroup *FindSalienceGroup(
-  struct defruleModule *theRuleModule,
-  int salience)
-  {
-   struct salienceGroup *theGroup;
-   
-   for (theGroup = theRuleModule->groupings;
-        theGroup != NULL;
-        theGroup = theGroup->next)
-     {
-      if (theGroup->salience == salience)
-        { return(theGroup); }
-        
-      if (theGroup->salience < salience)
-        { break; }
-     }
-     
-   return NULL;
-  }
-  
 /***************************************************************/
 /* ClearRuleFromAgenda: Clears the agenda of a specified rule. */
 /***************************************************************/
@@ -322,7 +239,7 @@ globle void *EnvGetNextActivation(
   void *actPtr)
   {
    struct defruleModule *theModuleItem;
-   
+
    if (actPtr == NULL)
      {
       theModuleItem = (struct defruleModule *) GetModuleItem(theEnv,NULL,DefruleData(theEnv)->DefruleModuleIndex);
@@ -333,74 +250,38 @@ globle void *EnvGetNextActivation(
      { return((void *) (((struct activation *) actPtr)->next)); }
   }
 
-/***********************************************/
-/* EnvGetActivationBasis: Returns the basis of */
-/*   the rule associated with an activation.   */
-/***********************************************/
-globle struct partialMatch *EnvGetActivationBasis(
-  void *theEnv,
-  void *actPtr)
-  {
-#if MAC_XCD
-#pragma unused(theEnv)
-#endif
-   return ((struct activation *) actPtr)->basis;
-  }
-
 /*********************************************/
 /* EnvGetActivationName: Returns the name of */
 /*   the rule associated with an activation. */
 /*********************************************/
-globle const char *EnvGetActivationName(
+#if IBM_TBC
+#pragma argsused
+#endif
+globle char *EnvGetActivationName(
   void *theEnv,
   void *actPtr)
   {
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theEnv)
 #endif
 
-   return(ValueToString(((struct activation *) actPtr)->theRule->header.name)); 
-  }
-
-/******************************************/
-/* EnvGetActivationRule: Returns the rule */
-/*   associated with an activation.       */
-/******************************************/
-globle struct defrule *EnvGetActivationRule(
-  void *theEnv,
-  void *actPtr)
-  {
-#if MAC_XCD
-#pragma unused(theEnv)
-#endif
-   return ((struct activation *) actPtr)->theRule;
-  }
-
-/**************************************************/
-/* EnvGetActivationSalience: Returns the salience */
-/*   of the rule associated with an activation.   */
-/**************************************************/
-globle int EnvGetActivationSalience(
-  void *theEnv,
-  void *actPtr)
-  {
-#if MAC_XCD
-#pragma unused(theEnv)
-#endif
-   return ((struct activation *) actPtr)->salience;
+   return(ValueToString(((struct activation *) actPtr)->theRule->header.name));
   }
 
 /**************************************/
 /* EnvSetActivationSalience: Sets the */
 /*   salience value of an activation. */
 /**************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
 globle int EnvSetActivationSalience(
   void *theEnv,
   void *actPtr,
   int value)
   {
    int temp;
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -416,7 +297,7 @@ globle int EnvSetActivationSalience(
 globle void EnvGetActivationPPForm(
   void *theEnv,
   char *buffer,
-  size_t bufferLength,
+  unsigned bufferLength,
   void *theActivation)
   {
    OpenStringDestination(theEnv,"ActPPForm",buffer,bufferLength);
@@ -431,7 +312,7 @@ globle void EnvGetActivationPPForm(
 globle void EnvGetActivationBasisPPForm(
   void *theEnv,
   char *buffer,
-  size_t bufferLength,
+  unsigned bufferLength,
   void *vTheActivation)
   {
    struct activation *theActivation = (struct activation *) vTheActivation;
@@ -534,8 +415,6 @@ globle intBool DetachActivation(
 
    theModuleItem = (struct defruleModule *) theActivation->theRule->header.whichModule;
 
-   RemoveActivationFromGroup(theEnv,theActivation,theModuleItem);
-
    /*========================================================*/
    /* If the activation is the top activation on the agenda, */
    /* then update the module pointer to agenda.              */
@@ -580,13 +459,13 @@ globle intBool DetachActivation(
 /****************************************************************************/
 static void PrintActivation(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   void *vTheActivation)
   {
    struct activation *theActivation = (struct activation *) vTheActivation;
    char printSpace[20];
 
-   gensprintf(printSpace,"%-6d ",theActivation->salience);
+   sprintf(printSpace,"%-6d ",theActivation->salience);
    EnvPrintRouter(theEnv,logicalName,printSpace);
    EnvPrintRouter(theEnv,logicalName,ValueToString(theActivation->theRule->header.name));
    EnvPrintRouter(theEnv,logicalName,": ");
@@ -599,7 +478,7 @@ static void PrintActivation(
 /*******************************/
 globle void EnvAgenda(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   void *vTheModule)
   {
    struct defmodule *theModule = (struct defmodule *) vTheModule;
@@ -635,8 +514,6 @@ globle void RemoveActivation(
 
    if (updateAgenda == TRUE)
      {
-      RemoveActivationFromGroup(theEnv,theActivation,theModuleItem);
-
       /*===============================================*/
       /* Update the pointer links between activations. */
       /*===============================================*/
@@ -679,7 +556,7 @@ globle void RemoveActivation(
    /*============================================*/
 
    if ((updateLinks == TRUE) && (theActivation->basis != NULL))
-     { theActivation->basis->marker = NULL; }
+     { theActivation->basis->binds[theActivation->basis->bcount].gm.theValue = NULL; }
 
    /*================================================*/
    /* Return the activation to the free memory pool. */
@@ -687,68 +564,10 @@ globle void RemoveActivation(
 
    AgendaData(theEnv)->NumberOfActivations--;
 
-   rtn_struct(theEnv,activation,theActivation);
-  }
+   if (theActivation->sortedBasis != NULL)
+     { ReturnPartialMatch(theEnv,theActivation->sortedBasis); }
 
-/**************************************************************/
-/* RemoveActivationFromGroup:      */
-/**************************************************************/
-static void RemoveActivationFromGroup(
-  void *theEnv,
-  struct activation *theActivation,
-  struct defruleModule *theRuleModule)
-  {
-   struct salienceGroup *theGroup;
-   
-   theGroup = FindSalienceGroup(theRuleModule,theActivation->salience);
-   if (theGroup == NULL) return;
-   
-   if (theActivation == theGroup->first)
-     {
-      /*====================================================*/
-      /* If the activation is the only remaining activation */
-      /* in the group, then the group needs to be removed.  */
-      /*====================================================*/
-      
-      if (theActivation == theGroup->last)
-        {
-         if (theGroup->prev == NULL)
-           { theRuleModule->groupings = theGroup->next; }
-         else
-           { theGroup->prev->next = theGroup->next; }
-           
-         if (theGroup->next != NULL)
-           { theGroup->next->prev = theGroup->prev; }
-           
-         rtn_struct(theEnv,salienceGroup,theGroup);
-        }
-        
-      /*======================================================*/
-      /* Otherwise this is the first activation in the group, */
-      /* but there are other activations which follow.        */
-      /*======================================================*/
-      
-      else
-        { theGroup->first = theActivation->next; }
-     }
-   else
-     {
-      /*====================================================*/
-      /* Otherwise if the activation isn't the first in the */
-      /* group, then check to see if it's the last.         */
-      /*====================================================*/
-      
-      if (theActivation == theGroup->last)
-        { theGroup->last = theActivation->prev; }
-        
-      /*==================================================*/
-      /* Otherwise the activation is in the middle of the */
-      /* group and no first/last updates are needed.      */
-      /*==================================================*/
-      
-      else
-        { return; }
-     }
+   rtn_struct(theEnv,activation,theActivation);
   }
 
 /**************************************************************/
@@ -769,7 +588,6 @@ globle void RemoveAllActivations(
   void *theEnv)
   {
    struct activation *tempPtr, *theActivation;
-   struct salienceGroup *theGroup, *tempGroup;
 
    theActivation = GetDefruleModuleItem(theEnv,NULL)->agenda;
    while (theActivation != NULL)
@@ -778,15 +596,7 @@ globle void RemoveAllActivations(
       RemoveActivation(theEnv,theActivation,TRUE,TRUE);
       theActivation = tempPtr;
      }
-
-   theGroup = GetDefruleModuleItem(theEnv,NULL)->groupings;
-   while (theGroup != NULL)
-     {
-      tempGroup = theGroup->next;
-      rtn_struct(theEnv,salienceGroup,theGroup);
-      theGroup = tempGroup;
-     }
- }
+  }
 
 /*********************************************************/
 /* EnvGetAgendaChanged: Returns the value of the boolean */
@@ -822,7 +632,6 @@ globle void EnvReorderAgenda(
    struct defmodule *theModule = (struct defmodule *) vTheModule;
    int allModules = FALSE;
    struct defruleModule *theModuleItem;
-   struct salienceGroup *theGroup, *tempGroup;
 
    /*=============================================*/
    /* If the module specified is a NULL pointer,  */
@@ -852,16 +661,6 @@ globle void EnvReorderAgenda(
       theActivation = theModuleItem->agenda;
       theModuleItem->agenda = NULL;
 
-      theGroup = theModuleItem->groupings;
-      while (theGroup != NULL)
-        {
-         tempGroup = theGroup->next;
-         rtn_struct(theEnv,salienceGroup,theGroup);
-         theGroup = tempGroup;
-        }
-
-      theModuleItem->groupings = NULL;
-        
       /*=========================================*/
       /* Reorder the activations by placing them */
       /* back on the agenda one by one.          */
@@ -872,8 +671,7 @@ globle void EnvReorderAgenda(
          tempPtr = theActivation->next;
          theActivation->next = NULL;
          theActivation->prev = NULL;
-         theGroup = ReuseOrCreateSalienceGroup(theEnv,theModuleItem,theActivation->salience);
-         PlaceActivation(theEnv,&(theModuleItem->agenda),theActivation,theGroup);
+         PlaceActivation(theEnv,&(theModuleItem->agenda),theActivation);
          theActivation = tempPtr;
         }
 
@@ -891,8 +689,8 @@ globle void EnvReorderAgenda(
 /****************************************************/
 globle unsigned long GetNumberOfActivations(
   void *theEnv)
-  {  
-   return(AgendaData(theEnv)->NumberOfActivations); 
+  {
+   return(AgendaData(theEnv)->NumberOfActivations);
   }
 
 /******************************************************/
@@ -902,7 +700,7 @@ globle unsigned long GetNumberOfActivations(
 globle void RefreshCommand(
   void *theEnv)
   {
-   const char *ruleName;
+   char *ruleName;
    void *rulePtr;
 
    /*===========================*/
@@ -940,8 +738,7 @@ globle intBool EnvRefresh(
   {
    struct defrule *rulePtr;
    struct partialMatch *listOfMatches;
-   unsigned long b;
-   
+
    /*====================================*/
    /* Refresh each disjunct of the rule. */
    /*====================================*/
@@ -955,24 +752,22 @@ globle intBool EnvRefresh(
       /* satisfies the LHS of the rule. */
       /*================================*/
 
-      for (b = 0; b < rulePtr->lastJoin->leftMemory->size; b++)
+      for (listOfMatches = rulePtr->lastJoin->beta;
+           listOfMatches != NULL;
+           listOfMatches = listOfMatches->next)
         {
-         for (listOfMatches = rulePtr->lastJoin->leftMemory->beta[b];
-              listOfMatches != NULL;
-              listOfMatches = listOfMatches->nextInMemory)
-           {
-            /*=======================================================*/
-            /* If the partial match is associated with an activation */
-            /* (which it should always be), then place a new         */
-            /* activation on the agenda if this partial matchdoesn't */
-            /* have an activation associated with it.                */
-            /*=======================================================*/
+         /*=======================================================*/
+         /* If the partial match is associated with an activation */
+         /* (which it should always be) and it isn't associated   */
+         /* with a not CE that still has matches, then place a    */
+         /* new activation on the agenda if this partial match    */
+         /* doesn't have an activation associated with it.        */
+         /*=======================================================*/
 
-            if (((struct joinNode *) listOfMatches->owner)->ruleToActivate != NULL)
-              {
-               if (listOfMatches->marker == NULL)
-                 { AddActivation(theEnv,rulePtr,listOfMatches); }
-              }
+         if ((listOfMatches->activationf) && (! listOfMatches->counterf))
+           {
+            if (listOfMatches->binds[listOfMatches->bcount].gm.theValue == NULL)
+              { AddActivation(theEnv,rulePtr,listOfMatches); }
            }
         }
      }
@@ -1029,7 +824,7 @@ globle void EnvRefreshAgenda(
    struct defmodule *theModule = (struct defmodule *) vTheModule;
    intBool oldValue;
    int allModules = FALSE;
-   
+
    /*==========================*/
    /* Save the current module. */
    /*==========================*/
@@ -1120,8 +915,7 @@ globle void *SetSalienceEvaluationCommand(
   void *theEnv)
   {
    DATA_OBJECT argPtr;
-   const char *argument;
-   const char *oldValue;
+   char *argument, *oldValue;
 
    /*==================================================*/
    /* Get the current setting for salience evaluation. */
@@ -1185,10 +979,10 @@ globle void *GetSalienceEvaluationCommand(
 /*   to a specified salience evaluation behavior, returns a      */
 /*   character string of the behavior's name.                    */
 /*****************************************************************/
-static const char *SalienceEvaluationName(
+static char *SalienceEvaluationName(
   int strategy)
   {
-   const char *sname;
+   char *sname;
 
    switch (strategy)
      {
@@ -1216,8 +1010,8 @@ static const char *SalienceEvaluationName(
 /****************************************************************/
 globle intBool EnvGetSalienceEvaluation(
   void *theEnv)
-  {   
-   return(AgendaData(theEnv)->SalienceEvaluation); 
+  {
+   return(AgendaData(theEnv)->SalienceEvaluation);
   }
 
 /***********************************************/
@@ -1358,112 +1152,6 @@ globle void AgendaCommand(
   }
 
 #endif /* DEBUGGING_FUNCTIONS */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle void Agenda(
-  const char *logicalName,
-  void *vTheModule)
-  {
-   EnvAgenda(GetCurrentEnvironment(),logicalName,vTheModule);
-  }
-
-globle intBool DeleteActivation(
-  void *theActivation)
-  {
-   return EnvDeleteActivation(GetCurrentEnvironment(),theActivation);
-  }
-  
-globle struct partialMatch *GetActivationBasis(
-  void *actPtr)
-  {
-   return EnvGetActivationBasis(GetCurrentEnvironment(),actPtr);
-  }
-
-globle const char *GetActivationName(
-  void *actPtr)
-  {
-   return EnvGetActivationName(GetCurrentEnvironment(),actPtr);
-  }
-
-globle void GetActivationPPForm(
-  char *buffer,
-  unsigned bufferLength,
-  void *theActivation)
-  {
-   EnvGetActivationPPForm(GetCurrentEnvironment(),buffer,bufferLength,theActivation);
-  }
-
-globle struct defrule *GetActivationRule(
-  void *actPtr)
-  {
-   return EnvGetActivationRule(GetCurrentEnvironment(),actPtr);
-  }
-
-globle int GetActivationSalience(
-  void *actPtr)
-  {
-   return EnvGetActivationSalience(GetCurrentEnvironment(),actPtr);
-  }
-
-globle int GetAgendaChanged()
-  {
-   return EnvGetAgendaChanged(GetCurrentEnvironment());
-  }
-
-globle void *GetNextActivation(
-  void *actPtr)
-  {
-   return EnvGetNextActivation(GetCurrentEnvironment(),actPtr);
-  }
-
-globle intBool Refresh(
-  void *theRule)
-  {
-   return EnvRefresh(GetCurrentEnvironment(),theRule);
-  }
-
-globle void RefreshAgenda(
-  void *vTheModule)
-  {
-   EnvRefreshAgenda(GetCurrentEnvironment(),vTheModule);
-  }
-
-globle void ReorderAgenda(
-  void *vTheModule)
-  {
-   EnvReorderAgenda(GetCurrentEnvironment(),vTheModule);
-  }
-
-globle void SetAgendaChanged(
-  int value)
-  {
-   EnvSetAgendaChanged(GetCurrentEnvironment(),value);
-  }
-
-globle int SetActivationSalience(
-  void *actPtr,
-  int value)
-  {
-   return EnvSetActivationSalience(GetCurrentEnvironment(),actPtr,value);
-  }
-
-globle intBool GetSalienceEvaluation()
-  {
-   return EnvGetSalienceEvaluation(GetCurrentEnvironment());
-  }
-
-globle intBool SetSalienceEvaluation(
-  int value)
-  {
-   return EnvSetSalienceEvaluation(GetCurrentEnvironment(),value);
-  }
-
-#endif
 
 #endif /* DEFRULE_CONSTRUCT */
 

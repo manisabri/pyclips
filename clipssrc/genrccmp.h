@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,26 +10,11 @@
 /* Purpose: Generic Function Construct Compiler Code         */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.24: Added pragmas to remove unused parameter       */
-/*            warnings.                                      */
-/*                                                           */
-/*      6.30: Added support for path name argument to        */
-/*            constructs-to-c.                               */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW and       */
-/*            MAC_MCW).                                      */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -53,9 +38,9 @@
 
 #include "genrcfun.h"
 
-   LOCALE void                           SetupGenericsCompiler(void *);
-   LOCALE void                           PrintGenericFunctionReference(void *,FILE *,DEFGENERIC *,int,int);
-   LOCALE void                           DefgenericCModuleReference(void *,FILE *,int,int,int);
+LOCALE void SetupGenericsCompiler(void *);
+LOCALE void PrintGenericFunctionReference(void *,FILE *,DEFGENERIC *,int,int);
+LOCALE void DefgenericCModuleReference(void *,FILE *,int,int,int);
 
-#endif /* _H_genrccmp */
+#endif
 

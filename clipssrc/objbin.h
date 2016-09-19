@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,20 +10,11 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.24: Removed IMPERATIVE_MESSAGE_HANDLERS and        */
-/*            AUXILIARY_MESSAGE_HANDLERS compilation flags.  */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
 /*                                                           */
 /*************************************************************/
 
@@ -37,7 +28,7 @@
 #define OBJECTBIN_DATA 33
 
 struct objectBinaryData
-  { 
+  {
    DEFCLASS *DefclassArray;
    long ModuleCount;
    long ClassCount;
@@ -62,6 +53,7 @@ struct objectBinaryData
 #define DefclassPointer(i) (((i) == -1L) ? NULL : (DEFCLASS *) &ObjectBinaryData(theEnv)->DefclassArray[i])
 #define DefclassIndex(cls) (((cls) == NULL) ? -1 : ((struct constructHeader *) cls)->bsaveID)
 
+
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -72,10 +64,10 @@ struct objectBinaryData
 #define LOCALE extern
 #endif
 
-   LOCALE void                    SetupObjectsBload(void *);
-   LOCALE void                   *BloadDefclassModuleReference(void *,int);
+LOCALE void SetupObjectsBload(void *);
+LOCALE void *BloadDefclassModuleReference(void *,int);
 
-#endif /* _H_objbin */
+#endif
 
 
 

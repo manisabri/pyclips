@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*             DEFGLOBAL BINARY HEADER FILE            */
    /*******************************************************/
@@ -13,13 +13,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Moved WatchGlobals global to defglobalData.    */
 /*                                                           */
 /*************************************************************/
 
@@ -45,13 +41,13 @@ struct bsaveDefglobalModule
 #define GLOBLBIN_DATA 60
 
 struct defglobalBinaryData
-  { 
+  {
    struct defglobal *DefglobalArray;
    long NumberOfDefglobals;
    struct defglobalModule *ModuleArray;
    long NumberOfDefglobalModules;
   };
-  
+
 #define DefglobalBinaryData(theEnv) ((struct defglobalBinaryData *) GetEnvironmentData(theEnv,GLOBLBIN_DATA))
 
 #define DefglobalPointer(i) ((struct defglobal *) (&DefglobalBinaryData(theEnv)->DefglobalArray[i]))
@@ -69,7 +65,10 @@ struct defglobalBinaryData
    LOCALE void                           DefglobalBinarySetup(void *);
    LOCALE void                          *BloadDefglobalModuleReference(void *,int);
 
-#endif /* _H_globlbin */
+#ifndef _GLOBLBIN_SOURCE_
+   extern struct defglobal *DefglobalArray;
+#endif
+#endif
 
 
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              DEFGLOBAL COMMANDS MODULE              */
    /*******************************************************/
@@ -16,19 +16,9 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW and       */
-/*            MAC_MCW).                                      */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -53,7 +43,7 @@
 /***************************************/
 
 #if DEBUGGING_FUNCTIONS
-   static void                       PrintDefglobalValueForm(void *,const char *,void *);
+   static void                       PrintDefglobalValueForm(void *,char *,void *);
 #endif
 
 /************************************************************/
@@ -74,7 +64,7 @@ globle void DefglobalCommandDefinitions(
 #endif
 
 #else
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
@@ -159,8 +149,8 @@ globle int GetResetGlobalsCommand(
 /****************************************/
 globle intBool EnvGetResetGlobals(
   void *theEnv)
-  {   
-   return(DefglobalData(theEnv)->ResetGlobals); 
+  {
+   return(DefglobalData(theEnv)->ResetGlobals);
   }
 
 #if DEBUGGING_FUNCTIONS
@@ -194,7 +184,7 @@ globle void ShowDefglobalsCommand(
 /***************************************/
 globle void EnvShowDefglobals(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   void *vTheModule)
   {
    struct defmodule *theModule = (struct defmodule *) vTheModule;
@@ -267,7 +257,7 @@ globle void EnvShowDefglobals(
 /*****************************************************/
 static void PrintDefglobalValueForm(
   void *theEnv,
-  const char *logicalName,
+  char *logicalName,
   void *vTheGlobal)
   {
    struct defglobal *theGlobal = (struct defglobal *) vTheGlobal;
@@ -279,36 +269,6 @@ static void PrintDefglobalValueForm(
   }
 
 #endif /* DEBUGGING_FUNCTIONS */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle intBool GetResetGlobals()
-  {   
-   return EnvGetResetGlobals(GetCurrentEnvironment());
-  }
-
-globle intBool SetResetGlobals(
-  int value)
-  {
-   return EnvSetResetGlobals(GetCurrentEnvironment(),value);
-  }
-
-#if DEBUGGING_FUNCTIONS
-
-globle void ShowDefglobals(
-  const char *logicalName,
-  void *vTheModule)
-  {
-   EnvShowDefglobals(GetCurrentEnvironment(),logicalName,vTheModule);
-  }
-
-#endif /* DEBUGGING_FUNCTIONS */
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFGLOBAL_CONSTRUCT */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.22  06/15/04            */
    /*                                                     */
    /*            FACT LHS PATTERN PARSING MODULE          */
    /*******************************************************/
@@ -20,15 +20,6 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Initialize the exists member.                  */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -64,7 +55,7 @@
 /***********************************************/
 globle struct lhsParseNode *SequenceRestrictionParse(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   struct token *theToken)
   {
    struct lhsParseNode *topNode;
@@ -77,13 +68,11 @@ globle struct lhsParseNode *SequenceRestrictionParse(
    topNode = GetLHSParseNode(theEnv);
    topNode->type = SF_WILDCARD;
    topNode->negated = FALSE;
-   topNode->exists = FALSE;
    topNode->index = -1;
    topNode->slotNumber = 1;
    topNode->bottom = GetLHSParseNode(theEnv);
    topNode->bottom->type = SYMBOL;
    topNode->bottom->negated = FALSE;
-   topNode->bottom->exists = FALSE;
    topNode->bottom->value = (void *) theToken->value;
 
    /*======================================================*/
@@ -156,7 +145,7 @@ globle struct lhsParseNode *CreateInitialFactPattern(
    struct lhsParseNode *topNode;
    struct deftemplate *theDeftemplate;
    int count;
-   
+
    /*==================================*/
    /* If the initial-fact deftemplate  */
    /* doesn't exist, then create it.   */
@@ -203,10 +192,13 @@ globle struct lhsParseNode *CreateInitialFactPattern(
 /*   all patterns begin with a symbol, it follows that all patterns   */
 /*   can be parsed as a fact pattern.                                 */
 /**********************************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
 globle int FactPatternParserFind(
   SYMBOL_HN *theRelation)
   {
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theRelation)
 #endif
    return(TRUE);
@@ -218,7 +210,7 @@ globle int FactPatternParserFind(
 /******************************************************/
 globle struct lhsParseNode *FactPatternParse(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   struct token *theToken)
   {
    struct deftemplate *theDeftemplate;

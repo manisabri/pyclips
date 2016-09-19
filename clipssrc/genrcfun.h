@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,37 +10,13 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.23: Changed name of variable log to logName        */
-/*            because of Unix compiler warnings of shadowed  */
-/*            definitions.                                   */
-/*                                                           */
-/*      6.24: Removed IMPERATIVE_METHODS compilation flag.   */
-/*                                                           */
-/*            Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW,          */
-/*            MAC_MCW, and IBM_TBC).                         */
-/*                                                           */
-/*            Changed integer type/precision.                */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Converted API macros to function calls.        */
-/*                                                           */
-/*            Fixed linkage issue when DEBUGGING_FUNCTIONS   */
-/*            is set to 0 and PROFILING_FUNCTIONS is set to  */
-/*            1.                                             */
-/*                                                           */
-/*            Fixed typing issue when OBJECT_SYSTEM          */
-/*            compiler flag is set to 0.                     */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -91,17 +67,15 @@ struct restriction
   {
    void **types;
    EXPRESSION *query;
-   short tcnt;
+   unsigned tcnt;
   };
 
 struct method
   {
-   short index;
-   unsigned busy;
-   short restrictionCount;
-   short minRestrictions;
-   short maxRestrictions;
-   short localVarCount;
+   unsigned index,busy;
+   int restrictionCount,
+       minRestrictions,maxRestrictions,
+       localVarCount;
    unsigned system : 1;
    unsigned trace : 1;
    RESTRICTION *restrictions;
@@ -115,14 +89,13 @@ struct defgeneric
    struct constructHeader header;
    unsigned busy,trace;
    DEFMETHOD *methods;
-   short mcnt;
-   short new_index;
+   unsigned mcnt,new_index;
   };
 
 #define DEFGENERIC_DATA 27
 
 struct defgenericData
-  { 
+  {
    struct construct *DefgenericConstruct;
    int DefgenericModuleIndex;
    ENTITY_RECORD GenericEntityRecord;
@@ -159,41 +132,43 @@ struct defgenericData
 #endif
 
 #if ! RUN_TIME
-   LOCALE intBool                        ClearDefgenericsReady(void *);
-   LOCALE void                          *AllocateDefgenericModule(void *);
-   LOCALE void                           FreeDefgenericModule(void *,void *);
+LOCALE intBool ClearDefgenericsReady(void *);
+LOCALE void *AllocateDefgenericModule(void *);
+LOCALE void FreeDefgenericModule(void *,void *);
 #endif
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
 
-   LOCALE int                            ClearDefmethods(void *);
-   LOCALE int                            RemoveAllExplicitMethods(void *,DEFGENERIC *);
-   LOCALE void                           RemoveDefgeneric(void *,void *);
-   LOCALE int                            ClearDefgenerics(void *);
-   LOCALE void                           MethodAlterError(void *,DEFGENERIC *);
-   LOCALE void                           DeleteMethodInfo(void *,DEFGENERIC *,DEFMETHOD *);
-   LOCALE void                           DestroyMethodInfo(void *,DEFGENERIC *,DEFMETHOD *);
-   LOCALE int                            MethodsExecuting(DEFGENERIC *);
+LOCALE int ClearDefmethods(void *);
+LOCALE int RemoveAllExplicitMethods(void *,DEFGENERIC *);
+LOCALE void RemoveDefgeneric(void *,void *);
+LOCALE int ClearDefgenerics(void *);
+LOCALE void MethodAlterError(void *,DEFGENERIC *);
+LOCALE void DeleteMethodInfo(void *,DEFGENERIC *,DEFMETHOD *);
+LOCALE void DestroyMethodInfo(void *,DEFGENERIC *,DEFMETHOD *);
+LOCALE int MethodsExecuting(DEFGENERIC *);
 #endif
 #if ! OBJECT_SYSTEM
-   LOCALE intBool                        SubsumeType(int,int);
+LOCALE intBool SubsumeType(int,int);
 #endif
 
-   LOCALE long                           FindMethodByIndex(DEFGENERIC *,long);
-#if DEBUGGING_FUNCTIONS || PROFILING_FUNCTIONS
-   LOCALE void                           PrintMethod(void *,char *,size_t,DEFMETHOD *);
-#endif
+LOCALE int FindMethodByIndex(DEFGENERIC *,unsigned);
 #if DEBUGGING_FUNCTIONS
-   LOCALE void                           PreviewGeneric(void *);
+LOCALE void PreviewGeneric(void *);
+LOCALE void PrintMethod(void *,char *,int,DEFMETHOD *);
 #endif
-   LOCALE DEFGENERIC                    *CheckGenericExists(void *,const char *,const char *);
-   LOCALE long                           CheckMethodExists(void *,const char *,DEFGENERIC *,long);
+LOCALE DEFGENERIC *CheckGenericExists(void *,char *,char *);
+LOCALE int CheckMethodExists(void *,char *,DEFGENERIC *,int);
 
 #if ! OBJECT_SYSTEM
-   LOCALE const char                    *TypeName(void *,int);
+LOCALE char *TypeName(void *,int);
 #endif
 
-   LOCALE void                           PrintGenericName(void *,const char *,DEFGENERIC *);
+LOCALE void PrintGenericName(void *,char *,DEFGENERIC *);
 
-#endif /* _H_genrcfun */
+#endif
+
+
+
+
 

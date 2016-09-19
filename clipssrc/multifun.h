@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*           MULTIFIELD FUNCTIONS HEADER FILE          */
    /*******************************************************/
@@ -10,35 +10,15 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Gary Riley and Brian Dantes                          */
+/*      Gary Riley and Brian Donnell                         */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
-/*                                                           */
-/*            Changed name of variable exp to theExp         */
-/*            because of Unix compiler warnings of shadowed  */
-/*            definitions.                                   */
-/*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*            Moved ImplodeMultifield to multifld.c.         */
-/*                                                           */
-/*      6.30: Changed integer type/precision.                */
-/*                                                           */
-/*            Support for long long integers.                */
-/*                                                           */
-/*            Changed garbage collection algorithm.          */
-/*                                                           */
-/*            Fixed memory leaks when error occurred.        */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Fixed linkage issue when DEFMODULE_CONSTRUCT   */
-/*            compiler flag is set to 0.                     */
 /*                                                           */
 /*************************************************************/
 
@@ -78,7 +58,6 @@
    LOCALE intBool                 SubsetpFunction(void *);
    LOCALE void                    MemberFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                    MultifieldPrognFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ForeachFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                    GetMvPrognField(void *,DATA_OBJECT_PTR);
    LOCALE long                    GetMvPrognIndex(void *);
    LOCALE intBool                 FindDOsInSegment(DATA_OBJECT_PTR,int,DATA_OBJECT_PTR,
@@ -86,13 +65,13 @@
 #endif
    LOCALE int                     ReplaceMultiValueField(void *,struct dataObject *,
                                                          struct dataObject *,
-                                                         long,long,
-                                                         struct dataObject *,const char *);
+                                                         long,
+                                                         long,struct dataObject *,char *);
    LOCALE int                     InsertMultiValueField(void *,struct dataObject *,
                                                         struct dataObject *,
-                                                        long,struct dataObject *,const char *);
+                                                        long,struct dataObject *,char *);
    LOCALE int                     DeleteMultiValueField(void *,struct dataObject *,struct dataObject *,
-                                                        long,long,const char *);
+                                                        long,long,char *);
 
-#endif /* _H_multifun */
+#endif
 

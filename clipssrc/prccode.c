@@ -1,48 +1,33 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
 
-/**************************************************************/
-/* Purpose: Procedural Code Support Routines for              */
-/*          Deffunctions, Generic Function Methods,           */
-/*          Message-Handlersand Rules                         */
-/*                                                            */
-/* Principal Programmer(s):                                   */
-/*      Brian L. Dantes                                       */
-/*                                                            */
-/* Contributing Programmer(s):                                */
-/*                                                            */
-/* Revision History:                                          */
-/*                                                            */
-/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859   */
-/*                                                            */
-/*            Changed name of variable log to logName         */
-/*            because of Unix compiler warnings of shadowed   */
-/*            definitions.                                    */
-/*                                                            */
-/*      6.24: Renamed BOOLEAN macro type to intBool.          */
-/*                                                            */
-/*            Added pragmas to remove compilation warnings.   */
-/*                                                            */
-/*      6.30: Updated ENTITY_RECORD definitions to include    */
-/*            additional NULL initializers.                   */
-/*                                                            */
-/*            Added ReleaseProcParameters call.               */
-/*                                                            */
-/*            Added tracked memory calls.                     */
-/*                                                            */
-/*            Removed conditional code for unsupported        */
-/*            compilers/operating systems (IBM_MCW,           */
-/*            MAC_MCW, and IBM_TBC).                          */
-/*                                                            */
-/*            Added const qualifiers to remove C++            */
-/*            deprecation warnings.                           */
-/*                                                            */
-/**************************************************************/
+/***************************************************************/
+/* Purpose: Procedural Code Support Routines for Deffunctions, */
+/*          Generic Function Methods,Message-Handlers          */
+/*          and Rules                                          */
+/*                                                             */
+/* Principal Programmer(s):                                    */
+/*      Brian L. Donnell                                       */
+/*                                                             */
+/* Contributing Programmer(s):                                 */
+/*                                                             */
+/* Revision History:                                           */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859    */
+/*                                                             */
+/*            Changed name of variable log to logName          */
+/*            because of Unix compiler warnings of shadowed    */
+/*            definitions.                                     */
+/*                                                             */
+/*      6.24: Renamed BOOLEAN macro type to intBool.           */
+/*                                                             */
+/*            Added pragmas to remove compilation warnings.    */
+/*                                                             */
+/***************************************************************/
 
 /* =========================================
    *****************************************
@@ -96,13 +81,12 @@ typedef struct
    =========================================
    ***************************************** */
 
-static void EvaluateProcParameters(void *,EXPRESSION *,int,const char *,const char *);
+static void EvaluateProcParameters(void *,EXPRESSION *,int,char *,char *);
 static intBool RtnProcParam(void *,void *,DATA_OBJECT *);
 static intBool GetProcBind(void *,void *,DATA_OBJECT *);
 static intBool PutProcBind(void *,void *,DATA_OBJECT *);
 static intBool RtnProcWild(void *,void *,DATA_OBJECT *);
 static void DeallocateProceduralPrimitiveData(void *);
-static void ReleaseProcParameters(void *);
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
 static int FindProcParameter(SYMBOL_HN *,EXPRESSION *,SYMBOL_HN *);
@@ -137,34 +121,34 @@ globle void InstallProcedurePrimitives(
   void *theEnv)
   {
    ENTITY_RECORD procParameterInfo = { "PROC_PARAM", PROC_PARAM,0,1,0,NULL,NULL,NULL,
-                                           RtnProcParam,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL },
+                                           RtnProcParam,NULL,NULL,NULL,NULL,NULL,NULL },
                      procWildInfo =      { "PROC_WILD_PARAM", PROC_WILD_PARAM,0,1,0,NULL,NULL,NULL,
-                                           RtnProcWild,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL },
+                                           RtnProcWild,NULL,NULL,NULL,NULL,NULL,NULL },
                      procGetInfo =       { "PROC_GET_BIND", PROC_GET_BIND,0,1,0,NULL,NULL,NULL,
-                                           GetProcBind,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL },
+                                           GetProcBind,NULL,NULL,NULL,NULL,NULL,NULL },
                      procBindInfo =      { "PROC_BIND", PROC_BIND,0,1,0,NULL,NULL,NULL,
-                                           PutProcBind,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+                                           PutProcBind,NULL,NULL,NULL,NULL,NULL,NULL };
 #if ! DEFFUNCTION_CONSTRUCT
    ENTITY_RECORD deffunctionEntityRecord =
                      { "PCALL", PCALL,0,0,1,
                        NULL,NULL,NULL,
                        EvaluateBadCall,
-                       NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+                       NULL,NULL,NULL,NULL,NULL,NULL,NULL };
 #endif
 #if ! DEFGENERIC_CONSTRUCT
    ENTITY_RECORD genericEntityRecord =
                      { "GCALL", GCALL,0,0,1,
                        NULL,NULL,NULL,
                        EvaluateBadCall,
-                       NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+                       NULL,NULL,NULL,NULL,NULL,NULL,NULL };
 #endif
 
    AllocateEnvironmentData(theEnv,PROCEDURAL_PRIMITIVE_DATA,sizeof(struct proceduralPrimitiveData),DeallocateProceduralPrimitiveData);
 
-   memcpy(&ProceduralPrimitiveData(theEnv)->ProcParameterInfo,&procParameterInfo,sizeof(struct entityRecord));  
-   memcpy(&ProceduralPrimitiveData(theEnv)->ProcWildInfo,&procWildInfo,sizeof(struct entityRecord));  
-   memcpy(&ProceduralPrimitiveData(theEnv)->ProcGetInfo,&procGetInfo,sizeof(struct entityRecord));  
-   memcpy(&ProceduralPrimitiveData(theEnv)->ProcBindInfo,&procBindInfo,sizeof(struct entityRecord));  
+   memcpy(&ProceduralPrimitiveData(theEnv)->ProcParameterInfo,&procParameterInfo,sizeof(struct entityRecord));
+   memcpy(&ProceduralPrimitiveData(theEnv)->ProcWildInfo,&procWildInfo,sizeof(struct entityRecord));
+   memcpy(&ProceduralPrimitiveData(theEnv)->ProcGetInfo,&procGetInfo,sizeof(struct entityRecord));
+   memcpy(&ProceduralPrimitiveData(theEnv)->ProcBindInfo,&procBindInfo,sizeof(struct entityRecord));
 
    InstallPrimitive(theEnv,&ProceduralPrimitiveData(theEnv)->ProcParameterInfo,PROC_PARAM);
    InstallPrimitive(theEnv,&ProceduralPrimitiveData(theEnv)->ProcWildInfo,PROC_WILD_PARAM);
@@ -172,7 +156,7 @@ globle void InstallProcedurePrimitives(
    InstallPrimitive(theEnv,&ProceduralPrimitiveData(theEnv)->ProcBindInfo,PROC_BIND);
 
    ProceduralPrimitiveData(theEnv)->Oldindex = -1;
-   
+
    /* ===============================================
       Make sure a default evaluation function is
       in place for deffunctions and generic functions
@@ -182,12 +166,12 @@ globle void InstallProcedurePrimitives(
       =============================================== */
 
 #if ! DEFFUNCTION_CONSTRUCT
-   memcpy(&ProceduralPrimitiveData(theEnv)->DeffunctionEntityRecord,&deffunctionEntityRecord,sizeof(struct entityRecord));  
+   memcpy(&ProceduralPrimitiveData(theEnv)->DeffunctionEntityRecord,&deffunctionEntityRecord,sizeof(struct entityRecord));
    InstallPrimitive(theEnv,&ProceduralPrimitiveData(theEnv)->DeffunctionEntityRecord,PCALL);
 #endif
 
 #if ! DEFGENERIC_CONSTRUCT
-   memcpy(&ProceduralPrimitiveData(theEnv)->GenericEntityRecord,&genericEntityRecord,sizeof(struct entityRecord));  
+   memcpy(&ProceduralPrimitiveData(theEnv)->GenericEntityRecord,&genericEntityRecord,sizeof(struct entityRecord));
    InstallPrimitive(theEnv,&ProceduralPrimitiveData(theEnv)->GenericEntityRecord,GCALL);
 #endif
 
@@ -208,7 +192,6 @@ static void DeallocateProceduralPrimitiveData(
   void *theEnv)
   {
    ReturnMultifield(theEnv,(struct multifield *) ProceduralPrimitiveData(theEnv)->NoParamValue);
-   ReleaseProcParameters(theEnv);
   }
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
@@ -241,14 +224,14 @@ static void DeallocateProceduralPrimitiveData(
  ************************************************************/
 globle EXPRESSION *ParseProcParameters(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   struct token *tkn,
   EXPRESSION *parameterList,
   SYMBOL_HN **wildcard,
   int *min,
   int *max,
   int *error,
-  int (*checkfunc)(void *,const char *))
+  int (*checkfunc)(void *,char *))
   {
    EXPRESSION *nextOne,*lastOne,*check;
    int paramprintp = 0;
@@ -367,8 +350,8 @@ NOTES        : None
 *************************************************************************/
 globle EXPRESSION *ParseProcActions(
   void *theEnv,
-  const char *bodytype,
-  const char *readSource,
+  char *bodytype,
+  char *readSource,
   struct token *tkn,
   EXPRESSION *params,
   SYMBOL_HN *wildcard,
@@ -471,7 +454,7 @@ globle EXPRESSION *ParseProcActions(
  *************************************************************************/
 globle int ReplaceProcVars(
   void *theEnv,
-  const char *bodytype,
+  char *bodytype,
   EXPRESSION *actions,
   EXPRESSION *parameterList,
   SYMBOL_HN *wildcard,
@@ -530,7 +513,7 @@ globle int ReplaceProcVars(
          else if ((position > 0) && (boundPosn == 0))
            {
             actions->type = (unsigned short) ((bindName != wildcard) ? PROC_PARAM : PROC_WILD_PARAM);
-            actions->value = EnvAddBitMap(theEnv,(void *) &position,(int) sizeof(int));
+            actions->value = AddBitMap(theEnv,(void *) &position,(int) sizeof(int));
            }
 
          /*=========================================================*/
@@ -561,7 +544,7 @@ globle int ReplaceProcVars(
             pvar.first = boundPosn;
             pvar.second = position;
             pvar.secondFlag = (bindName != wildcard) ? 0 : 1;
-            actions->value = EnvAddBitMap(theEnv,(void *) &pvar,(int) sizeof(PACKED_PROC_VAR));
+            actions->value = AddBitMap(theEnv,(void *) &pvar,(int) sizeof(PACKED_PROC_VAR));
             actions->argList = GenConstant(theEnv,SYMBOL,(void *) bindName);
             actions->argList->nextArg = altvarexp;
            }
@@ -594,7 +577,7 @@ globle int ReplaceProcVars(
            {
             actions->type = PROC_BIND;
             boundPosn = SearchParsedBindNames(theEnv,(SYMBOL_HN *) actions->argList->value);
-            actions->value = EnvAddBitMap(theEnv,(void *) &boundPosn,(int) sizeof(intBool));
+            actions->value = AddBitMap(theEnv,(void *) &boundPosn,(int) sizeof(intBool));
             arg_lvl = actions->argList->nextArg;
             rtn_struct(theEnv,expr,actions->argList);
             actions->argList = arg_lvl;
@@ -621,7 +604,7 @@ globle EXPRESSION *GenProcWildcardReference(
   void *theEnv,
   int theIndex)
   {
-   return(GenConstant(theEnv,PROC_WILD_PARAM,EnvAddBitMap(theEnv,(void *) &theIndex,(int) sizeof(int))));
+   return(GenConstant(theEnv,PROC_WILD_PARAM,AddBitMap(theEnv,(void *) &theIndex,(int) sizeof(int))));
   }
 
 #endif
@@ -660,8 +643,8 @@ globle void PushProcParameters(
   void *theEnv,
   EXPRESSION *parameterList,
   int numberOfParameters,
-  const char *pname,
-  const char *bodytype,
+  char *pname,
+  char *bodytype,
   void (*UnboundErrFunc)(void *))
   {
    register PROC_PARAM_STACK *ptmp;
@@ -738,63 +721,6 @@ globle void PopProcParameters(
    rtn_struct(theEnv,ProcParamStack,ptmp);
   }
 
-/******************************************************************
-  NAME         : ReleaseProcParameters
-  DESCRIPTION  : Restores old procedure arrays
-  INPUTS       : None
-  RETURNS      : Nothing useful
-  SIDE EFFECTS : Stack popped and globals restored
-  NOTES        : Assumes pstack != NULL
- ******************************************************************/
-static void ReleaseProcParameters(
-  void *theEnv)
-  {
-   register PROC_PARAM_STACK *ptmp, *next;
-
-   if (ProceduralPrimitiveData(theEnv)->ProcParamArray != NULL)
-     rm(theEnv,(void *) ProceduralPrimitiveData(theEnv)->ProcParamArray,(sizeof(DATA_OBJECT) * ProceduralPrimitiveData(theEnv)->ProcParamArraySize));
-
-
-   if (ProceduralPrimitiveData(theEnv)->WildcardValue != NULL)
-     {
-      if (ProceduralPrimitiveData(theEnv)->WildcardValue->value != ProceduralPrimitiveData(theEnv)->NoParamValue)
-        { ReturnMultifield(theEnv,(struct multifield *) ProceduralPrimitiveData(theEnv)->WildcardValue->value); }
-     
-      rtn_struct(theEnv,dataObject,ProceduralPrimitiveData(theEnv)->WildcardValue); 
-     }
-     
-#if DEFGENERIC_CONSTRUCT
-   if (ProceduralPrimitiveData(theEnv)->ProcParamExpressions != NULL)
-     rm(theEnv,(void *) ProceduralPrimitiveData(theEnv)->ProcParamExpressions,(sizeof(EXPRESSION) * ProceduralPrimitiveData(theEnv)->ProcParamArraySize));
-#endif
-
-   ptmp = ProceduralPrimitiveData(theEnv)->pstack;
-   
-   while (ptmp != NULL)
-     {
-      next = ptmp->nxt;
-
-      if (ptmp->ParamArray != NULL)
-        { rm(theEnv,(void *) ptmp->ParamArray,(sizeof(DATA_OBJECT) * ptmp->ParamArraySize)); }
-
-#if DEFGENERIC_CONSTRUCT
-      if (ptmp->ParamExpressions != NULL)
-        { rm(theEnv,(void *) ptmp->ParamExpressions,(sizeof(EXPRESSION) * ptmp->ParamArraySize)); }
-#endif
-
-      if (ptmp->WildcardValue != NULL)
-        { 
-         if (ptmp->WildcardValue->value != ProceduralPrimitiveData(theEnv)->NoParamValue)
-           { ReturnMultifield(theEnv,(struct multifield *) ptmp->WildcardValue->value); }
-
-         rtn_struct(theEnv,dataObject,ptmp->WildcardValue); 
-        }
-     
-      rtn_struct(theEnv,ProcParamStack,ptmp);
-      ptmp = next;
-     }
-  }
-  
 #if DEFGENERIC_CONSTRUCT
 
 /***********************************************************
@@ -865,17 +791,10 @@ globle void EvaluateProcActions(
    register int i;
    struct defmodule *oldModule;
    EXPRESSION *oldActions;
-   struct trackedMemory *theTM;
 
    oldLocalVarArray = ProceduralPrimitiveData(theEnv)->LocalVarArray;
    ProceduralPrimitiveData(theEnv)->LocalVarArray = (lvarcnt == 0) ? NULL :
                    (DATA_OBJECT *) gm2(theEnv,(sizeof(DATA_OBJECT) * lvarcnt));
-
-   if (lvarcnt != 0)
-     { theTM = AddTrackedMemory(theEnv,ProceduralPrimitiveData(theEnv)->LocalVarArray,sizeof(DATA_OBJECT) * lvarcnt); }
-   else
-     { theTM = NULL; }
-     
    for (i = 0 ; i < lvarcnt ; i++)
      ProceduralPrimitiveData(theEnv)->LocalVarArray[i].supplementalInfo = EnvFalseSymbol(theEnv);
 
@@ -911,7 +830,6 @@ globle void EvaluateProcActions(
 
    if (lvarcnt != 0)
      {
-      RemoveTrackedMemory(theEnv,theTM);
       for (i = 0 ; i < lvarcnt ; i++)
         if (ProceduralPrimitiveData(theEnv)->LocalVarArray[i].supplementalInfo == EnvTrueSymbol(theEnv))
           ValueDeinstall(theEnv,&ProceduralPrimitiveData(theEnv)->LocalVarArray[i]);
@@ -932,7 +850,7 @@ globle void EvaluateProcActions(
  ****************************************************/
 globle void PrintProcParamArray(
   void *theEnv,
-  const char *logName)
+  char *logName)
   {
    register int i;
 
@@ -1055,8 +973,8 @@ static void EvaluateProcParameters(
   void *theEnv,
   EXPRESSION *parameterList,
   int numberOfParameters,
-  const char *pname,
-  const char *bodytype)
+  char *pname,
+  char *bodytype)
   {
    DATA_OBJECT *rva,temp;
    int i = 0;
@@ -1122,7 +1040,7 @@ static intBool RtnProcParam(
   DATA_OBJECT *result)
   {
    register DATA_OBJECT *src;
-   
+
    src = &ProceduralPrimitiveData(theEnv)->ProcParamArray[*((int *) ValueToBitMap(value)) - 1];
    result->type = src->type;
    result->value = src->value;
@@ -1423,12 +1341,15 @@ static EXPRESSION *CompactActions(
                  contain deffunctions and generic
                  functions which cannot be used
  ******************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
 static intBool EvaluateBadCall(
   void *theEnv,
   void *value,
   DATA_OBJECT *result)
   {
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(value)
 #endif
    PrintErrorID(theEnv,"PRCCODE",1,FALSE);

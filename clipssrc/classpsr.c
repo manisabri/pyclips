@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  01/25/15          */
+   /*               CLIPS Version 6.24  07/01/05          */
    /*                                                     */
    /*                  CLASS PARSER MODULE                */
    /*******************************************************/
@@ -10,34 +10,17 @@
 /* Purpose: Parsing Routines for Defclass Construct           */
 /*                                                            */
 /* Principal Programmer(s):                                   */
-/*      Brian L. Dantes                                       */
+/*      Brian L. Donnell                                      */
 /*                                                            */
 /* Contributing Programmer(s):                                */
 /*                                                            */
 /* Revision History:                                          */
-/*                                                            */
 /*      6.24: Added allowed-classes slot facet.               */
 /*                                                            */
 /*            Converted INSTANCE_PATTERN_MATCHING to          */
 /*            DEFRULE_CONSTRUCT.                              */
 /*                                                            */
 /*            Renamed BOOLEAN macro type to intBool.          */
-/*                                                            */
-/*      6.30: Added support to allow CreateClassScopeMap to   */
-/*            be used by other functions.                     */
-/*                                                            */
-/*            Changed integer type/precision.                 */
-/*                                                            */
-/*            GetConstructNameAndComment API change.          */
-/*                                                            */
-/*            Added const qualifiers to remove C++            */
-/*            deprecation warnings.                           */
-/*                                                            */
-/*            Converted API macros to function calls.         */
-/*                                                            */
-/*            Changed find construct functionality so that    */
-/*            imported modules are search when locating a     */
-/*            named construct.                                */
 /*                                                            */
 /**************************************************************/
 
@@ -94,15 +77,18 @@
    =========================================
    ***************************************** */
 
-static intBool ValidClassName(void *,const char *,DEFCLASS **);
-static intBool ParseSimpleQualifier(void *,const char *,const char *,const char *,const char *,intBool *,intBool *);
-static intBool ReadUntilClosingParen(void *,const char *,struct token *);
+static intBool ValidClassName(void *,char *,DEFCLASS **);
+static intBool ParseSimpleQualifier(void *,char *,char *,char *,char *,intBool *,intBool *);
+static intBool ReadUntilClosingParen(void *,char *,struct token *);
 static void AddClass(void *,DEFCLASS *);
 static void BuildSubclassLinks(void *,DEFCLASS *);
 static void FormInstanceTemplate(void *,DEFCLASS *);
 static void FormSlotNameMap(void *,DEFCLASS *);
-static TEMP_SLOT_LINK *MergeSlots(void *,TEMP_SLOT_LINK *,DEFCLASS *,short *,int);
+static TEMP_SLOT_LINK *MergeSlots(void *,TEMP_SLOT_LINK *,DEFCLASS *,unsigned *,int);
 static void PackSlots(void *,DEFCLASS *,TEMP_SLOT_LINK *);
+#if DEFMODULE_CONSTRUCT
+static void CreateClassScopeMap(void *,DEFCLASS *);
+#endif
 static void CreatePublicSlotMessageHandlers(void *,DEFCLASS *);
 
 /* =========================================
@@ -159,7 +145,7 @@ static void CreatePublicSlotMessageHandlers(void *,DEFCLASS *);
   ***************************************************************************************/
 globle int ParseDefclass(
   void *theEnv,
-  const char *readSource)
+  char *readSource)
   {
    SYMBOL_HN *cname;
    DEFCLASS *cls;
@@ -187,8 +173,8 @@ globle int ParseDefclass(
 #endif
 
    cname = GetConstructNameAndComment(theEnv,readSource,&DefclassData(theEnv)->ObjectParseToken,"defclass",
-                                      EnvFindDefclassInModule,NULL,"#",TRUE,
-                                      TRUE,TRUE,FALSE);
+                                      EnvFindDefclass,NULL,"#",TRUE,
+                                      TRUE,TRUE);
    if (cname == NULL)
      return(TRUE);
 
@@ -302,7 +288,7 @@ globle int ParseDefclass(
       ========================================================================= */
    if (roleSpecified == FALSE)
      {
-      if (preclist->classArray[1]->system &&                             /* Change to cause         */ 
+      if (preclist->classArray[1]->system &&                             /* Change to cause         */
           (DefclassData(theEnv)->ClassDefaultsMode == CONVENIENCE_MODE)) /* default role of         */
         { abstract = FALSE; }                                            /* classes to be concrete. */
       else
@@ -312,7 +298,7 @@ globle int ParseDefclass(
    if (patternMatchSpecified == FALSE)
      {
       if ((preclist->classArray[1]->system) &&                           /* Change to cause       */
-          (! abstract) &&                                                /* default pattern-match */ 
+          (! abstract) &&                                                /* default pattern-match */
           (DefclassData(theEnv)->ClassDefaultsMode == CONVENIENCE_MODE)) /* of classes to be      */
         { reactive = TRUE; }                                             /* reactive.             */
       else
@@ -400,10 +386,10 @@ globle int ParseDefclass(
  ***********************************************************/
 static intBool ValidClassName(
   void *theEnv,
-  const char *theClassName,
+  char *theClassName,
   DEFCLASS **theDefclass)
   {
-   *theDefclass = (DEFCLASS *) EnvFindDefclassInModule(theEnv,theClassName);
+   *theDefclass = (DEFCLASS *) EnvFindDefclass(theEnv,theClassName);
    if (*theDefclass != NULL)
      {
       /* ===================================
@@ -455,10 +441,10 @@ static intBool ValidClassName(
  ***************************************************************/
 static intBool ParseSimpleQualifier(
   void *theEnv,
-  const char *readSource,
-  const char *classQualifier,
-  const char *clearRelation,
-  const char *setRelation,
+  char *readSource,
+  char *classQualifier,
+  char *clearRelation,
+  char *setRelation,
   intBool *alreadyTestedFlag,
   intBool *binaryFlag)
   {
@@ -505,7 +491,7 @@ ParseSimpleQualifierError:
  ***************************************************/
 static intBool ReadUntilClosingParen(
   void *theEnv,
-  const char *readSource,
+  char *readSource,
   struct token *inputToken)
   {
    int cnt = 1,lparen_read = FALSE;
@@ -576,7 +562,7 @@ static void AddClass(
       form progeny links with all direct superclasses
       =============================================== */
    cls->hashTableIndex = HashClass(GetDefclassNamePointer((void *) cls));
-   ctmp = (DEFCLASS *) EnvFindDefclassInModule(theEnv,EnvGetDefclassName(theEnv,(void *) cls));
+   ctmp = (DEFCLASS *) EnvFindDefclass(theEnv,EnvGetDefclassName(theEnv,(void *) cls));
 
    if (ctmp != NULL)
      {
@@ -614,7 +600,7 @@ static void AddClass(
 
 #if DEBUGGING_FUNCTIONS
    if (EnvGetConserveMemory(theEnv) == FALSE)
-     EnvSetDefclassPPForm(theEnv,(void *) cls,CopyPPBuffer(theEnv));
+     SetDefclassPPForm((void *) cls,CopyPPBuffer(theEnv));
 #endif
 
 #if DEFMODULE_CONSTRUCT
@@ -623,7 +609,7 @@ static void AddClass(
       Create a bitmap indicating whether this
       class is in scope or not for every module
       ========================================= */
-   cls->scopeMap = (BITMAP_HN *) CreateClassScopeMap(theEnv,cls);
+   CreateClassScopeMap(theEnv,cls);
 
 #endif
 
@@ -649,7 +635,7 @@ static void BuildSubclassLinks(
   void *theEnv,
   DEFCLASS *cls)
   {
-   long i;
+   register unsigned i;
 
    for (i = 0 ; i < cls->directSuperclasses.classCount ; i++)
      AddClassLink(theEnv,&cls->directSuperclasses.classArray[i]->directSubclasses,cls,-1);
@@ -671,8 +657,8 @@ static void FormInstanceTemplate(
   DEFCLASS *cls)
   {
    TEMP_SLOT_LINK *islots = NULL,*stmp;
-   short scnt = 0;
-   long i;
+   unsigned scnt = 0;
+   register unsigned i;
 
    /* ========================
       Get direct class's slots
@@ -731,7 +717,7 @@ static void FormSlotNameMap(
   void *theEnv,
   DEFCLASS *cls)
   {
-   long i;
+   register unsigned i;
 
    cls->maxSlotNameID = 0;
    cls->slotNameMap = NULL;
@@ -766,7 +752,7 @@ static TEMP_SLOT_LINK *MergeSlots(
   void *theEnv,
   TEMP_SLOT_LINK *old,
   DEFCLASS *cls,
-  short *scnt,
+  unsigned *scnt,
   int src)
   {
    TEMP_SLOT_LINK *cur,*tmp;
@@ -822,7 +808,7 @@ static void PackSlots(
   TEMP_SLOT_LINK *slots)
   {
    TEMP_SLOT_LINK *stmp,*sprv;
-   long i;
+   register unsigned i;
 
    stmp = slots;
    while  (stmp != NULL)
@@ -858,17 +844,16 @@ static void PackSlots(
   SIDE EFFECTS : Scope bitmap created and attached
   NOTES        : Uses FindImportedConstruct()
  ********************************************************/
-globle void *CreateClassScopeMap(
+static void CreateClassScopeMap(
   void *theEnv,
   DEFCLASS *theDefclass)
   {
    unsigned scopeMapSize;
    char *scopeMap;
-   const char *className;
+   char *className;
    struct defmodule *matchModule,
                     *theModule;
    int moduleID,count;
-   void *theBitMap;
 
    className = ValueToString(theDefclass->header.name);
    matchModule = theDefclass->header.whichModule->theModule;
@@ -889,10 +874,9 @@ globle void *CreateClassScopeMap(
         SetBitMap(scopeMap,moduleID);
      }
    RestoreCurrentModule(theEnv);
-   theBitMap = (BITMAP_HN *) EnvAddBitMap(theEnv,scopeMap,scopeMapSize);
-   IncrementBitMapCount(theBitMap);
+   theDefclass->scopeMap = (BITMAP_HN *) AddBitMap(theEnv,scopeMap,scopeMapSize);
+   IncrementBitMapCount(theDefclass->scopeMap);
    rm(theEnv,(void *) scopeMap,scopeMapSize);
-   return(theBitMap);
   }
 
 #endif
@@ -927,7 +911,7 @@ static void CreatePublicSlotMessageHandlers(
   void *theEnv,
   DEFCLASS *theDefclass)
   {
-   long i;
+   register unsigned i;
    register SLOT_DESC *sd;
 
    for (i = 0 ; i < theDefclass->slotCount ; i++)

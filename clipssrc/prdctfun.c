@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              PREDICATE FUNCTIONS MODULE             */
    /*******************************************************/
@@ -19,16 +19,9 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
-/*      6.30: Support for long long integers.                */
-/*                                                           */
-/*            Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW and       */
-/*            MAC_MCW).                                      */
 /*                                                           */
 /*************************************************************/
 
@@ -83,7 +76,7 @@ globle void PredicateFunctionDefinitions(
    EnvDefineFunction2(theEnv,"sequencep",'b', MultifieldpFunction, "MultifieldpFunction", "11");
    EnvDefineFunction2(theEnv,"pointerp", 'b', PointerpFunction, "PointerpFunction", "11");
 #else
-#if MAC_XCD
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
@@ -368,7 +361,7 @@ globle intBool NotFunction(
 
    if ((result.value == EnvFalseSymbol(theEnv)) && (result.type == SYMBOL))
      { return(TRUE); }
-   
+
    return(FALSE);
   }
 
@@ -836,7 +829,7 @@ globle intBool OddpFunction(
   void *theEnv)
   {
    DATA_OBJECT item;
-   long long num, halfnum;
+   long num, halfnum;
 
    if (EnvArgCountCheck(theEnv,"oddp",EXACTLY,1) == -1) return(FALSE);
    if (EnvArgTypeCheck(theEnv,"oddp",1,INTEGER,&item) == FALSE) return(FALSE);
@@ -857,7 +850,7 @@ globle intBool EvenpFunction(
   void *theEnv)
   {
    DATA_OBJECT item;
-   long long num, halfnum;
+   long num, halfnum;
 
    if (EnvArgCountCheck(theEnv,"evenp",EXACTLY,1) == -1) return(FALSE);
    if (EnvArgTypeCheck(theEnv,"evenp",1,INTEGER,&item) == FALSE) return(FALSE);

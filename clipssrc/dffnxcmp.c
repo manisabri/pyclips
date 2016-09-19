@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,17 +10,11 @@
 /* Purpose: Generic Function Construct Compiler Code         */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Added support for path name argument to        */
-/*            constructs-to-c.                               */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -46,7 +40,7 @@
    ***************************************** */
 
 static void ReadyDeffunctionsForCode(void *);
-static int DeffunctionsToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
+static int DeffunctionsToCode(void *,char *,int,FILE *,int,int);
 static void CloseDeffunctionFiles(void *,FILE *,FILE *,int);
 static void DeffunctionModuleToCode(void *,FILE *,struct defmodule *,int,int);
 static void SingleDeffunctionToCode(void *,FILE *,DEFFUNCTION *,int,int,int);
@@ -168,9 +162,7 @@ static void ReadyDeffunctionsForCode(
  *******************************************************/
 static int DeffunctionsToCode(
   void *theEnv,
-  const char *fileName,
-  const char *pathName,
-  char *fileNameBuffer,
+  char *fileName,
   int fileID,
   FILE *headerFP,
   int imageID,
@@ -198,7 +190,7 @@ static int DeffunctionsToCode(
      {
       EnvSetCurrentModule(theEnv,(void *) theModule);
 
-      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "DEFFUNCTION_MODULE",ModulePrefix(DeffunctionData(theEnv)->DeffunctionCodeItem),
                                     FALSE,NULL);
@@ -217,7 +209,7 @@ static int DeffunctionsToCode(
 
       while (theDeffunction != NULL)
         {
-         deffunctionFile = OpenFileIfNeeded(theEnv,deffunctionFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
+         deffunctionFile = OpenFileIfNeeded(theEnv,deffunctionFile,fileName,fileID,imageID,&fileCount,
                                             deffunctionArrayVersion,headerFP,
                                             "DEFFUNCTION",ConstructPrefix(DeffunctionData(theEnv)->DeffunctionCodeItem),
                                             FALSE,NULL);

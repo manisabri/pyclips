@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  01/25/15            */
+   /*             CLIPS Version 6.22  06/15/04            */
    /*                                                     */
    /*                DEFFACTS PARSER MODULE               */
    /*******************************************************/
@@ -13,22 +13,9 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Dantes                                      */
+/*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
-/*                                                           */
-/*      6.30: Removed conditional code for unsupported       */
-/*            compilers/operating systems (IBM_MCW and       */
-/*            MAC_MCW).                                      */
-/*                                                           */
-/*            GetConstructNameAndComment API change.         */
-/*                                                           */
-/*            Added const qualifiers to remove C++           */
-/*            deprecation warnings.                          */
-/*                                                           */
-/*            Changed find construct functionality so that   */
-/*            imported modules are search when locating a    */
-/*            named construct.                               */
 /*                                                           */
 /*************************************************************/
 
@@ -59,8 +46,12 @@
 /************************************************************/
 globle int ParseDeffacts(
   void *theEnv,
-  const char *readSource)
+  char *readSource)
   {
+#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
+#pragma unused(theEnv,readSource)
+#endif
+
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    SYMBOL_HN *deffactsName;
    struct expr *temp;
@@ -96,8 +87,8 @@ globle int ParseDeffacts(
    /*============================*/
 
    deffactsName = GetConstructNameAndComment(theEnv,readSource,&inputToken,"deffacts",
-                                             EnvFindDeffactsInModule,EnvUndeffacts,"$",TRUE,
-                                             TRUE,TRUE,FALSE);
+                                             EnvFindDeffacts,EnvUndeffacts,"$",TRUE,
+                                             TRUE,TRUE);
    if (deffactsName == NULL) { return(TRUE); }
 
    /*===============================================*/
