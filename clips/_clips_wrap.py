@@ -1743,8 +1743,6 @@ class Function(object):
                         li.append(String(x).clsyntax())
                     elif isinstance(x, int):
                         li.append(Integer(x).clsyntax())
-                    elif isinstance(x, int):
-                        li.append(Integer(x).clsyntax())
                     elif isinstance(x, float):
                         li.append(Float(x).clsyntax())
                     elif isinstance(x, str):
@@ -1846,9 +1844,7 @@ class Generic(object):
                     elif t1 == float:
                         li.append(Float(x).clsyntax())
                     elif t1 is str:
-                        li.append(String(x).clsyntax())
-                    elif isinstance(x, int):
-                        li.append(Integer(x).clsyntax())
+                        li.append(String(x).clsyntax())                   
                     elif isinstance(x, int):
                         li.append(Integer(x).clsyntax())
                     elif isinstance(x, float):
