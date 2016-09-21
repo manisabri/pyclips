@@ -165,7 +165,7 @@ def _accepts_method(*types):
                         if type(t) == tuple:
                             errorstr = \
                                 "one of %s expected in %s, parameter %s" \
-                                % (", ".join([_bytearr(x)[1:-1] for x in t]),
+                                % (", ".join([str(x)[1:-1] for x in t]),
                                    f.__name__, i + 1)
                         else:
                             errorstr = \
@@ -465,9 +465,7 @@ class Multifield(list):
             elif t == float:
                 li.append(Float(x).clrepr())
             elif t is str:
-                li.append(String(x).clrepr())
-            elif isinstance(x, int):
-                li.append(Integer(x).clrepr())
+                li.append(String(x).clrepr())            
             elif isinstance(x, int):
                 li.append(Integer(x).clrepr())
             elif isinstance(x, float):
@@ -486,14 +484,12 @@ class Multifield(list):
             if t in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                      ClipsSymbolType, ClipsNilType, ClipsInstanceNameType):
                 li.append(x.clsyntax())
-            elif t in (int, int):
+            elif t is int:
                 li.append(Integer(x).clsyntax())
             elif t == float:
                 li.append(Float(x).clsyntax())
             elif t is str:
-                li.append(String(x).clsyntax())
-            elif isinstance(x, int):
-                li.append(Integer(x).clsyntax())
+                li.append(String(x).clsyntax())            
             elif isinstance(x, int):
                 li.append(Integer(x).clsyntax())
             elif isinstance(x, float):
@@ -573,7 +569,7 @@ def _cl2py(o):
 def _py2cl(o):
     """convert Python data to a well-formed tuple"""
     t1 = type(o)
-    if t1 in (int, int):
+    if t1 is int:
         return (_c.INTEGER, int(o))
     elif t1 == float:
         return (_c.FLOAT, float(o))
@@ -588,9 +584,7 @@ def _py2cl(o):
     elif t1 == Instance:
         return (_c.INSTANCE_ADDRESS, o._Instance__instance)
     elif isinstance(o, int):
-        return (_c.INTEGER, int(o))
-    elif isinstance(o, int):
-        return (_c.INTEGER, int(o))
+        return (_c.INTEGER, int(o))    
     elif isinstance(o, float):
         return (_c.FLOAT, float(o))
     elif isinstance(o, str):
@@ -599,7 +593,7 @@ def _py2cl(o):
         li = []
         for x in o:
             t0 = type(x)
-            if t0 in (int, int):
+            if t0 is int:
                 li.append((_c.INTEGER, int(x)))
             elif t0 == float:
                 li.append((_c.FLOAT, float(x)))
@@ -1932,7 +1926,7 @@ class Generic(object):
         if s:
             _sys.stdout.write(s)
 
-    @_accepts_method(None, None, (int,), None)
+    @_accepts_method(None, None, int, None)
     def AddMethod(self, restrictions, actions, midx=None, comment=None):
         """Add a method to this Generic, given restrictions and actions"""
         if comment:
@@ -3153,7 +3147,7 @@ def LoadFactsFromString(s):
 #}}
 
 #{{FUNCTION
-@_accepts(str, str)
+@_accepts(str)
 @_forces(str, str)
 def SaveFacts(filename, mode=LOCAL_SAVE):
     """save current Facts to file"""
@@ -4015,9 +4009,7 @@ def Call(func, args=None):
                 elif t1 == float:
                     li.append(Float(x).clsyntax())
                 elif t1 is str:
-                    li.append(String(x).clsyntax())
-                elif isinstance(x, int):
-                    li.append(Integer(x).clsyntax())
+                    li.append(String(x).clsyntax())                
                 elif isinstance(x, int):
                     li.append(Integer(x).clsyntax())
                 elif isinstance(x, float):
