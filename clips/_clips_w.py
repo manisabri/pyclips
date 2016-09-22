@@ -34,7 +34,7 @@ import sys as _sys
 import os as  _os
 
 # the low-level module
-import _clips as _c
+import clips._clips as _c
 
 # check Python version, and issue an exception if not supported
 if _sys.version[:3] < "2.4":
@@ -139,7 +139,8 @@ def _accepts(*types):
                         if type(t) == tuple:
                             errorstr = \
                                 "one of %s expected in %s, parameter %s" \
-                                % (", ".join(map(lambda x: str(x)[1:-1], t)),
+                                % (", ".join(
+                                    [str(x)[1:-1] for x in t]),
                                    f.__name__, i + 1)
                         else:
                             errorstr = \
@@ -165,7 +166,7 @@ def _accepts_method(*types):
                         if type(t) == tuple:
                             errorstr = \
                                 "one of %s expected in %s, parameter %s" \
-                                % (", ".join(map(lambda x: str(x)[1:-1], t)),
+                                % (", ".join([str(x)[1:-1] for x in t]),
                                    f.__name__, i + 1)
                         else:
                             errorstr = \
@@ -214,7 +215,7 @@ def _forces(*types):
                 elif type(t) == dict:
                     type_a = type(a)
                     # ...if the type of the argument is taken into account...
-                    if t.has_key(type_a):
+                    if type_a in t:
                         conv = t[type_a]
                         # ...when it is not None, the argument is converted
                         if conv is not None:
@@ -226,7 +227,7 @@ def _forces(*types):
                     #  None as a possible type to convert to another, then
                     #  the argument is converted anyway (ie. None acts as a
                     #  sink that converts any type as a last resort)
-                    elif t.has_key(None):
+                    elif None in t:
                         newargs.append(t[None](a))
                     # ...but when there is no suitable specific conversion
                     #  and None is not given the argument is left as it is
@@ -254,13 +255,13 @@ def _forces_method(*types):
                     newargs.append(a)
                 elif type(t) == dict:
                     type_a = type(a)
-                    if t.has_key(type_a):
+                    if type_a in t:
                         conv = t[type_a]
                         if conv is not None:
                             newargs.append(conv(a))
                         else:
                             newargs.append(a)
-                    elif t.has_key(None):
+                    elif None in t:
                         newargs.append(t[None](a))
                     else:
                         newargs.append(a)
@@ -452,7 +453,7 @@ class Symbol(str):
     """extend a str for use with CLIPS as symbol"""
     def __repr__(self):
         return "<Symbol %s>" % str.__repr__(self)
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self not in ('FALSE', 'nil', ''))
     def __add__(self, o):
         return Symbol(str(self) + str(o))
@@ -506,7 +507,7 @@ class NilObject(Symbol):
         return o is not self and o != Symbol("nil")
     def __hash__(self):
         return NilObject.__hash_placeholder.__hash__()  # thus *not* None
-    def __nonzero__(self):
+    def __bool__(self):
         return False
     def clrepr(self):
         """represent the nil symbol for CLIPS"""
@@ -538,22 +539,18 @@ class Multifield(list):
             if t in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                      ClipsSymbolType, ClipsNilType, ClipsInstanceNameType):
                 li.append(x.clrepr())
-            elif t in (int, long):
+            elif t is int:
                 li.append(Integer(x).clrepr())
             elif t == float:
                 li.append(Float(x).clrepr())
-            elif t in (str, unicode):
-                li.append(String(x).clrepr())
+            elif t is str:
+                li.append(String(x).clrepr())          
             elif isinstance(x, int):
-                li.append(Integer(x).clrepr())
-            elif isinstance(x, long):
                 li.append(Integer(x).clrepr())
             elif isinstance(x, float):
                 li.append(Float(x).clrepr())
             elif isinstance(x, str):
-                li.append(String(x).clrepr())
-            elif isinstance(x, unicode):
-                li.append(String(x).clrepr())
+                li.append(String(x).clrepr())            
             else:
                 raise TypeError(
                     "list element of type %s cannot be converted" % t)
@@ -566,22 +563,18 @@ class Multifield(list):
             if t in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                      ClipsSymbolType, ClipsNilType, ClipsInstanceNameType):
                 li.append(x.clsyntax())
-            elif t in (int, long):
+            elif t is int:
                 li.append(Integer(x).clsyntax())
             elif t == float:
                 li.append(Float(x).clsyntax())
-            elif t in (str, unicode):
+            elif t is str:
                 li.append(String(x).clsyntax())
             elif isinstance(x, int):
-                li.append(Integer(x).clsyntax())
-            elif isinstance(x, long):
-                li.append(Integer(x).clsyntax())
+                li.append(Integer(x).clsyntax())            
             elif isinstance(x, float):
                 li.append(Float(x).clsyntax())
             elif isinstance(x, str):
-                li.append(String(x).clsyntax())
-            elif isinstance(x, unicode):
-                li.append(String(x).clsyntax())
+                li.append(String(x).clsyntax())            
             else:
                 raise TypeError(
                     "list element of type %s cannot be converted" % t)
@@ -648,11 +641,11 @@ def _cl2py(o):
 def _py2cl(o):
     """convert Python data to a well-formed tuple"""
     t1 = type(o)
-    if t1 in (int, long):
+    if t1 is int:
         return (_c.INTEGER, int(o))
     elif t1 == float:
         return (_c.FLOAT, float(o))
-    elif t1 in (str, unicode):
+    elif t1 is str:
         return (_c.STRING, str(o))
     elif t1 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                 ClipsSymbolType, ClipsInstanceNameType, ClipsNilType,
@@ -666,24 +659,20 @@ def _py2cl(o):
     #elif t1 == Instance:
     #    return (_c.INSTANCE_ADDRESS, o._Instance__instance)
     elif isinstance(o, int):
-        return (_c.INTEGER, int(o))
-    elif isinstance(o, long):
-        return (_c.INTEGER, int(o))
+        return (_c.INTEGER, int(o))    
     elif isinstance(o, float):
         return (_c.FLOAT, float(o))
     elif isinstance(o, str):
-        return (_c.STRING, str(o))
-    elif isinstance(o, unicode):
-        return (_c.STRING, str(o))
+        return (_c.STRING, str(o))    
     elif t1 in (list, tuple):
         li = []
         for x in o:
             t0 = type(x)
-            if t0 in (int, long):
+            if t0 is int:
                 li.append((_c.INTEGER, int(x)))
             elif t0 == float:
                 li.append((_c.FLOAT, float(x)))
-            elif t0 in (str, unicode):
+            elif t0 is str:
                 li.append((_c.STRING, str(x)))
             elif t0 in (ClipsIntegerType, ClipsFloatType,
                         ClipsStringType, ClipsSymbolType,
@@ -695,14 +684,12 @@ def _py2cl(o):
             #    li.append((_c.INSTANCE_ADDRESS, o._Instance__instance))
             elif isinstance(x, int):
                 li.append((_c.INTEGER, int(o)))
-            elif isinstance(x, long):
+            elif isinstance(x, int):
                 li.append((_c.INTEGER, int(o)))
             elif isinstance(x, float):
                 li.append((_c.FLOAT, float(o)))
             elif isinstance(x, str):
-                li.append((_c.STRING, str(o)))
-            elif isinstance(x, unicode):
-                li.append((_c.STRING, str(o)))
+                li.append((_c.STRING, str(o)))           
             else:
                 raise TypeError("list element of type %s cannot be converted" % t0)
         return (_c.MULTIFIELD, li)
@@ -713,11 +700,11 @@ def _py2cl(o):
 def _py2clsyntax(o):
     """convert Python data to CLIPS syntax"""
     t1 = type(o)
-    if t1 in (int, long):
+    if t1 is int:
         return Integer(int(o)).clsyntax()
     elif t1 == float:
         return Float(o).clsyntax()
-    elif t1 in (str, unicode):
+    elif t1 is str:
         return String(o).clsyntax()
     elif t1 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                 ClipsSymbolType, ClipsInstanceNameType, ClipsNilType,
@@ -735,7 +722,7 @@ def _py2clsyntax(o):
         li = []
         for x in o:
             t0 = type(x)
-            if t0 in (int, long):
+            if t0 is int:
                 li.append(Integer(int(x)).clsyntax())
             elif t0 == float:
                 li.append(Float(x).clsyntax())
@@ -747,14 +734,12 @@ def _py2clsyntax(o):
                 li.append(x.clsyntax())
             elif isinstance(x, int):
                 li.append(Integer(int(x)).clsyntax())
-            elif isinstance(x, long):
+            elif isinstance(x, int):
                 li.append(Integer(int(x)).clsyntax())
             elif isinstance(x, float):
                 li.append(Float(x).clsyntax())
             elif isinstance(x, str):
-                li.append(String(x).clsyntax())
-            elif isinstance(x, unicode):
-                li.append(String(x).clsyntax())
+                li.append(String(x).clsyntax())            
             else:
                 raise TypeError("list element of type %s cannot be converted" % t0)
         return Multifield(li).clsyntax()
@@ -825,11 +810,11 @@ class Environment(object):
     def _py2cl(self, o):
         """convert Python data to a well-formed tuple"""
         t1 = type(o)
-        if t1 in (int, long):
+        if t1 is int:
             return (_c.INTEGER, int(o))
         elif t1 == float:
             return (_c.FLOAT, float(o))
-        elif t1 in (str, unicode):
+        elif t1 is str:
             return (_c.STRING, str(o))
         elif t1 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                     ClipsSymbolType, ClipsInstanceNameType, ClipsNilType,
@@ -848,18 +833,16 @@ class Environment(object):
         elif isinstance(o, float):
             return (_c.FLOAT, float(o))
         elif isinstance(o, str):
-            return (_c.STRING, str(o))
-        elif isinstance(o, unicode):
-            return (_c.STRING, str(o))
+            return (_c.STRING, str(o))        
         elif t1 in (list, tuple):
             li = []
             for x in o:
                 t0 = type(x)
-                if t0 in (int, long):
+                if t0 is int:
                     li.append((_c.INTEGER, int(x)))
                 elif t0 == float:
                     li.append((_c.FLOAT, float(x)))
-                elif t0 in (str, unicode):
+                elif t0 is str:
                     li.append((_c.STRING, str(x)))
                 elif t0 in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                             ClipsSymbolType, ClipsInstanceNameType, ClipsNilType):
@@ -871,15 +854,11 @@ class Environment(object):
                 elif hasattr(o, '_Instance__instance'):
                     li.append((_c.INSTANCE_ADDRESS, o._Instance__instance))
                 elif isinstance(x, int):
-                    li.append((_c.INTEGER, int(o)))
-                elif isinstance(x, long):
-                    li.append((_c.INTEGER, int(o)))
+                    li.append((_c.INTEGER, int(o)))                
                 elif isinstance(x, float):
                     li.append((_c.FLOAT, float(o)))
                 elif isinstance(x, str):
-                    li.append((_c.STRING, str(o)))
-                elif isinstance(x, unicode):
-                    li.append((_c.STRING, str(o)))
+                    li.append((_c.STRING, str(o)))               
                 else:
                     raise TypeError("list element of type %s cannot be converted" % t0)
             return (_c.MULTIFIELD, li)
@@ -1238,7 +1217,7 @@ class Environment(object):
                 def __getstate__(self):
                     raise _c.ClipsError("M03: cannot pickle template slots")
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def AllowedValues(self, name):
                     """return allowed values for specified Slot"""
@@ -1250,7 +1229,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Cardinality(self, name):
                     """return cardinality for specified Slot"""
@@ -1262,14 +1241,14 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def HasDefault(self, name):
                     """one of NO_DEFAULT, STATIC_DEFAULT or DYNAMIC_DEFAULT"""
                     return _c.env_deftemplateSlotDefaultP(
                         self.__env, self.__deftemplate, name)
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def DefaultValue(self, name):
                     """return default value for specified Slot"""
@@ -1281,7 +1260,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Exists(self, name):
                     """return True if specified Slot exists"""
@@ -1289,7 +1268,7 @@ class Environment(object):
                         _c.env_deftemplateSlotExistP(
                             self.__env, self.__deftemplate, name))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def IsMultifield(self, name):
                     """return True if specified Slot is a multifield one"""
@@ -1307,7 +1286,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Range(self, name):
                     """return numeric range information of specified Slot"""
@@ -1319,7 +1298,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def IsSinglefield(self, name):
                     """return True if specified Slot is a single field one"""
@@ -1327,7 +1306,7 @@ class Environment(object):
                         _c.env_deftemplateSlotSingleP(
                             self.__env, self.__deftemplate, name))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Types(self, name):
                     """return names of primitive types for specified Slot"""
@@ -1459,14 +1438,14 @@ class Environment(object):
                 def __init__(self, fo):
                     self.__fact = fo
 
-                @_accepts_method((str, unicode), None)
+            	@_accepts_method(str, None)
                 @_forces_method(str, None)
                 def __setitem__(self, name, v):
                     _c.env_putFactSlot(
                         self.__env, self.__fact, name,
                         self.__envobject._py2cl(v))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def __getitem__(self, name):
                     if not name:
@@ -1480,7 +1459,7 @@ class Environment(object):
                     return self.__envobject._cl2py(
                         _c.env_factSlotNames(self.__env, self.__fact))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def has_key(self, k):
                     return k in map(
@@ -1499,6 +1478,7 @@ class Environment(object):
             #  class away; however the instance must be created at the
             #  end of function body since the fact has to be created at
             #  lower level
+        type(o).__dir__
             if _c.isFact(o):
                 self.__fact = o
             elif '_Fact__fact' in dir(o) and _c.isFact(o.__fact):
@@ -2019,22 +1999,18 @@ class Environment(object):
                                   ClipsNilType, ClipsInstanceNameType,
                                   ClipsMultifieldType):
                             li.append(_py2clsyntax(x))
-                        elif t1 in (int, long):
+                    	elif t1 is int:
                             li.append(Integer(x).clsyntax())
                         elif t1 == float:
                             li.append(Float(x).clsyntax())
-                        elif t1 in (str, unicode):
+                        elif t1 is str:
                             li.append(String(x).clsyntax())
                         elif isinstance(x, int):
-                            li.append(Integer(x).clsyntax())
-                        elif isinstance(x, long):
-                            li.append(Integer(x).clsyntax())
+                            li.append(Integer(x).clsyntax())        
                         elif isinstance(x, float):
                             li.append(Float(x).clsyntax())
                         elif isinstance(x, str):
-                            li.append(String(x).clsyntax())
-                        elif isinstance(x, unicode):
-                            li.append(String(x).clsyntax())
+                            li.append(String(x).clsyntax())                       
                         else:
                             li.append(str(x))
                     sargs = " ".join(li)
@@ -2138,22 +2114,18 @@ class Environment(object):
                                   ClipsNilType, ClipsInstanceNameType,
                                   ClipsMultifieldType):
                             li.append(_py2clsyntax(x))
-                        elif t1 in (int, long):
+                    	elif t1 is int:
                             li.append(Integer(int(x)).clsyntax())
                         elif t1 == float:
                             li.append(Float(x).clsyntax())
-                        elif t1 in (str, unicode):
+                    	elif t1 is str:
                             li.append(String(x).clsyntax())
                         elif isinstance(x, int):
-                            li.append(Integer(x).clsyntax())
-                        elif isinstance(x, long):
-                            li.append(Integer(x).clsyntax())
+                            li.append(Integer(x).clsyntax())                    	
                         elif isinstance(x, float):
                             li.append(Float(x).clsyntax())
                         elif isinstance(x, str):
-                            li.append(String(x).clsyntax())
-                        elif isinstance(x, unicode):
-                            li.append(String(x).clsyntax())
+                            li.append(String(x).clsyntax())                        
                         else:
                             li.append(str(x))
                     sargs = " ".join(li)
@@ -2240,7 +2212,7 @@ class Environment(object):
             if s:
                 _sys.stdout.write(s)
 
-        @_accepts_method(None, None, (int, long), None)
+    @_accepts_method(None, None, int, None)
         def AddMethod(self, restrictions, actions, midx=None, comment=None):
             """Add a method to this Generic, given restrictions and actions"""
             if comment:
@@ -2254,13 +2226,11 @@ class Environment(object):
             if type(restrictions) in (tuple, list):
                 rstr = ""
                 for x in restrictions:
-                    if type(x) not in (tuple, str, unicode):
+                    if type(x) not in (tuple, str):
                         raise TypeError(
                             "tuple or string expected as restriction")
                     if type(x) == str:
-                        rstr += "(%s)" % x
-                    elif type(x) == unicode:
-                        rstr += "(%s)" % str(x)
+                        rstr += "(%s)" % x                    
                     else:
                         if len(x) < 2:
                             raise ValueError("tuple must be at least a pair")
@@ -2288,9 +2258,7 @@ class Environment(object):
                             elif z == ClipsMultifieldType:
                                 v2.append("MULTIFIELD")
                             elif type(z) == str:
-                                v2.append(z)
-                            elif type(z) == unicode:
-                                v2.append(str(z))
+                                v2.append(z)                           
                             else:
                                 raise TypeError("unexpected value '%s'" % z)
                             rstr += "(%s %s)" % (v1, " ".join(v2))
@@ -2374,7 +2342,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+           	@_accepts_method(str)
                 @_forces_method(str)
                 def AllowedValues(self, name):
                     """return allowed values for specified Slot"""
@@ -2386,7 +2354,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def AllowedClasses(self, name):
                     """return allowed classes for specified Slot"""
@@ -2398,7 +2366,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Cardinality(self, name):
                     """return cardinality for specified Slot"""
@@ -2410,7 +2378,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def DefaultValue(self, name):
                     """return default value for specified Slot"""
@@ -2422,7 +2390,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Facets(self, name):
                     """return facet values for specified Slot"""
@@ -2433,7 +2401,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Range(self, name):
                     """return numeric range information of specified Slot"""
@@ -2444,7 +2412,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Sources(self, name):
                     """return source class names for specified Slot"""
@@ -2455,7 +2423,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Types(self, name):
                     """return names of primitive types for specified Slot"""
@@ -2466,7 +2434,7 @@ class Environment(object):
                     else:
                         return rv
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def HasDirectAccess(self, name):
                     """return True if specified Slot is directly accessible"""
@@ -2474,7 +2442,7 @@ class Environment(object):
                         _c.env_slotDirectAccessP(
                             self.__env, self.__defclass, name))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def Exists(self, name):
                     """return True if specified Slot exists or is inherited"""
@@ -2482,7 +2450,7 @@ class Environment(object):
                         _c.env_slotExistP(
                             self.__env, self.__defclass, name, 1))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def ExistsDefined(self, name):
                     """return True if specified Slot is defined in this Class"""
@@ -2490,7 +2458,7 @@ class Environment(object):
                         _c.env_slotExistP(
                             self.__env, self.__defclass, name, 0))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def IsInitable(self, name):
                     """return True if specified Slot is initable"""
@@ -2498,14 +2466,14 @@ class Environment(object):
                         _c.env_slotInitableP(
                             self.__env, self.__defclass, name))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def IsPublic(self, name):
                     """return True if specified Slot is public"""
                     return bool(
                         _c.env_slotPublicP(self.__env, self.__defclass, name))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def IsWritable(self, name):
                     """return True if specified Slot is writable"""
@@ -2575,7 +2543,7 @@ class Environment(object):
                     _c.env_classSuperclasses(
                         self.__env, self.__defclass, inherit)))
 
-        @_accepts_method((str, unicode))
+    	@_accepts_method(str)
         @_forces_method(str)
         def RawInstance(self, name):
             """create an empty Instance of this Class with specified name"""
@@ -2622,7 +2590,7 @@ class Environment(object):
             """remove this Class"""
             _c.env_undefclass(self.__env, self.__defclass)
 
-        @_accepts_method((str, unicode), (str, unicode), None)
+    	@_accepts_method(str, str, None)
         @_forces_method(str, str, None)
         def BuildSubclass(self, name, text="", comment=None):
             """build a subclass of this Class with specified name and body"""
@@ -2637,7 +2605,7 @@ class Environment(object):
             return self.__envobject.Class(
                 _c.env_findDefclass(self.__env, name))
 
-        @_accepts_method((str, unicode), (str, unicode))
+    	@_accepts_method(str, str)
         @_forces_method(str, str)
         def BuildInstance(self, name, overrides=""):
             """build an instance of this class overriding specified slots"""
@@ -2703,7 +2671,7 @@ class Environment(object):
                          None, None, "Class Slots information")
 
         # message-handler functions
-        @_accepts_method((str, unicode), (str, unicode), (str, unicode), None, None)
+    	@_accepts_method(str, str, str, None, None)
         @_forces_method(str, str, str, None, None)
         def AddMessageHandler(self, name, args, text, htype=PRIMARY, comment=None):
             """build a MessageHandler for this class with arguments and body"""
@@ -2728,7 +2696,7 @@ class Environment(object):
             return _c.env_findDefmessageHandler(
                 self.__env, self.__defclass, name, htype)
 
-        @_accepts_method((str, unicode), None)
+    	@_accepts_method(str, None)
         @_forces_method(str, None)
         def MessageHandlerIndex(self, name, htype=PRIMARY):
             """find the specified MessageHandler"""
@@ -2828,7 +2796,7 @@ class Environment(object):
             if s:
                 _sys.stdout.write(s)
 
-        @_accepts_method((str, unicode))
+    	@_accepts_method(str)
         @_forces_method(str)
         def PreviewSend(self, msgname):
             """print list of MessageHandlers suitable for specified message"""
@@ -2866,14 +2834,14 @@ class Environment(object):
                 def __init__(self, io):
                     self.__instance = io
 
-                @_accepts_method((str, unicode), None)
+            	@_accepts_method(str, None)
                 @_forces_method(str, None)
                 def __setitem__(self, name, v):
                     _c.env_directPutSlot(
                         self.__env, self.__instance, name,
                         self.__envobject._py2cl(v))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def __getitem__(self, name):
                     return self.__envobject._cl2py(
@@ -2885,7 +2853,7 @@ class Environment(object):
                         str, list(self.__envobject.Instance(
                             self.__instance).Class.Slots.Names()))
 
-                @_accepts_method((str, unicode))
+            	@_accepts_method(str)
                 @_forces_method(str)
                 def has_key(self, k):
                     return bool(
@@ -2948,7 +2916,7 @@ class Environment(object):
             """directly remove this Instance"""
             _c.env_deleteInstance(self.__env, self.__instance)
 
-        @_accepts_method((str, unicode))
+    	@_accepts_method(str)
         @_forces_method(str)
         def GetSlot(self, slotname):
             """retrieve value of specified Slot"""
@@ -2956,7 +2924,7 @@ class Environment(object):
                 _c.env_directGetSlot(self.__env, self.__instance, slotname))
         SlotValue = GetSlot
 
-        @_accepts_method((str, unicode), None)
+    	@_accepts_method(str, None)
         @_forces_method(str, None)
         def PutSlot(self, slotname, value):
             """set value of specified Slot"""
@@ -2965,20 +2933,16 @@ class Environment(object):
                 self.__envobject._py2cl(value))
         SetSlotValue = PutSlot
 
-        @_accepts_method((str, unicode), None)
+    	@_accepts_method(str, None)
         @_forces_method(str, None)
         def Send(self, msg, args=None):
             """send specified message with the given arguments to Instance"""
             if args is not None:
                 t = type(args)
                 if t == str:
-                    sargs = args
-                elif t == unicode:
-                    sargs = str(args)
+                    sargs = args                
                 elif isinstance(args, str):
-                    sargs = str(args)
-                elif isinstance(args, unicode):
-                    sargs = str(args)
+                    sargs = str(args)                
                 elif t in (ClipsIntegerType, ClipsFloatType,
                            ClipsStringType, ClipsSymbolType,
                            ClipsNilType, ClipsInstanceNameType,
@@ -2993,36 +2957,30 @@ class Environment(object):
                                   ClipsNilType, ClipsInstanceNameType,
                                   ClipsMultifieldType):
                             li.append(_py2clsyntax(x))
-                        elif t1 in (int, long):
+                    	elif t1 is int:
                             li.append(Integer(int(x)).clsyntax())
                         elif t1 == float:
                             li.append(Float(x).clsyntax())
-                        elif t1 in (str, unicode):
+                    	elif t1 is str:
                             li.append(String(x).clsyntax())
                         elif isinstance(x, int):
-                            li.append(Integer(x).clsyntax())
-                        elif isinstance(x, long):
-                            li.append(Integer(x).clsyntax())
+                            li.append(Integer(x).clsyntax())                        
                         elif isinstance(x, float):
                             li.append(Float(x).clsyntax())
                         elif isinstance(x, str):
-                            li.append(String(x).clsyntax())
-                        elif isinstance(x, unicode):
-                            li.append(String(x).clsyntax())
+                            li.append(String(x).clsyntax())                        
                         else:
                             li.append(str(x))
                     sargs = " ".join(li)
-                elif t in (int, long):
+            	elif t is int:
                     sargs = Integer(args).clsyntax()
                 elif t == float:
                     sargs = Float(args).clsyntax()
                 elif isinstance(args, str):
-                    sargs = str(args)
-                elif isinstance(args, unicode):
-                    sargs = str(args)
+                    sargs = str(args)                
                 elif isinstance(args, int):
                     sargs = Integer(args).clsyntax()
-                elif isinstance(args, long):
+            	elif isinstance(args, int):
                     sargs = Integer(args).clsyntax()
                 elif isinstance(args, float):
                     sargs = Float(args).clsyntax()
@@ -3225,7 +3183,7 @@ class Environment(object):
             return li
 
         # Deffacts
-        @_accepts_method((str, unicode), (str, unicode), None)
+    	@_accepts_method(str, str, None)
         @_forces_method(str, str, None)
         def BuildDeffacts(self, name, text, comment=None):
             """build a Deffacts object with specified name and body"""
@@ -3254,7 +3212,7 @@ class Environment(object):
                 _sys.stdout.write(s)
 
         # Rules
-        @_accepts_method((str, unicode), (str, unicode), (str, unicode), None)
+    	@_accepts_method(str, str,str, None)
         @_forces_method(str, str, str, None)
         def BuildRule(self, name, lhs, rhs, comment=None):
             """build a Rule object with specified name and LHS/RHS"""
@@ -3308,7 +3266,7 @@ class Environment(object):
             _c.env_reorderAgenda(self.__env, self.__defmodule)
 
         # Globals
-        @_accepts_method((str, unicode), None)
+    	@_accepts_method(str, None)
         @_forces_method(str, None)
         def BuildGlobal(self, name, value=Nil):
             """build a Global variable with specified name and value"""
@@ -3342,7 +3300,7 @@ class Environment(object):
                 _sys.stdout.write(s)
 
         # Functions
-        @_accepts_method((str, unicode), None, (str, unicode), None)
+    	@_accepts_method(str, None, str, None)
         @_forces_method(str, None, str, None)
         def BuildFunction(self, name, args, text, comment=None):
             """build a Function with specified name, body and arguments"""
@@ -3376,7 +3334,7 @@ class Environment(object):
                 _sys.stdout.write(s)
 
         # Generics
-        @_accepts_method((str, unicode), None)
+    	@_accepts_method(str, None)
         @_forces_method(str, None)
         def BuildGeneric(self, name, comment=None):
             """build a Generic with specified name"""
@@ -3404,7 +3362,7 @@ class Environment(object):
                 _sys.stdout.write(s)
 
         # Classes
-        @_accepts_method((str, unicode), (str, unicode), None)
+    	@_accepts_method(str, str, None)
         @_forces_method(str, str, None)
         def BuildClass(self, name, text, comment=None):
             """build a Class with specified name and body"""
@@ -3433,7 +3391,7 @@ class Environment(object):
                 _sys.stdout.write(s)
 
         # Instances
-        @_accepts_method((str, unicode), None, None)
+    	@_accepts_method(str, None, None)
         @_forces_method(str, str, None)
         def BuildInstance(self, name, defclass, overrides=""):
             """build an Instance of given Class overriding specified Slots"""
@@ -3467,7 +3425,7 @@ class Environment(object):
                 _sys.stdout.write(s)
 
         # Definstances
-        @_accepts_method((str, unicode), (str, unicode), None)
+    	@_accepts_method(str, str, None)
         @_forces_method(str, str, None)
         def BuildDefinstances(self, name, text, comment=None):
             """build a Definstances with specified name and body"""
@@ -3522,13 +3480,13 @@ class Environment(object):
         o = _c.env_getDeftemplateList(self.__env)
         return Multifield(self._cl2py(o))    # should be all strings
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindTemplate(self, s):
         """find a Template by name"""
         return self.Template(_c.env_findDeftemplate(self.__env, s))
 
-    @_accepts_method((str, unicode), (str, unicode), None)
+    @_accepts_method(str, str, None)
     @_forces_method(str, str, None)
     def BuildTemplate(self, name, text, comment=None):
         """build a Template object with specified name and body"""
@@ -3548,7 +3506,7 @@ class Environment(object):
         """assert a Fact from a string or constructed Fact object"""
         if '_Fact__fact' in dir(o) and _c.isFact(o._Fact__fact):
             return o.Assert()
-        elif type(o) in (str, unicode):
+        elif type(o) is str:
             return self.Fact(_c.env_assertString(self.__env, str(o)))
         else:
             raise TypeError("expected a string or a Fact")
@@ -3560,19 +3518,19 @@ class Environment(object):
         except:
             raise _c.ClipsError("M02: could not find any Fact")
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def LoadFacts(self, filename):
         """load Facts from file"""
         _c.env_loadFacts(self.__env, _os.path.normpath(filename))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def LoadFactsFromString(self, s):
         """load Fact objects from a string"""
         _c.env_loadFactsFromString(self.__env, s)
 
-    @_accepts_method((str, unicode), (str, unicode))
+    @_accepts_method(str)
     @_forces_method(str, str)
     def SaveFacts(self, filename, mode=LOCAL_SAVE):
         """save current Facts to file"""
@@ -3617,7 +3575,7 @@ class Environment(object):
         o = _c.env_getDeffactsList(self.__env)
         return Multifield(self._cl2py(o))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindDeffacts(self, s):
         """find a Deffacts by name"""
@@ -3626,7 +3584,7 @@ class Environment(object):
         except:
             raise _c.ClipsError("M02: could not find Deffacts '%s'" % s)
 
-    @_accepts_method((str, unicode), (str, unicode), None)
+    @_accepts_method(str, str, None)
     @_forces_method(str, str, None)
     def BuildDeffacts(self, name, text, comment=None):
         """build a Deffacts object with specified name and body"""
@@ -3662,7 +3620,7 @@ class Environment(object):
         o = _c.env_getDefruleList(self.__env)
         return Multifield(self._cl2py(o))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindRule(self, s):
         """find a Rule by name"""
@@ -3671,7 +3629,7 @@ class Environment(object):
         except:
             raise _c.ClipsError("M02: could not find defrule '%s'" % s)
 
-    @_accepts_method((str, unicode), (str, unicode), (str, unicode), None)
+    @_accepts_method(str, str, str, None)
     @_forces_method(str, str, str, None)
     def BuildRule(self, name, lhs, rhs, comment=None):
         """build a Rule object with specified name and body"""
@@ -3715,13 +3673,13 @@ class Environment(object):
         o = _c.env_getDefmoduleList(self.__env)
         return Multifield(self._cl2py(o))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindModule(self, name):
         """find a Module by name"""
         return self.Module(_c.env_findDefmodule(self.__env, name))
 
-    @_accepts_method((str, unicode), (str, unicode), None)
+    @_accepts_method(str, str, None)
     @_forces_method(str, str, None)
     def BuildModule(self, name, text="", comment=None):
         """build a Module with specified name and body"""
@@ -3757,13 +3715,13 @@ class Environment(object):
         o = _c.env_getDefglobalList(self.__env)
         return Multifield(self._cl2py(o))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindGlobal(self, name):
         """find a Global variable by name"""
         return self.Global(_c.env_findDefglobal(self.__env, name))
 
-    @_accepts_method((str, unicode), None)
+    @_accepts_method(str, None)
     @_forces_method(str, None)
     def BuildGlobal(self, name, value=Nil):
         """build a Global variable with specified name and body"""
@@ -3811,13 +3769,13 @@ class Environment(object):
         o = _c.env_getDeffunctionList(self.__env)
         return Multifield(self._cl2py(o))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindFunction(self, name):
         """find a Function by name"""
         return self.Function(_c.env_findDeffunction(self.__env, name))
 
-    @_accepts_method((str, unicode), None, (str, unicode), None)
+    @_accepts_method(str, None, str, None)
     @_forces_method(str, None, str, None)
     def BuildFunction(self, name, args, text, comment=None):
         """build a Function with specified name, body and arguments"""
@@ -3856,13 +3814,13 @@ class Environment(object):
         o = _c.env_getDefgenericList(self.__env)
         return Multifield(self._cl2py(o))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindGeneric(self, name):
         """find a Generic by name"""
         return self.Generic(_c.env_findDefgeneric(self.__env, name))
 
-    @_accepts_method((str, unicode), None)
+    @_accepts_method(str, None)
     @_forces_method(str, None)
     def BuildGeneric(self, name, comment=None):
         """build a Generic with specified name and body"""
@@ -3886,7 +3844,7 @@ class Environment(object):
         """return the list of all Methods"""
         o = self._cl2py(_c.env_getDefmethodList(self.__env))
         li = Multifield([])
-        l = len(o) / 2
+        l = len(o) // 2
         for x in range(l):
             li.append(Multifield([o[2 * x], o[2 * x + 1]]))
         return li
@@ -3907,13 +3865,13 @@ class Environment(object):
         o = _c.env_getDefclassList(self.__env)
         return Multifield(self._cl2py(o))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindClass(self, name):
         """find a Class by name"""
         return self.Class(_c.env_findDefclass(self.__env, name))
 
-    @_accepts_method((str, unicode), (str, unicode), None)
+    @_accepts_method(str, str, None)
     @_forces_method(str, str, None)
     def BuildClass(self, name, text, comment=None):
         """build a Class with specified name and body"""
@@ -3933,7 +3891,7 @@ class Environment(object):
         if s:
             _sys.stdout.write(s)
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def BrowseClasses(self, classname):
         """print list of Classes that inherit from specified one"""
@@ -3944,7 +3902,7 @@ class Environment(object):
         if s:
             _sys.stdout.write(s)
 
-    @_accepts_method((str, unicode), None, None, (str, unicode), None, None)
+    @_accepts_method(str, None, None, str, None, None)
     @_forces_method(str, str, None, str, None, None)
     def BuildMessageHandler(self, name, hclass, args, text, htype=PRIMARY, comment=None):
         """build a MessageHandler for specified class with arguments and body"""
@@ -3972,7 +3930,7 @@ class Environment(object):
         """return list of MessageHandler constructs"""
         o = _c.env_getDefmessageHandlerList(self.__env)
         li, rv = Multifield(self._cl2py(o)), []
-        l = len(li) / 3
+        l = len(li) // 3
         for x in range(0, l):
             rv.append(Multifield([li[x * 3], li[x * 3 + 1], li[x * 3 + 2]]))
         return Multifield(rv)
@@ -3996,38 +3954,38 @@ class Environment(object):
         except:
             raise _c.ClipsError("M02: could not find any Instance")
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def BLoadInstances(self, filename):
         """load Instances from binary file"""
         _c.env_binaryLoadInstances(self.__env, _os.path.normpath(filename))
 
-    @_accepts_method((str, unicode), None)
+    @_accepts_method(str, None)
     @_forces_method(str, None)
     def BSaveInstances(self, filename, mode=LOCAL_SAVE):
         """save Instances to binary file"""
         _c.env_binarySaveInstances(
             self.__env, _os.path.normpath(filename), mode)
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def LoadInstances(self, filename):
         """load Instances from file"""
         _c.env_loadInstances(self.__env, _os.path.normpath(filename))
 
-    @_accepts_method((str, unicode), None)
+    @_accepts_method(str, None)
     @_forces_method(str, None)
     def SaveInstances(self, filename, mode=LOCAL_SAVE):
         """save Instances to file"""
         _c.env_saveInstances(self.__env, _os.path.normpath(filename), mode)
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def LoadInstancesFromString(self, s):
         """load Instances from the specified string"""
         _c.env_loadInstancesFromString(self.__env, s)
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def RestoreInstancesFromString(self, s):
         """restore Instances from the specified string"""
@@ -4039,20 +3997,20 @@ class Environment(object):
         _c.env_setInstancesChanged(self.__env, False)
         return rv
 
-    @_accepts_method((str, unicode), None, (str, unicode))
+    @_accepts_method(str, None, str)
     @_forces_method(str, str, str)
     def BuildInstance(self, name, defclass, overrides=""):
         """build an Instance of given class overriding specified slots"""
         cmdstr = "(%s of %s %s)" % (name, str(defclass), overrides)
         return self.Instance(_c.env_makeInstance(self.__env, cmdstr))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindInstance(self, name):
         """find an Instance in all modules (including imported)"""
         return self.Instance(_c.env_findInstance(self.__env, name, True))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindInstanceLocal(self, name):
         """find an Instance in non imported modules"""
@@ -4091,13 +4049,13 @@ class Environment(object):
         except:
             raise _c.ClipsError("M02: could not find any Definstances")
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def FindDefinstances(self, name):
         """find Definstances by name"""
         return self.Definstances(_c.env_findDefinstances(self.__env, name))
 
-    @_accepts_method((str, unicode), (str, unicode), None)
+    @_accepts_method(str,str, None)
     @_forces_method(str, str, None)
     def BuildDefinstances(self, name, text, comment=None):
         """build a Definstances with specified name and body"""
@@ -4190,66 +4148,62 @@ class Environment(object):
     # =================================================================== #
     # basic environment functions
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def BLoad(self, filename):
         """binary load the constructs from a file"""
         _c.env_bload(self.__env, _os.path.normpath(filename))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def BSave(self, filename):
         """binary save constructs to a file"""
         _c.env_bsave(self.__env, _os.path.normpath(filename))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def Load(self, filename):
         """load constructs from a file"""
         _c.env_load(self.__env, _os.path.normpath(filename))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def Save(self, filename):
         """save constructs to a file"""
         _c.env_save(self.__env, _os.path.normpath(filename))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def BatchStar(self, filename):
         """execute commands stored in file"""
         _c.env_batchStar(self.__env, _os.path.normpath(filename))
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def Build(self, construct):
         """build construct given in argument"""
         _c.env_build(self.__env, construct)
 
-    @_accepts_method((str, unicode))
+    @_accepts_method(str)
     @_forces_method(str)
     def Eval(self, expr):
         """evaluate expression passed as argument"""
         return self._cl2py(_c.env_eval(self.__env, expr))
 
-    @_accepts_method((str, unicode), None)
+    @_accepts_method(str, None)
     @_forces_method(str, None)
     def Call(self, func, args=None):
         """call a function with the given argument string or tuple"""
         if args is not None:
             t = type(args)
             if t == str:
-                sargs = args
-            if t == unicode:
-                sargs = str(args)
+                sargs = args            
             elif t in (ClipsIntegerType, ClipsFloatType, ClipsStringType,
                        ClipsSymbolType, ClipsNilType, ClipsInstanceNameType,
                        ClipsMultifieldType):
                 sargs = _py2clsyntax(args)
             elif isinstance(args, str):
-                sargs = str(args)
-            elif isinstance(args, unicode):
-                sargs = str(args)
+                sargs = str(args)            
             elif t in (tuple, list):
                 li = []
                 for x in args:
@@ -4259,33 +4213,27 @@ class Environment(object):
                               ClipsNilType, ClipsInstanceNameType,
                               ClipsMultifieldType):
                         li.append(_py2clsyntax(x))
-                    elif t1 in (int, long):
+                    elif t1 is int:
                         li.append(Integer(int(x)).clsyntax())
                     elif t1 == float:
                         li.append(Float(x).clsyntax())
-                    elif t1 in (str, unicode):
-                        li.append(String(x).clsyntax())
-                    elif isinstance(x, int):
-                        li.append(Integer(x).clsyntax())
-                    elif isinstance(x, long):
+                    elif t1 is str:
+                        li.append(String(x).clsyntax())                    
+        	    elif isinstance(x, int):
                         li.append(Integer(x).clsyntax())
                     elif isinstance(x, float):
                         li.append(Float(x).clsyntax())
                     elif isinstance(x, str):
-                        li.append(String(x).clsyntax())
-                    elif isinstance(x, unicode):
-                        li.append(String(x).clsyntax())
+                        li.append(String(x).clsyntax())                    
                     else:
                         li.append(str(x))
                 sargs = " ".join(li)
-            elif t in (int, long):
+            elif t is int:
                 sargs = Integer(int(args)).clsyntax()
             elif t == float:
                 sargs = Float(args).clsyntax()
             elif isinstance(args, int):
-                sargs = Integer(args).clsyntax()
-            elif isinstance(args, long):
-                sargs = Integer(args).clsyntax()
+                sargs = Integer(args).clsyntax()            
             elif isinstance(args, float):
                 sargs = Float(args).clsyntax()
             else:
@@ -4294,7 +4242,7 @@ class Environment(object):
         else:
             return self._cl2py(_c.env_functionCall(self.__env, func))
 
-    @_accepts_method((str, unicode), None)
+    @_accepts_method(str, None)
     @_forces_method(str, None)
     def SendCommand(self, command, verbose=False):
         """send a command to the engine as if typed at the CLIPS prompt"""
@@ -4455,7 +4403,7 @@ del _clips_Memory
 
 # ========================================================================== #
 # external functions - "all sorts of new and shiny evil"
-@_accepts(None, (str, unicode))
+@_accepts(None, str)
 @_forces(None, str)
 def RegisterPythonFunction(func, name=None):
     """register an external (Python) function to call from within CLIPS"""
@@ -4471,7 +4419,7 @@ def RegisterPythonFunction(func, name=None):
 
 def UnregisterPythonFunction(name):
     """unregister the given Python function from CLIPS"""
-    if type(name) in (str, unicode):
+    if type(name) is str:
         _c.removePythonFunction(str(name))
     else:
         _c.removePythonFunction(name.__name__)
