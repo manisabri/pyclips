@@ -63,6 +63,19 @@
 
 #define STRICT_ALIGN_SIZE sizeof(double)
 
+/* use Python memory allocator when compiling PyCLIPS */
+#ifdef PYCLIPS
+#include <Python.h>
+void *PyCLIPS_Malloc(size_t s);
+void PyCLIPS_Free(void *p);
+#if !BLOCK_MEMORY
+   #undef malloc
+   #define malloc PyCLIPS_Malloc
+   #undef free
+   #define free PyCLIPS_Free
+#endif /* BLOCK_MEMORY */
+#endif /* PYCLIPS */
+
 #define SpecialMalloc(sz) malloc((STD_SIZE) sz)
 #define SpecialFree(ptr) free(ptr)
 
