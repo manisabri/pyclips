@@ -393,7 +393,7 @@ class Integer(int):
         return Integer(int(self) * int(o))
 
     def __floordiv__(self, o):
-        return Integer(int(self) // int(o))
+        return Integer(int(self) / int(o))
 
     def __truediv__(self, o):
         return Integer(int(self) / int(o))
@@ -2973,7 +2973,7 @@ class Environment(object):
             o = _c.env_getDefmessageHandlerList(
                 self.__env, self.__defclass, False)
             li, rv = Multifield(self.__envobject._cl2py(o)), []
-            l = len(li) / 3
+            l = len(li) // 3
             for x in range(0, l):
                 rv.append(
                     Multifield([li[x * 3], li[x * 3 + 1], li[x * 3 + 2]]))
@@ -2984,7 +2984,7 @@ class Environment(object):
             o = _c.env_getDefmessageHandlerList(
                 self.__env, self.__defclass, True)
             li, rv = Multifield(self.__envobject._cl2py(o)), []
-            l = len(li) / 3
+            l = len(li) // 3
             for x in range(0, l):
                 rv.append(
                     Multifield([li[x * 3], li[x * 3 + 1], li[x * 3 + 2]]))
