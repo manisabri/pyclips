@@ -46,18 +46,11 @@
 #endif
 
 
-#if CLIPS_MAJOR >= 6
-
-#if CLIPS_MINOR < 24
-#error "Cannot build using CLIPS version less than 6.24"
-#endif /* CLIPS_MINOR < 24 */
-
 #define VOID     void
 #define VOID_ARG void
 #define STD_SIZE size_t
 
 #define intBool int
-
 #define globle
 
 #define ALLOW_ENVIRONMENT_GLOBALS 1
@@ -95,10 +88,6 @@
 #define WINDOW_INTERFACE 1
 
 #define DEVELOPER 0
-
-#else   /* CLIPS_MAJOR < 6 */
-#error "Cannot build using CLIPS version less than 6.24"
-#endif
 
 #include "envrnmnt.h"
 

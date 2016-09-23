@@ -209,6 +209,19 @@ static char _error_router_readonly[] = "R03: buffer is read-only";
 #define CHECK_NOARGS(_a) do { \
     if(!PyArg_ParseTuple((_a), "")) FAIL(); } while(0)
 
+#ifdef ALLOW_CURRENT_ENVIRONMENT_ALIASING
+#define CHECK_NOCURENV(_e)
+#else
+/* check for environment not to be current and fail if it is */
+#define CHECK_NOCURENV(_e) do { \
+        if(clips_environment_value(_e) == GetCurrentEnvironment()) { \
+            ERROR_CLIPSSYS_CURENV(); \
+            FAIL(); \
+        } \
+    } while(0)
+#endif /* ALLOW_CURRENT_ENVIRONMENT_ALIASING */
+
+
 /* Macros to enable/disable memory checking on a per-function basis:
  *  note that the second macro must always be used when the first is
  *  used, and immediately after each memory allocating function has
@@ -348,6 +361,7 @@ static char _error_router_readonly[] = "R03: buffer is read-only";
         clips_EnvObject *_env = NULL; \
         if(!PyArg_ParseTuple(_args, "O!O", &clips_EnvType, &_env, &_o)) \
             FAIL(); \
+        CHECK_NOCURENV(_env); \
         ACQUIRE_MEMORY_ERROR(); \
         _api(clips_environment_value(_env), PyObject_IsTrue(_o)); \
         RELEASE_MEMORY_ERROR(); \
@@ -363,6 +377,7 @@ static char _error_router_readonly[] = "R03: buffer is read-only";
         clips_EnvObject *_env = NULL; \
         if(!PyArg_ParseTuple(_args, "O!", &clips_EnvType, &_env)) \
             FAIL(); \
+        CHECK_NOCURENV(_env); \
         ACQUIRE_MEMORY_ERROR(); \
         if(!_api(clips_environment_value(_env))) { \
             ERROR_CLIPS(_error_clips_impossible); \
@@ -381,6 +396,7 @@ static char _error_router_readonly[] = "R03: buffer is read-only";
         clips_EnvObject *_env = NULL; \
         if(!PyArg_ParseTuple(_args, "O!", &clips_EnvType, &_env)) \
             FAIL(); \
+        CHECK_NOCURENV(_env); \
         ACQUIRE_MEMORY_ERROR(); \
         _api(clips_environment_value(_env)); \
         RELEASE_MEMORY_ERROR(); \
@@ -620,6 +636,7 @@ typedef struct {
             INIT_LOPTR_HASH_TABLE(p->clips_StrayFacts); \
         } \
     } while(0)
+#define CLEAR_LOST_FACTS() LOPTR_reset_hash_table(clips_StrayFacts)
 #define ENV_CLEAR_LOST_FACTS(_pe) \
     LOPTR_reset_hash_table((_pe)->clips_StrayFacts)
 #else
@@ -629,6 +646,7 @@ typedef struct {
         if(p) \
             clips_environment_valid(p) = TRUE; \
     } while(0)
+#define CLEAR_LOST_FACTS()
 #define ENV_CLEAR_LOST_FACTS(_pe)
 #endif /* USE_NONASSERT_CLIPSGCLOCK */
 
@@ -770,36 +788,71 @@ static BOOL clips_GCLocked = FALSE;
 LOPTR_HASH_TABLE(clips_StrayFacts) = { 0 };
 
 F_INLINE void clips_lock_gc(clips_EnvObject *pyenv) {
-    if(!pyenv->clips_GCLocked && pyenv->clips_NotAssertedFacts > 0) {
-        EnvIncrementGCLocks(clips_environment_value(pyenv));
-        pyenv->clips_GCLocked = TRUE;
+    if(pyenv) {
+        if(!pyenv->clips_GCLocked && pyenv->clips_NotAssertedFacts > 0) {
+            EnvIncrementGCLocks(clips_environment_value(pyenv));
+            pyenv->clips_GCLocked = TRUE;
+        }
+    } else {
+        if(!clips_GCLocked && clips_NotAssertedFacts > 0) {
+            IncrementGCLocks();
+            clips_GCLocked = TRUE;
+        }
     }
 }
 F_INLINE void clips_unlock_gc(clips_EnvObject *pyenv) {
-    if(pyenv->clips_GCLocked && pyenv->clips_NotAssertedFacts == 0) {
-        pyenv->clips_GCLocked = FALSE;
-        EnvDecrementGCLocks(clips_environment_value(pyenv));
+    if(pyenv) {
+        if(pyenv->clips_GCLocked && pyenv->clips_NotAssertedFacts == 0) {
+            pyenv->clips_GCLocked = FALSE;
+            EnvDecrementGCLocks(clips_environment_value(pyenv));
+        }
+    } else {
+        if(clips_GCLocked && clips_NotAssertedFacts == 0) {
+            clips_GCLocked = FALSE;
+            DecrementGCLocks();
+        }
     }
 }
 F_INLINE BOOL add_FactObject_lock(clips_EnvObject *pyenv) {
-    pyenv->clips_NotAssertedFacts++;
+    if(pyenv)
+        pyenv->clips_NotAssertedFacts++;
+    else
+        clips_NotAssertedFacts++;
     return TRUE;
 }
 F_INLINE BOOL remove_FactObject_lock(clips_EnvObject *pyenv) {
-    if(pyenv->clips_NotAssertedFacts > 0) {
-        pyenv->clips_NotAssertedFacts--;
-        return TRUE;
+    if(pyenv) {
+        if(pyenv->clips_NotAssertedFacts > 0) {
+            pyenv->clips_NotAssertedFacts--;
+            return TRUE;
+        }
+    } else {
+        if(clips_NotAssertedFacts > 0) {
+            clips_NotAssertedFacts--;
+            return TRUE;
+        }
     }
     return FALSE;
 }
 F_INLINE BOOL reset_FactObject_lock(clips_EnvObject *pyenv) {
-    if(pyenv->clips_NotAssertedFacts > 0) {
-        pyenv->clips_NotAssertedFacts = 0;
-        if(pyenv->clips_GCLocked) {
-            pyenv->clips_GCLocked = FALSE;
-            EnvDecrementGCLocks(clips_environment_value(pyenv));
+    if(pyenv) {
+        if(pyenv->clips_NotAssertedFacts > 0) {
+            pyenv->clips_NotAssertedFacts = 0;
+            if(pyenv->clips_GCLocked) {
+                pyenv->clips_GCLocked = FALSE;
+                EnvDecrementGCLocks(clips_environment_value(pyenv));
+            }
+            return TRUE;
         }
-        return TRUE;
+    } else {
+        if(clips_NotAssertedFacts > 0) {
+            clips_NotAssertedFacts = 0;
+            if(clips_GCLocked) {
+                clips_GCLocked = FALSE;
+                DecrementGCLocks();
+            }
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -1435,11 +1488,19 @@ PyObject *i_do2py_mfhelp_e(void *env, void *ptr, int pos) {
     case INSTANCE_ADDRESS:
         if(!ptr)
             FAIL();
-        clips_instance_New(env, io);
-        if(!io)
-            FAIL();
-        clips_instance_assign(io, GetMFValue(ptr, pos));
-        ENV_CHECK_VALID_INSTANCE(env, io);
+        if(env) {
+            clips_instance_New(env, io);
+            if(!io)
+                FAIL();
+            clips_instance_assign(io, GetMFValue(ptr, pos));
+            ENV_CHECK_VALID_INSTANCE(env, io);
+        } else {
+            clips_instance_New(GetCurrentEnvironment(), io);
+            if(!io)
+                FAIL();
+            clips_instance_assign(io, GetMFValue(ptr, pos));
+            CHECK_VALID_INSTANCE(io);
+        }
         clips_instance_lock(io);
         p = Py_BuildValue("(iO)", t, clips_instance_value(io));
         break;
@@ -1456,11 +1517,19 @@ PyObject *i_do2py_mfhelp_e(void *env, void *ptr, int pos) {
     case FACT_ADDRESS:
         if(!ptr)
             FAIL();
-        clips_fact_New(env, fo);
-        if(!fo)
-            FAIL();
-        clips_fact_assign(fo, GetMFValue(ptr, pos));
-        ENV_CHECK_VALID_FACT(env, fo);
+        if(env) {
+            clips_fact_New(env, fo);
+            if(!fo)
+                FAIL();
+            clips_fact_assign(fo, GetMFValue(ptr, pos));
+            ENV_CHECK_VALID_FACT(env, fo);
+        } else {
+            clips_fact_New(GetCurrentEnvironment(), fo);
+            if(!fo)
+                FAIL();
+            clips_fact_assign(fo, GetMFValue(ptr, pos));
+            CHECK_VALID_FACT(fo);
+        }
         clips_fact_readonly(fo) = TRUE;
         clips_fact_lock(fo);
         p = Py_BuildValue("(iO)", t, fo);
@@ -1548,11 +1617,19 @@ PyObject *i_do2py_e(void *env, DATA_OBJECT *o) {
         ptr = DOPToPointer(o);
         if(!ptr)
             FAIL();
-        clips_fact_New(env, fo);
-        if(!fo)
-            FAIL();
-        clips_fact_assign(fo, ptr);
-        ENV_CHECK_VALID_FACT(env, fo);
+        if(env) {
+            clips_fact_New(env, fo);
+            if(!fo)
+                FAIL();
+            clips_fact_assign(fo, ptr);
+            ENV_CHECK_VALID_FACT(env, fo);
+        } else {
+            clips_fact_New(GetCurrentEnvironment(), fo);
+            if(!fo)
+                FAIL();
+            clips_fact_assign(fo, ptr);
+            CHECK_VALID_FACT(fo);
+        }
         clips_fact_readonly(fo) = TRUE;
         clips_fact_lock(fo);
         p = Py_BuildValue("(iO)", t, fo);
@@ -1571,6 +1648,8 @@ BEGIN_FAIL
     Py_XDECREF(fo);
 END_FAIL
 }
+
+#define i_do2py(_o) i_do2py_e(NULL, _o)
 
 
 /* helpers to convert couples (type, value) to DATA_OBJECTs:
@@ -1724,9 +1803,17 @@ fail:
     return FALSE;
 }
 
+#define i_py2do(_p, _o) i_py2do_e(GetCurrentEnvironment(), _p, _o)
+
+
 /* Part Two: the implementation */
 
 /* Part Two - Section 1: Globals */
+
+
+/* 4.1 - Environment Functions */
+
+/* AddClearFunction */
 UNIMPLEMENT(addClearFunction, g_addClearFunction)
 /* AddPeriodicFunction */
 UNIMPLEMENT(addPeriodicFunction, g_addPeriodicFunction)
@@ -8949,9 +9036,10 @@ BEGIN_FAIL
 END_FAIL
 }
 
-/* 4.1 - Environment Functions */
 
-/* AddClearFunction */
+/* ======================================================================== */
+
+
 
 /* helper to check if an environment is safe to use */
 #define CHECK_VALID_ENVIRONMENT(_e) do { \
@@ -8981,6 +9069,7 @@ static PyObject *e_bload(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9010,6 +9099,7 @@ static PyObject *e_bsave(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9036,6 +9126,7 @@ static PyObject *e_clear(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!", &clips_EnvType, &pyenv))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CLIPS_LOCK_GC(pyenv);
@@ -9078,6 +9169,7 @@ static PyObject *e_functionCall(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!s|s",
                          &clips_EnvType, &pyenv, &func, &fargs))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CLIPS_LOCK_GC(pyenv);
@@ -9140,6 +9232,7 @@ static PyObject *e_load(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9181,6 +9274,7 @@ static PyObject *e_reset(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!", &clips_EnvType, &pyenv))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CLIPS_LOCK_GC(pyenv);
@@ -9208,6 +9302,7 @@ static PyObject *e_save(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9259,6 +9354,7 @@ static PyObject *e_batchStar(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9288,6 +9384,7 @@ static PyObject *e_build(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &cons))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9322,6 +9419,7 @@ static PyObject *e_eval(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &expr))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9367,6 +9465,7 @@ static PyObject *e_dribbleOn(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9433,6 +9532,7 @@ static PyObject *e_unwatch(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &item))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9465,6 +9565,7 @@ static PyObject *e_watch(PyObject *self, PyObject *args) {
     char *item = NULL;
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &item)) FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -9541,8 +9642,6 @@ BEGIN_FAIL
     SKIP();
 END_FAIL
 }
-
-#if CLIPS_MINOR > 23
 
 /* deftemplateSlotAllowedValues */
 static char e_deftemplateSlotAllowedValues__doc__[] = "\
@@ -9888,28 +9987,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#else
-UNIMPLEMENT_VERSION(env_deftemplateSlotAllowedValues,
-                    e_deftemplateSlotAllowedValues)
-UNIMPLEMENT_VERSION(env_deftemplateSlotCardinality,
-                    e_deftemplateSlotCardinality)
-UNIMPLEMENT_VERSION(env_deftemplateSlotDefaultP,
-                    e_deftemplateSlotDefaultP)
-UNIMPLEMENT_VERSION(env_deftemplateSlotDefaultValue,
-                    e_deftemplateSlotDefaultValue)
-UNIMPLEMENT_VERSION(env_deftemplateSlotExistP,
-                    e_deftemplateSlotExistP)
-UNIMPLEMENT_VERSION(env_deftemplateSlotMultiP,
-                    e_deftemplateSlotMultiP)
-UNIMPLEMENT_VERSION(env_deftemplateSlotNames,
-                    e_deftemplateSlotNames)
-UNIMPLEMENT_VERSION(env_deftemplateSlotRange,
-                    e_deftemplateSlotRange)
-UNIMPLEMENT_VERSION(env_deftemplateSlotSingleP,
-                    e_deftemplateSlotSingleP)
-UNIMPLEMENT_VERSION(env_deftemplateSlotTypes,
-                    e_deftemplateSlotTypes)
-#endif /* CLIPS_MINOR > 23 */
 
 /* env_findDeftemplate */
 static char e_findDeftemplate__doc__[] = "\
@@ -9927,6 +10004,7 @@ static PyObject *e_findDeftemplate(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -10095,6 +10173,7 @@ static PyObject *e_getNextDeftemplate(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DeftemplType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -10190,6 +10269,7 @@ static PyObject *e_setDeftemplateWatch(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &state, &clips_DeftemplType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFTEMPLATE(env, p);
@@ -10216,6 +10296,7 @@ static PyObject *e_undeftemplate(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DeftemplType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_RM_DEFTEMPLATE(env, p);
@@ -10255,6 +10336,7 @@ static PyObject *e_assertFact(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_FactType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CHECK_VALID_FACT(env, p);
@@ -10308,6 +10390,7 @@ static PyObject *e_assertString(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &expr))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CLIPS_LOCK_GC(pyenv);
@@ -10349,6 +10432,7 @@ static PyObject *e_assignFactSlotDefaults(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_FactType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CHECK_VALID_FACT(env, p);
@@ -10387,6 +10471,7 @@ static PyObject *e_createFact(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DeftemplType, &q))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -10466,6 +10551,7 @@ static PyObject *e_facts(PyObject *self, PyObject *args) {
                          &clips_DefmoduleType, &module,
                          &start, &end, &max))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -10602,6 +10688,7 @@ static PyObject *e_getNextFact(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_FactType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -10646,6 +10733,7 @@ static PyObject *e_getNextFactInTemplate(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_DeftemplType, &t, &clips_FactType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFTEMPLATE(env, t);
@@ -10689,6 +10777,7 @@ static PyObject *e_loadFacts(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -10704,8 +10793,6 @@ BEGIN_FAIL
     SKIP();
 END_FAIL
 }
-
-#if CLIPS_MINOR > 23
 
 /* ppFact */
 static char e_ppFact__doc__[] = "\
@@ -10737,10 +10824,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#else
-UNIMPLEMENT_VERSION(env_ppFact, e_ppFact)
-#endif /* CLIPS_MINOR > 23 */
-
 /* env_putFactSlot */
 static char e_putFactSlot__doc__[] = "\
 env_putFactSlot(env, fact, name, value)\n\
@@ -10762,6 +10845,7 @@ static PyObject *e_putFactSlot(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_FactType, &f, &s, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CHECK_VALID_FACT(env, f);
@@ -10803,6 +10887,7 @@ static PyObject *e_retract(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_FactType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CHECK_VALID_FACT(env, p);
@@ -11020,6 +11105,7 @@ static PyObject *e_loadFactsFromString(PyObject *self, PyObject *args) {
     char *s = NULL;
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &s)) FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -11113,6 +11199,7 @@ static PyObject *e_findDeffacts(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -11252,6 +11339,7 @@ static PyObject *e_getNextDeffacts(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DeffactsType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -11344,6 +11432,7 @@ static PyObject *e_undeffacts(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DeffactsType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_RM_DEFFACTS(env, p);
@@ -11468,6 +11557,7 @@ static PyObject *e_findDefrule(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -11662,6 +11752,7 @@ static PyObject *e_getNextDefrule(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DefruleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -11755,6 +11846,7 @@ static PyObject *e_matches(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &s, &clips_DefruleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFRULE(env, p);
@@ -11786,6 +11878,7 @@ static PyObject *e_refresh(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefruleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFRULE(env, p);
@@ -11817,6 +11910,7 @@ static PyObject *e_removeBreak(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefruleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFRULE(env, p);
@@ -11848,6 +11942,7 @@ static PyObject *e_setBreak(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefruleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFRULE(env, p);
@@ -11878,6 +11973,7 @@ static PyObject *e_setDefruleWatchActivations(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &state, &clips_DefruleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFRULE(env, p);
@@ -11907,6 +12003,7 @@ static PyObject *e_setDefruleWatchFirings(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &state, &clips_DefruleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFRULE(env, p);
@@ -11967,6 +12064,7 @@ static PyObject *e_undefrule(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefruleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p && !env_defruleExists(env, clips_defrule_value(p))) {
@@ -12067,6 +12165,7 @@ static PyObject *e_deleteActivation(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_ActivationType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_RM_ACTIVATION(env, p);
@@ -12098,6 +12197,7 @@ static PyObject *e_focus(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefmoduleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -12291,6 +12391,7 @@ static PyObject *e_getNextActivation(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_ActivationType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -12364,6 +12465,7 @@ static PyObject *e_refreshAgenda(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_DefmoduleType, &module))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -12394,6 +12496,7 @@ static PyObject *e_reorderAgenda(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_DefmoduleType, &module))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -12420,6 +12523,7 @@ static PyObject *e_run(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!|i", &clips_EnvType, &pyenv, &runlimit))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -12450,6 +12554,7 @@ static PyObject *e_setActivationSalience(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_ActivationType, &p, &i))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_ACTIVATION(env, p);
@@ -12481,6 +12586,7 @@ static PyObject *e_setSalienceEvaluation(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!i", &clips_EnvType, &pyenv, &i))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(i != WHEN_DEFINED && i != WHEN_ACTIVATED && i != EVERY_CYCLE) {
@@ -12510,6 +12616,7 @@ static PyObject *e_setStrategy(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!i", &clips_EnvType, &pyenv, &i))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(i != DEPTH_STRATEGY && i != BREADTH_STRATEGY && i != LEX_STRATEGY &&
@@ -12604,6 +12711,7 @@ static PyObject *e_findDefglobal(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -12851,6 +12959,7 @@ static PyObject *e_getNextDefglobal(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DefglobalType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -12951,6 +13060,7 @@ static PyObject *e_setDefglobalValue(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!sO", &clips_EnvType, &pyenv, &name, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(!i_py2do_e(env, p, &o)) {
@@ -12992,6 +13102,7 @@ static PyObject *e_setDefglobalWatch(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &state, &clips_DefglobalType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFGLOBAL(env, p);
@@ -13057,6 +13168,7 @@ static PyObject *e_undefglobal(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefglobalType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_RM_DEFGLOBAL(env, p);
@@ -13154,6 +13266,7 @@ static PyObject *e_findDeffunction(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -13321,6 +13434,7 @@ static PyObject *e_getNextDeffunction(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DeffunctionType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -13417,6 +13531,7 @@ static PyObject *e_setDeffunctionWatch(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &state, &clips_DeffunctionType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFFUNCTION(env, p);
@@ -13443,6 +13558,7 @@ static PyObject *e_undeffunction(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DeffunctionType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_RM_DEFFUNCTION(env, p);
@@ -13540,6 +13656,7 @@ static PyObject *e_findDefgeneric(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -13707,6 +13824,7 @@ static PyObject *e_getNextDefgeneric(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DefgenericType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -13802,6 +13920,7 @@ static PyObject *e_setDefgenericWatch(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &state, &clips_DefgenericType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFGENERIC(env, p);
@@ -13830,6 +13949,7 @@ static PyObject *e_undefgeneric(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefgenericType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_RM_DEFGENERIC(env, p);
@@ -14068,6 +14188,7 @@ static PyObject *e_getNextDefmethod(PyObject *self, PyObject *args) {
         ERROR_VALUE("index must be positive or zero");
         FAIL();
     }
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFGENERIC(env, p);
@@ -14165,6 +14286,7 @@ static PyObject *e_setDefmethodWatch(PyObject *self, PyObject *args) {
         ERROR_VALUE("index must be positive");
         FAIL();
     }
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFGENERIC(env, p);
@@ -14200,6 +14322,7 @@ static PyObject *e_undefmethod(PyObject *self, PyObject *args) {
         ERROR_VALUE("index must be positive or zero");
         FAIL();
     }
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(i != 0 && !p) {
@@ -14526,6 +14649,7 @@ static PyObject *e_findDefclass(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -14726,6 +14850,7 @@ static PyObject *e_getNextDefclass(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DefclassType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -14818,6 +14943,7 @@ static PyObject *e_setClassDefaultsMode(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!i", &clips_EnvType, &pyenv, &i))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(i != CONVENIENCE_MODE && i != CONSERVATION_MODE) {
@@ -14851,6 +14977,7 @@ static PyObject *e_setDefclassWatchInstances(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &state, &clips_DefclassType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFCLASS(env, p);
@@ -14882,6 +15009,7 @@ static PyObject *e_setDefclassWatchSlots(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &state, &clips_DefclassType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFCLASS(env, p);
@@ -14972,8 +15100,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#if CLIPS_MINOR > 23
-
 /* slotAllowedClasses */
 static char e_slotAllowedClasses__doc__[] = "\
 env_slotAllowedClasses(env, defclass, name) -> (MULTIFIELD, list)\n\
@@ -15050,10 +15176,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-#else
-UNIMPLEMENT_VERSION(env_slotAllowedClasses, e_slotAllowedClasses)
-UNIMPLEMENT_VERSION(env_slotDefaultValue, e_slotDefaultValue)
-#endif /* CLIPS_MINOR > 23 */
 
 /* env_slotDirectAccessP */
 static char e_slotDirectAccessP__doc__[] = "\
@@ -15429,6 +15551,7 @@ static PyObject *e_undefclass(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefclassType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_RM_DEFCLASS(env, p);
@@ -15467,6 +15590,7 @@ static PyObject *e_binaryLoadInstances(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -15539,6 +15663,7 @@ static PyObject *e_createRawInstance(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_DefclassType, &p, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -15582,6 +15707,7 @@ static PyObject *e_deleteInstance(PyObject *self, PyObject *args) {
         FAIL();
     if(p)
         ENV_CHECK_VALID_INSTANCE(env, p);
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CLIPS_LOCK_GC(pyenv);
@@ -15661,6 +15787,7 @@ static PyObject *e_directPutSlot(PyObject *self, PyObject *args) {
                          &clips_InstanceType, &p, &name, &q))
         FAIL();
     ENV_CHECK_VALID_INSTANCE(env, p);
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(!i_py2do_e(env, q, &o)) {
@@ -15706,6 +15833,7 @@ static PyObject *e_findInstance(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &name, &p, &clips_DefmoduleType, &module))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -15749,6 +15877,7 @@ static PyObject *e_getInstanceClass(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_InstanceType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CHECK_VALID_INSTANCE(env, p);
@@ -15826,9 +15955,9 @@ static PyObject *e_getInstancePPForm(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_InstanceType, &p))
         FAIL();
-    ENV_CHECK_VALID_INSTANCE(env, p);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
+    ENV_CHECK_VALID_INSTANCE(env, p);
     ACQUIRE_MEMORY_ERROR();
     EnvGetInstancePPForm(env, buffer,
         ppbuffer_size-1, clips_instance_value(p));
@@ -15864,6 +15993,7 @@ static PyObject *e_getNextInstance(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_InstanceType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     if(p)
         ENV_CHECK_VALID_INSTANCE(env, p);
@@ -15906,9 +16036,12 @@ static PyObject *e_getNextInstanceInClass(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!|O!",
         &clips_EnvType, &pyenv, &clips_DefclassType, &c,
         &clips_InstanceType, &p)) FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
-    if(p) { ENV_CHECK_VALID_INSTANCE(env, p); }
     env = clips_environment_value(pyenv);
+    if(p) {
+        ENV_CHECK_VALID_INSTANCE(env, p);
+    }
     ECHECK_DEFCLASS(env, c);
     ACQUIRE_MEMORY_ERROR();
     ptr = EnvGetNextInstanceInClass(env,
@@ -15951,10 +16084,12 @@ static PyObject *e_getNextInstanceInClassAndSubclasses(PyObject *self, PyObject 
                          &clips_EnvType, &pyenv,
                          &clips_DefclassType, &c, &clips_InstanceType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
-    if(p)
-        ENV_CHECK_VALID_INSTANCE(env, p);
     env = clips_environment_value(pyenv);
+    if(p) {
+        ENV_CHECK_VALID_INSTANCE(env, p);
+    }
     ECHECK_DEFCLASS(env, c);
     /* we should iterate from the start in order to keep the iteration data */
     ACQUIRE_MEMORY_ERROR();
@@ -16050,6 +16185,7 @@ static PyObject *e_loadInstances(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -16082,6 +16218,7 @@ static PyObject *e_makeInstance(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &s))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CLIPS_LOCK_GC(pyenv);
@@ -16123,6 +16260,7 @@ static PyObject *e_restoreInstances(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &fn))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -16195,6 +16333,7 @@ static PyObject *e_send(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_InstanceType, &p, &msg, &msa))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CHECK_VALID_INSTANCE(env, p);
@@ -16236,6 +16375,7 @@ static PyObject *e_unmakeInstance(PyObject *self, PyObject *args) {
         FAIL();
     if(p)
         ENV_CHECK_VALID_INSTANCE(env, p);
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ENV_CLIPS_LOCK_GC(pyenv);
@@ -16297,6 +16437,7 @@ static PyObject *e_loadInstancesFromString(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s|i", &clips_EnvType, &pyenv, &s, &i))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -16329,6 +16470,7 @@ static PyObject *e_restoreInstancesFromString(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s|i", &clips_EnvType, &pyenv, &s, &i))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -16368,6 +16510,7 @@ static PyObject *e_findDefmessageHandler(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_DefclassType, &p, &name, &type))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFCLASS(env, p);
@@ -16600,6 +16743,7 @@ static PyObject *e_getNextDefmessageHandler(PyObject *self, PyObject *args) {
         ERROR_VALUE("index must be positive or zero");
         FAIL();
     }
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFCLASS(env, p);
@@ -16737,6 +16881,7 @@ static PyObject *e_setDefmessageHandlerWatch(PyObject *self, PyObject *args) {
         ERROR_VALUE("index must be positive");
         FAIL();
     }
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFCLASS(env, p);
@@ -16772,6 +16917,7 @@ static PyObject *e_undefmessageHandler(PyObject *self, PyObject *args) {
         ERROR_VALUE("index must be positive");
         FAIL();
     }
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_DEFCLASS(env, p);
@@ -16867,6 +17013,7 @@ static PyObject *e_findDefinstances(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -17010,6 +17157,7 @@ static PyObject *e_getNextDefinstances(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_DefinstancesType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(p)
@@ -17105,6 +17253,7 @@ static PyObject *e_undefinstances(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &clips_DefinstancesType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ECHECK_RM_DEFINSTANCES(env, p);
@@ -17141,6 +17290,7 @@ static PyObject *e_findDefmodule(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &name))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -17176,6 +17326,7 @@ static PyObject *e_getCurrentModule(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!", &clips_EnvType, &pyenv))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -17308,6 +17459,7 @@ static PyObject *e_getNextDefmodule(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!|O!",
                          &clips_EnvType, &pyenv, &clips_DefmoduleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -17367,6 +17519,7 @@ static PyObject *e_setCurrentModule(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!O!",
                          &clips_EnvType, &pyenv, &clips_DefmoduleType, &p))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -17396,6 +17549,7 @@ static PyObject *e_sendCommand(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "O!s|O",
                          &clips_EnvType, &pyenv, &command, &v))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     verbose = (v && PyObject_IsTrue(v)) ? TRUE : FALSE;
@@ -17436,6 +17590,7 @@ static PyObject *e_forceCleanup(PyObject *self, PyObject *args) {
                          &clips_EnvType, &pyenv,
                          &alldepths, &heuristics))
         FAIL();
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     if(EngineData(env)->ExecutingRule != NULL) {
@@ -17443,9 +17598,6 @@ static PyObject *e_forceCleanup(PyObject *self, PyObject *args) {
         FAIL();
     }
     ACQUIRE_MEMORY_ERROR();
-    PeriodicCleanup(env,
-        alldepths ? TRUE : PyObject_IsTrue(alldepths),
-        heuristics ? TRUE : PyObject_IsTrue(heuristics));
     RELEASE_MEMORY_ERROR();
     RETURN_NONE();
 
@@ -17690,7 +17842,30 @@ END_FAIL
 UNIMPLEMENT(destroyEnvironment, v_destroyEnvironment)
 
 /* getCurrentEnvironment */
-UNIMPLEMENT(getCurrentEnvironment, v_getCurrentEnvironment)
+static char v_getCurrentEnvironment__doc__[] = "\
+getCurrentEnvironment() -> environment\n\
+return current environment\n\
+returns: an environment object";
+static PyObject *v_getCurrentEnvironment(PyObject *self, PyObject *args) {
+    clips_EnvObject *pyenv = NULL;
+    void *env = NULL;
+
+    CHECK_NOARGS(args);
+    env = GetCurrentEnvironment();
+    if(!env) {
+        ERROR_CLIPS_RETVAL();
+        FAIL();
+    }
+    clips_environment_New(pyenv);
+    clips_environment_value(pyenv) = env;
+    INJECT_ADDITIONAL_ENVIRONMENT_DATA(pyenv);
+    CHECK_VALID_ENVIRONMENT(pyenv);
+    RETURN_PYOBJECT(pyenv);
+
+BEGIN_FAIL
+    Py_XDECREF(pyenv);
+END_FAIL
+}
 
 /* getEnvironmentData */
 UNIMPLEMENT(getEnvironmentData, v_getEnvironmentData)
@@ -17718,10 +17893,58 @@ END_FAIL
 }
 
 /* setCurrentEnvironment */
-UNIMPLEMENT(setCurrentEnvironment, v_setCurrentEnvironment)
+static char v_setCurrentEnvironment__doc__[] = "\
+setCurrentEnvironment(environment)\n\
+switch to specified environment\n\
+arguments:\n\
+  environment (environment) - the environment to switch to";
+static PyObject *v_setCurrentEnvironment(PyObject *self, PyObject *args) {
+    clips_EnvObject *pyenv = NULL;
+
+    if(!PyArg_ParseTuple(args, "O!", &clips_EnvType, &pyenv))
+        FAIL();
+    CHECK_VALID_ENVIRONMENT(pyenv);
+    /* we cannot preserve GC counter status for current environment */
+    /* RESET_ASSERTED_FACTS(); */ /* reset GC counter for old environment... */
+    COPY_ADDITIONAL_ENVIRONMENT_DATA(pyenv);
+    ACQUIRE_MEMORY_ERROR();
+    SetCurrentEnvironment(clips_environment_value(pyenv));
+    RELEASE_MEMORY_ERROR();
+    RETURN_NONE();
+
+BEGIN_FAIL
+    SKIP();
+END_FAIL
+}
 
 /* setCurrentEnvironmentByIndex */
+/* if GC locking is enabled we cannot consider this function safe */
+#ifndef USE_NONASSERT_CLIPSGCLOCK
+static char v_setCurrentEnvironmentByIndex__doc__[] = "\
+setCurrentEnvironmentByIndex(index)\n\
+switch to specified environment passing its index\n\
+arguments:\n\
+  index (int) - unique index of environment to switch to";
+static PyObject *v_setCurrentEnvironmentByIndex(PyObject *self, PyObject *args) {
+    int i = 0;
+
+    if(!PyArg_ParseTuple(args, "i", &i)) FAIL();
+    ACQUIRE_MEMORY_ERROR();
+    if(!SetCurrentEnvironmentByIndex(i)) {
+        RELEASE_MEMORY_ERROR();
+        ERROR_CLIPS_NOTFOUND();
+        FAIL();
+    }
+    RELEASE_MEMORY_ERROR();
+    RETURN_NONE();
+
+BEGIN_FAIL
+    SKIP();
+END_FAIL
+}
+#else
 UNIMPLEMENT(setCurrentEnvironmentByIndex, v_setCurrentEnvironmentByIndex)
+#endif /* USE_NONASSERT_CLIPSGCLOCK */
 
 
 
@@ -18840,6 +19063,9 @@ static PyMethodDef g_methods[] = {
     MMAP_ENTRY(removePeriodicFunction, g_removePeriodicFunction),
     MMAP_ENTRY(removeResetFunction, g_removeResetFunction),
     MMAP_ENTRY(forceCleanup, g_forceCleanup),
+
+/* -------------------------------------------------------------------- */
+
     MMAP_ENTRY(env_addClearFunction, e_addClearFunction),
     MMAP_ENTRY(env_addPeriodicFunction, e_addPeriodicFunction),
     MMAP_ENTRY(env_addResetFunction, e_addResetFunction),
@@ -19190,6 +19416,10 @@ static PyMethodDef g_methods[] = {
 static PyObject *
 init_clips(void) {
     PyObject *m = NULL, *d = NULL;
+#ifdef USE_NONASSERT_CLIPSGCLOCK
+    void *e = NULL;
+    LOPTR_ITEM ***hm = NULL;
+#endif /* USE_NONASSERT_CLIPSGCLOCK */
     PREPARE_DEALLOC_ENV();
 
     /* give the module a method map */
@@ -19306,7 +19536,28 @@ init_clips(void) {
      *  TODO: a "more elegant way" to notify the user.
      */
 
+    /* we should initialize CLIPS environment once module is loaded */
+    InitializeEnvironment();
+
+#ifdef USE_NONASSERT_CLIPSGCLOCK
+    e = GetCurrentEnvironment();
+    AllocateEnvironmentData(e, STRAYFACTS_DATA, sizeof(LOPTR_ITEM ***), NULL);
+    /* STRAYFACTS_DATA will contain just a copy of the pointer to the map */
+    hm = (LOPTR_ITEM ***)GetEnvironmentData(e, STRAYFACTS_DATA);
+    *hm = clips_StrayFacts;     /* no real thin ice, it was allocated */
+#endif /* USE_NONASSERT_CLIPSGCLOCK */
+
+    /* add the Python router to the engine */
+    AddRouter("python", 0,
+              clips_queryFunction,
+              clips_printFunction,
+              clips_getcFunction,
+              clips_ungetcFunction,
+              clips_exitFunction);
+    ActivateRouter("python");
+
     return m;
+
 }
 
 PyMODINIT_FUNC
