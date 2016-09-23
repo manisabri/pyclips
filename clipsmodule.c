@@ -1594,11 +1594,19 @@ PyObject *i_do2py_e(void *env, DATA_OBJECT *o) {
         ptr = DOPToPointer(o);
         if(!ptr)
             FAIL();
-        clips_instance_New(env, io);
-        if(!io)
-            FAIL();
-        clips_instance_assign(io, ptr);
-        ENV_CHECK_VALID_INSTANCE(env, io);
+        if(env) {
+            clips_instance_New(env, io);
+            if(!io)
+                FAIL();
+            clips_instance_assign(io, ptr);
+            ENV_CHECK_VALID_INSTANCE(env, io);
+        } else {
+            clips_instance_New(GetCurrentEnvironment(), io);
+            if(!io)
+                FAIL();
+            clips_instance_assign(io, ptr);
+            CHECK_VALID_INSTANCE(io);
+        }
         clips_instance_lock(io);
         p = Py_BuildValue("(iO)", t, io);
         break;
@@ -9384,7 +9392,7 @@ static PyObject *e_build(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &cons))
         FAIL();
-//    CHECK_NOCURENV(pyenv);
+    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
@@ -17788,10 +17796,10 @@ static PyObject *v_createEnvironment(PyObject *self, PyObject *args) {
         FAIL();
     }
     /* save current environment, we need to reset it before we are back */
-    /* if(!(oldptr = GetCurrentEnvironment())) {
+    if(!(oldptr = GetCurrentEnvironment())) {
         ERROR_CLIPS_NOENV();
         FAIL();
-    } */
+    }
     env = CreateEnvironment();
     if(!env) {
         ERROR_CLIPS_CREATION();
@@ -17823,7 +17831,7 @@ static PyObject *v_createEnvironment(PyObject *self, PyObject *args) {
                  clips_env_exitFunction);
     EnvActivateRouter(env, "python");
     /* as said above restore environment in order to avoid problems */
-    /* SetCurrentEnvironment(oldptr); */
+    SetCurrentEnvironment(oldptr);
     /* if we are here the environment creation was successful */
     RELEASE_MEMORY_ERROR();
     num_environments++;
@@ -17832,7 +17840,7 @@ static PyObject *v_createEnvironment(PyObject *self, PyObject *args) {
 BEGIN_FAIL
     if(env) {
         DestroyEnvironment(env);
-        /* SetCurrentEnvironment(oldptr); */
+        SetCurrentEnvironment(oldptr);
     }
     Py_XDECREF(pyenv);
 END_FAIL
