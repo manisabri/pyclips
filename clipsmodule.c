@@ -9384,7 +9384,7 @@ static PyObject *e_build(PyObject *self, PyObject *args) {
 
     if(!PyArg_ParseTuple(args, "O!s", &clips_EnvType, &pyenv, &cons))
         FAIL();
-    CHECK_NOCURENV(pyenv);
+//    CHECK_NOCURENV(pyenv);
     CHECK_VALID_ENVIRONMENT(pyenv);
     env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();

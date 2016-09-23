@@ -61,7 +61,7 @@ class RetPass(CTestCase):
             e.SendCommand("(deffunction f () (return ?*g*))")
             e.Assert("(a)")
             e.Run()
-            f = clips.Eval("(f)")
+            f = e.Eval("(f)")
             self.assertEqual(f.Relation, clips.Symbol('a'))
     def test_RetInstances_01(self):
         """Testing: Instance objects as return values
@@ -74,7 +74,7 @@ class RetPass(CTestCase):
             e.Reset()
             e.SendCommand("(defclass C (is-a USER))")
             e.SendCommand("(make-instance [i] of C)")
-            i = clips.Eval("(instance-address [i])")
+            i = e.Eval("(instance-address [i])")
             self.assertEqual(i.Name, clips.InstanceName('i'))
 
 

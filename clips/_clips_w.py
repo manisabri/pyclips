@@ -2369,7 +2369,7 @@ class Environment(object):
             """return the list of Method indices for this Generic"""
             o = _c.env_getDefmethodList(self.__env, self.__defgeneric)
             li, mli = Multifield(self.__envobject._cl2py(o)), Multifield([])
-            l = len(li) / 2
+            l = len(li) // 2
             for x in range(0, l):
                 mli.append(li[2 * x + 1])
             return mli

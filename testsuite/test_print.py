@@ -211,6 +211,7 @@ class Print(CTestCase):
             r = e.BuildRule("dr", "(duck)", "(assert (quack))")
             f = e.Assert("(duck)")
             r, s = i_returnOutput(r.PrintMatches)
+            print("***********************","s:", str(s), "r:", str(r))
             self.assertTrue(i_checkContains(s, r"Matches for Pattern 1\s+f\-1"))
             self.assertTrue(i_checkContains(s, r"Activations\s+f\-1"))
 

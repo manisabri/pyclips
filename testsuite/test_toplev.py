@@ -172,20 +172,20 @@ class Toplevel(CTestCase):
             self.assertTrue(e.FindInstance("i1"))
             self.assertTrue(e.FindInstance("i2"))
 
-    def test_TopCurrentEnvironment_01(self):
-        """Testing: CurrentEnvironment, Environment.SetCurrent,
-        Environment.Index"""
-        clips.Clear()
-        clips.Assert("(duck)")
-        ce = clips.CurrentEnvironment()
-        e = clips.Environment()
-        self.assertTrue(e.Index != ce.Index)
-        e.SetCurrent()
-        clips.Reset()
-        ce.SetCurrent()
-        f = clips.FactList()[0]
-        self.assertEqual(f.CleanPPForm(), "(duck)")
 
+# this test makes no sense anymore
+#    def ctf_TopCurrentEnvironment_01(self):
+#        """Testing: CurrentEnvironment, Environment.SetCurrent, Environment.Index"""
+#        clips.Clear()
+#        clips.Assert("(duck)")
+#        ce = clips.CurrentEnvironment()
+#        e = clips.Environment()
+#        self.assert_(e.Index != ce.Index)
+#        e.SetCurrent()
+#        clips.Reset()
+#        ce.SetCurrent()
+#        f = clips.FactList()[0]
+#        self.assertEqual(f.CleanPPForm(), "(duck)")
 
 if __name__ == "__main__":
     unittest.main()
