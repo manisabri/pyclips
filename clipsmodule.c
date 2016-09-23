@@ -67,7 +67,7 @@ static PyDictObject *clips_PythonFunctions = NULL;
 
 /* to add manifest integer constants to module dictionary */
 #define ADD_MANIFEST_CONSTANT(dict, name) \
-    PyDict_SetItemString((dict), #name, PyInt_FromLong((long)(name)))
+    PyDict_SetItemString((dict), #name, PyLong_FromLong((long)(name)))
 
 /* I always define this */
 #define SKIP()
@@ -233,6 +233,81 @@ static char _error_router_readonly[] = "R03: buffer is read-only";
 
 
 /* status function builder */
+#define FUNC_GET_ONLY(_py, _sn, _api, _type) \
+    static char _sn##__doc__[] = \
+    "" #_py "()\nequivalent of C API " #_api "()"; \
+    static PyObject *_sn(PyObject *_self, PyObject *_args) { \
+        int _i = 0; \
+        CHECK_NOARGS(_args); \
+        ACQUIRE_MEMORY_ERROR(); \
+        _i = _api(); \
+        RELEASE_MEMORY_ERROR(); \
+        return Py_BuildValue(_type, _i); \
+        BEGIN_FAIL \
+        END_FAIL \
+    }
+#define STATUS_FUNC_GET FUNC_GET_ONLY
+#define STATUS_FUNC_GET_BOOL(_py, _sn, _api) \
+    static char _sn##__doc__[] = \
+    "" #_py "() -> bool\nequivalent of C API " #_api "()"; \
+    static PyObject *_sn(PyObject *_self, PyObject *_args) { \
+        int _i = 0; \
+        CHECK_NOARGS(_args); \
+        ACQUIRE_MEMORY_ERROR(); \
+        _i = _api(); \
+        RELEASE_MEMORY_ERROR(); \
+        return Py_BuildValue("i", _i ? 1 : 0); \
+        BEGIN_FAIL \
+        END_FAIL \
+    }
+
+#define STATUS_FUNC_SET_BOOL(_py, _sn, _api) \
+    static char _sn##__doc__[] = \
+    "" #_py "()\nequivalent of C API " #_api "(bool)"; \
+    static PyObject *_sn(PyObject *_self, PyObject *_args) { \
+        PyObject *_o = NULL; \
+        if(!PyArg_ParseTuple(_args, "O", &_o)) \
+            FAIL(); \
+        ACQUIRE_MEMORY_ERROR(); \
+        _api(PyObject_IsTrue(_o)); \
+        RELEASE_MEMORY_ERROR(); \
+        RETURN_NONE(); \
+        BEGIN_FAIL \
+        END_FAIL \
+    }
+
+#define FUNC_VOID_BOOL(_py, _sn, _api) \
+    static char _sn##__doc__[] = \
+    "" #_py "()\nequivalent of C API " #_api "()"; \
+    static PyObject *_sn(PyObject *_self, PyObject *_args) { \
+        CHECK_NOARGS(_args); \
+        ACQUIRE_MEMORY_ERROR(); \
+        if(!_api()) { \
+            RELEASE_MEMORY_ERROR(); \
+            ERROR_CLIPS(_error_clips_impossible); \
+            FAIL(); \
+        } \
+        RELEASE_MEMORY_ERROR(); \
+        RETURN_NONE(); \
+        BEGIN_FAIL \
+        END_FAIL \
+    }
+#define FUNC_VOID_ONLY(_py, _sn, _api) \
+    static char _sn##__doc__[] = \
+    "" #_py "()\nequivalent of C API " #_api "()"; \
+    static PyObject *_sn(PyObject *_self, PyObject *_args) { \
+        CHECK_NOARGS(_args); \
+        ACQUIRE_MEMORY_ERROR(); \
+        _api(); \
+        RELEASE_MEMORY_ERROR(); \
+        RETURN_NONE(); \
+        BEGIN_FAIL \
+        END_FAIL \
+    }
+
+
+/* environment-version macros */
+/* status function builder */
 #define E_FUNC_GET_ONLY(_py, _sn, _api, _type) \
     static char _sn##__doc__[] = \
     "" #_py "()\nequivalent of C API " #_api "()"; \
@@ -316,9 +391,21 @@ static char _error_router_readonly[] = "R03: buffer is read-only";
 
 
 /* macros used to verify if objects are being garbaged */
+#define CHECK_VALID_FACT(_o) do { \
+        if(!FactExistp(clips_fact_value(_o))) { \
+            ERROR_CLIPSSYS_GARBFACT(); \
+            FAIL(); \
+        } \
+    } while(0)
 #define ENV_CHECK_VALID_FACT(_e, _o) do { \
         if(!EnvFactExistp(_e, clips_fact_value(_o))) { \
             ERROR_CLIPSSYS_GARBFACT(); \
+            FAIL(); \
+        } \
+    } while(0)
+#define CHECK_VALID_INSTANCE(_o) do { \
+        if(!ValidInstanceAddress(clips_instance_value(_o))) { \
+            ERROR_CLIPSSYS_GARBINSTANCE(); \
             FAIL(); \
         } \
     } while(0)
@@ -718,6 +805,9 @@ F_INLINE BOOL reset_FactObject_lock(clips_EnvObject *pyenv) {
 }
 
 /* through the loptr.c utility we can check whether or not a fact is lost */
+#define APPEND_HASH_FACT(_p) LOPTR_append(clips_StrayFacts, (void *)(_p))
+#define REMOVE_HASH_FACT(_p) LOPTR_remove(clips_StrayFacts, (void *)(_p))
+#define LOSE_HASH_FACTS() LOPTR_apply(clips_StrayFacts, lose_fact)
 #define ENV_APPEND_HASH_FACT(_pe, _p) \
     LOPTR_append((_pe)->clips_StrayFacts, (void *)(_p))
 #define ENV_REMOVE_HASH_FACT(_pe, _p) \
@@ -728,6 +818,12 @@ F_INLINE BOOL reset_FactObject_lock(clips_EnvObject *pyenv) {
 #define SPEC_REMOVE_HASH_FACT(_sfl, _p) LOPTR_remove((_sfl), (void *)(_p))
 
 /* check if a fact is lost: the ENV version is for completeness only */
+#define CHECK_LOST_FACT(_o) do { \
+        if(clips_fact_lost(_o)) { \
+            ERROR_CLIPSSYS_GARBFACT(); \
+            FAIL(); \
+        } \
+    } while(0)
 #define ENV_CHECK_LOST_FACT(_e, _o) do { \
         if(clips_fact_lost(_o)) { \
             ERROR_CLIPSSYS_GARBFACT(); \
@@ -736,11 +832,16 @@ F_INLINE BOOL reset_FactObject_lock(clips_EnvObject *pyenv) {
     } while(0)
 
 /* and these are needed to inform the system about creation or assertion */
+#define ADD_NONASSERTED_FACT() add_FactObject_lock(NULL)
+#define REMOVE_JUSTASSERTED_FACT() remove_FactObject_lock(NULL)
 #define ENV_ADD_NONASSERTED_FACT(_pe) add_FactObject_lock(_pe)
 #define ENV_REMOVE_JUSTASSERTED_FACT(_pe) remove_FactObject_lock(_pe)
 
+#define RESET_ASSERTED_FACTS() reset_FactObject_lock(NULL)
 #define ENV_RESET_ASSERTED_FACTS(_pe) reset_FactObject_lock(_pe)
 
+#define CLIPS_LOCK_GC() clips_lock_gc(NULL)
+#define CLIPS_UNLOCK_GC() clips_unlock_gc(NULL)
 #define ENV_CLIPS_LOCK_GC(_pe) clips_lock_gc(_pe)
 #define ENV_CLIPS_UNLOCK_GC(_pe) clips_unlock_gc(_pe)
 
@@ -761,13 +862,20 @@ F_INLINE BOOL reset_FactObject_lock(clips_EnvObject *pyenv) {
 
 /* symbols to always force that garbage collector in CLIPS to be locked */
 #ifdef USE_CLIPSGCLOCK
+#define CLIPS_LOCK_GC() IncrementGCLocks()
+#define CLIPS_UNLOCK_GC() DecrementGCLocks()
 #define ENV_CLIPS_LOCK_GC(_pe) EnvIncrementGCLocks(clips_environment_value(_pe))
 #define ENV_CLIPS_UNLOCK_GC(_pe) EnvDecrementGCLocks(clips_environment_value(_pe))
 #else
+#define CLIPS_LOCK_GC()
+#define CLIPS_UNLOCK_GC()
 #define ENV_CLIPS_LOCK_GC(_pe)
 #define ENV_CLIPS_UNLOCK_GC(_pe)
 #endif /* USE_CLIPSGCLOCK */
 
+#define ADD_NONASSERTED_FACT()
+#define REMOVE_JUSTASSERTED_FACT()
+#define RESET_ASSERTED_FACTS()
 #define ENV_ADD_NONASSERTED_FACT(_pe)
 #define ENV_REMOVE_JUSTASSERTED_FACT(_pe)
 #define ENV_RESET_ASSERTED_FACTS(_pe)
@@ -775,10 +883,14 @@ F_INLINE BOOL reset_FactObject_lock(clips_EnvObject *pyenv) {
 #define COPY_ADDITIONAL_ENVIRONMENT_DATA(_pe)
 #define INJECT_ADDITIONAL_ENVIRONMENT_DATA(_pe)
 
+#define APPEND_HASH_FACT(_p)
+#define REMOVE_HASH_FACT(_p)
+#define LOSE_HASH_FACTS()
 #define ENV_APPEND_HASH_FACT(_pe, _p)
 #define ENV_REMOVE_HASH_FACT(_pe, _p)
 #define SPEC_REMOVE_HASH_FACT(_sfl, _p)
 #define ENV_LOSE_HASH_FACTS(_pe)
+#define CHECK_LOST_FACT(_o)
 #define ENV_CHECK_LOST_FACT(_e, _o)
 
 #endif /* USE_NONASSERT_CLIPSGCLOCK */
@@ -1470,7 +1582,7 @@ END_FAIL
 #define IS_PY_DATA_OBJECT(_p) \
     (PyTuple_Check(_p) && PyTuple_Size(_p) == 2 \
      && PyLong_Check(PyTuple_GetItem(_p, 0)))
-#define PY_DATA_OBJECT_TYPE(_p) ((int)PyInt_AsLong(PyTuple_GetItem(_p, 0)))
+#define PY_DATA_OBJECT_TYPE(_p) ((int)PyLong_AsLong(PyTuple_GetItem(_p, 0)))
 #define PY_DATA_OBJECT_VALUE(_p) ((PyObject *)PyTuple_GetItem(_p, 1))
 /* then the actual functions to put data in the DATA_OBJECT structure */
 BOOL i_py2do_mfhelp_e(void *env, PyObject *p, void *mfptr, int fieldpos) {
@@ -1671,23 +1783,18 @@ BEGIN_FAIL
 END_FAIL
 }
 
-/* clear */ 
+/* clear */
 static char g_clear__doc__[] = "\
 clear()\n\
 clear environment";
 static PyObject *g_clear(PyObject *self, PyObject *args) {
-    clips_EnvObject *pyenv = NULL;
-    void *env = NULL;
 
-    if(!PyArg_ParseTuple(args, "O!", &clips_EnvType, &pyenv))
-        FAIL();
-    CHECK_VALID_ENVIRONMENT(pyenv);
-    env = clips_environment_value(pyenv);
-    ENV_CLIPS_LOCK_GC(pyenv);
+    CHECK_NOARGS(args);
+    CLIPS_LOCK_GC();
     ACQUIRE_MEMORY_ERROR();
-    if(!EnvClear_PY(env)) {    
+    if(!Clear_PY()) {
         RELEASE_MEMORY_ERROR();
-        ENV_CLIPS_UNLOCK_GC();
+        CLIPS_UNLOCK_GC();
         ERROR_CLIPSSYS_ENVNOCLEAR();
         FAIL();
     }
@@ -1744,22 +1851,22 @@ END_FAIL
 
 
 /* getAutoFloatDividend */
-E_STATUS_FUNC_GET_BOOL(getAutoFloatDividend,
+STATUS_FUNC_GET_BOOL(getAutoFloatDividend,
                      g_getAutoFloatDividend,
                      GetAutoFloatDividend)
 
 /* getDynamicConstraintChecking */
-E_STATUS_FUNC_GET_BOOL(getDynamicConstraintChecking,
+STATUS_FUNC_GET_BOOL(getDynamicConstraintChecking,
                      g_getDynamicConstraintChecking,
                      GetDynamicConstraintChecking)
 
 /* getSequenceOperatorRecognition */
-E_STATUS_FUNC_GET_BOOL(getSequenceOperatorRecognition,
+STATUS_FUNC_GET_BOOL(getSequenceOperatorRecognition,
                      g_getSequenceOperatorRecognition,
                      GetSequenceOperatorRecognition)
 
 /* getStaticConstraintChecking */
-E_STATUS_FUNC_GET_BOOL(getStaticConstraintChecking,
+STATUS_FUNC_GET_BOOL(getStaticConstraintChecking,
                      g_getStaticConstraintChecking,
                      GetStaticConstraintChecking)
 
@@ -1862,22 +1969,22 @@ END_FAIL
 }
 
 /* setAutoFloatDividend */
-E_STATUS_FUNC_SET_BOOL(setAutoFloatDividend,
+STATUS_FUNC_SET_BOOL(setAutoFloatDividend,
                      g_setAutoFloatDividend,
                      SetAutoFloatDividend)
 
 /* setDynamicConstraintChecking */
-E_STATUS_FUNC_SET_BOOL(setDynamicConstraintChecking,
+STATUS_FUNC_SET_BOOL(setDynamicConstraintChecking,
                      g_setDynamicConstraintChecking,
                      SetDynamicConstraintChecking)
 
 /* setSequenceOperatorRecognition */
-E_STATUS_FUNC_SET_BOOL(setSequenceOperatorRecognition,
+STATUS_FUNC_SET_BOOL(setSequenceOperatorRecognition,
                      g_setSequenceOperatorRecognition,
                      SetSequenceOperatorRecognition)
 
 /* setStaticConstraintChecking */
-E_STATUS_FUNC_SET_BOOL(setStaticConstraintChecking,
+STATUS_FUNC_SET_BOOL(setStaticConstraintChecking,
                      g_setStaticConstraintChecking,
                      SetStaticConstraintChecking)
 
@@ -1971,7 +2078,7 @@ END_FAIL
 /* 4.2 - Debugging Functions */
 
 /* dribbleActive */
-E_STATUS_FUNC_GET_BOOL(dribbleActive, g_dribbleActive, DribbleActive)
+STATUS_FUNC_GET_BOOL(dribbleActive, g_dribbleActive, DribbleActive)
 
 /* dribbleOff */
 FUNC_VOID_BOOL(dribbleOff, g_dribbleOff, DribbleOff)
@@ -3252,12 +3359,12 @@ END_FAIL
 }
 
 /* setFactDuplication */
-E_STATUS_FUNC_SET_BOOL(setFactDuplication,
+STATUS_FUNC_SET_BOOL(setFactDuplication,
                      g_setFactDuplication,
                      SetFactDuplication)
 
 /* setFactListChanged */
-E_STATUS_FUNC_SET_BOOL(setFactListChanged,
+STATUS_FUNC_SET_BOOL(setFactListChanged,
                      g_setFactListChanged,
                      SetFactListChanged)
 
@@ -4399,7 +4506,7 @@ END_FAIL
 }
 
 /* getAgendaChanged */
-E_STATUS_FUNC_GET_BOOL(getAgendaChanged, g_getAgendaChanged, GetAgendaChanged)
+STATUS_FUNC_GET_BOOL(getAgendaChanged, g_getAgendaChanged, GetAgendaChanged)
 
 /* getFocus */
 static char g_getFocus__doc__[] = "\
@@ -4993,7 +5100,7 @@ END_FAIL
 }
 
 /* getResetGlobals */
-E_STATUS_FUNC_GET_BOOL(getResetGlobals, g_getResetGlobals, GetResetGlobals)
+STATUS_FUNC_GET_BOOL(getResetGlobals, g_getResetGlobals, GetResetGlobals)
 
 /* isDefglobalDeletable */
 static char g_isDefglobalDeletable__doc__[] = "\
@@ -7472,7 +7579,7 @@ END_FAIL
 }
 
 /* getInstancesChanged */
-E_STATUS_FUNC_GET_BOOL(getInstancesChanged,
+STATUS_FUNC_GET_BOOL(getInstancesChanged,
                      g_getInstancesChanged,
                      GetInstancesChanged)
 
@@ -7803,7 +7910,7 @@ END_FAIL
 }
 
 /* setInstancesChanged */
-E_STATUS_FUNC_SET_BOOL(setInstancesChanged,
+STATUS_FUNC_SET_BOOL(setInstancesChanged,
                      g_setInstancesChanged,
                      SetInstancesChanged)
 
@@ -17391,7 +17498,7 @@ END_FAIL
 }
 
 /* setConserveMemory */
-E_STATUS_FUNC_SET_BOOL(setConserveMemory, m_setConserveMemory, EnvSetConserveMemory)
+STATUS_FUNC_SET_BOOL(setConserveMemory, m_setConserveMemory, SetConserveMemory)
 
 /* setOutOfMemoryFunction */
 UNIMPLEMENT(setOutOfMemoryFunction, m_setOutOfMemoryFunction)
