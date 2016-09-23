@@ -393,7 +393,7 @@ class Integer(int):
         return Integer(int(self) * int(o))
 
     def __floordiv__(self, o):
-        return Integer(int(self) / int(o))
+        return Integer(int(self) // int(o))
 
     def __truediv__(self, o):
         return Integer(int(self) / int(o))
@@ -3194,8 +3194,6 @@ class Environment(object):
                     sargs = Float(args).clsyntax()
                 elif isinstance(args, str):
                     sargs = str(args)
-                elif isinstance(args, int):
-                    sargs = Integer(args).clsyntax()
                 elif isinstance(args, int):
                     sargs = Integer(args).clsyntax()
                 elif isinstance(args, float):
