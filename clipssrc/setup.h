@@ -54,6 +54,7 @@
 #define globle
 
 #define ALLOW_ENVIRONMENT_GLOBALS 1
+#define ALLOW_CURRENT_ENVIRONMENT_ALIASING 1
 #define BASIC_IO 1
 #define BLOAD 0
 #define BLOAD_AND_BSAVE 1

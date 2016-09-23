@@ -26,15 +26,16 @@ class CTestCase(unittest.TestCase):
 
     def setUp(self):
         e1 = clips.Environment()
+        e0 = clips.Environment()
         self.envdict = {
-            'clips': clips,
+            'clips': e0,
             'env': e1,
         }
-        clips.DebugConfig.WatchAll()
+        e0.DebugConfig.WatchAll()
         e1.DebugConfig.WatchAll()
 
     def tearDown(self):
-        clips.DebugConfig.UnwatchAll()
+        self.envdict['clips'].DebugConfig.UnwatchAll()
         self.envdict['env'].DebugConfig.UnwatchAll()
         s = clips.TraceStream.Read()
         fc = open(os.path.join(self.result_path, "trace.out"), 'a')
