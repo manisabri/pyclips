@@ -33,7 +33,7 @@ Please issue 'print clips.license' at the prompt for licensing information.
 """
 
 
-from clips._clips_w import *
+from ._clips_w import *
 from ._license import license
 from ._version import version, version_string
 
