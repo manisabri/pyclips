@@ -7,13 +7,15 @@ passing Instance objects as arguments
 Fact objects as return values
 Instance objects as return values
 """
+from test import *
 
-class ctc_RetPass(ctestcase):
+
+class RetPass(CTestCase):
     """test Class objects"""
 
-    def ctf_PassFacts_01(self):
+    def test_PassFacts_01(self):
         """Testing: Fact objects as arguments"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -23,9 +25,9 @@ class ctc_RetPass(ctestcase):
             e.SendCommand("(ppfact ?*g*)")
             self.assertEqual(clips.StdoutStream.Read().strip(), "(a)")
 
-    def ctf_PassInstances_01(self):
+    def test_PassInstances_01(self):
         """Testing: Instance objects as arguments"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -37,9 +39,17 @@ class ctc_RetPass(ctestcase):
             self.assertEqual(
                 e.Eval("(instance-name ?*g*)"), clips.InstanceName('i'))
 
-    def ctf_RetFacts_01(self):
-        """Testing: Fact objects as return values"""
-        for x in self.envdict.keys():
+    def test_RetFacts_01(self):
+        """
+            Testing: Fact objects as return values
+            Seems that what ever is in the list returned from
+            list(self.envdict.keys()) must have 'clips' as the first element
+            otherwise if will crash later in clips source.
+            since in this scenario we have only 'env' and 'clips' in the dict
+            a sort make this test pass but I don't know if it is the same in
+            python 2.7
+        """
+        for x in sorted(list(self.envdict.keys())):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -51,20 +61,22 @@ class ctc_RetPass(ctestcase):
             e.SendCommand("(deffunction f () (return ?*g*))")
             e.Assert("(a)")
             e.Run()
-            f = e.Eval("(f)")
+            f = clips.Eval("(f)")
             self.assertEqual(f.Relation, clips.Symbol('a'))
+    def test_RetInstances_01(self):
+        """Testing: Instance objects as return values
+            Have a look at the test_RetFacts_01 DocString
+        """
 
-    def ctf_RetInstances_01(self):
-        """Testing: Instance objects as return values"""
-        for x in self.envdict.keys():
+        for x in sorted(list(self.envdict.keys())):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
             e.SendCommand("(defclass C (is-a USER))")
             e.SendCommand("(make-instance [i] of C)")
-            i = e.Eval("(instance-address [i])")
+            i = clips.Eval("(instance-address [i])")
             self.assertEqual(i.Name, clips.InstanceName('i'))
 
 
-
-# end.
+if __name__ == "__main__":
+    unittest.main()

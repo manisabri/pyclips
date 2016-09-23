@@ -10,29 +10,34 @@ Environment
 """
 
 
-import clips, unittest
+import clips
 import gc
+import os
+import unittest
 
 
-class ctestcase(unittest.TestCase):
+class CTestCase(unittest.TestCase):
     """base class for pyclips unit test cases"""
 
+    def __init__(self, *args, **kwargs):
+        relative_path = os.path.dirname(__file__)
+        self.result_path = os.path.join(".", relative_path, "results")
+        super(CTestCase, self).__init__(*args, **kwargs)
+
     def setUp(self):
-        """set up testing environment"""
-        e0 = clips.Environment()
         e1 = clips.Environment()
         self.envdict = {
-            'clips': e0,
+            'clips': clips,
             'env': e1,
-            }
-        e0.DebugConfig.WatchAll()
+        }
+        clips.DebugConfig.WatchAll()
         e1.DebugConfig.WatchAll()
 
     def tearDown(self):
-        self.envdict['clips'].DebugConfig.UnwatchAll()
+        clips.DebugConfig.UnwatchAll()
         self.envdict['env'].DebugConfig.UnwatchAll()
         s = clips.TraceStream.Read()
-        fc = open("trace.out", 'a')
+        fc = open(os.path.join(self.result_path, "trace.out"), 'a')
         fc.write("=" * 78 + "\n")
         fc.write("--> %s\n" % self.__class__.__name__)
         fc.write("-" * 78 + "\n")
@@ -40,7 +45,7 @@ class ctestcase(unittest.TestCase):
         fc.write("\n\n\n")
         fc.close()
         s = clips.ErrorStream.Read()
-        fc = open("error.out", 'a')
+        fc = open(os.path.join(self.result_path, "error.out"), 'a')
         fc.write("=" * 78 + "\n")
         fc.write("--> %s\n" % self.__class__.__name__)
         fc.write("-" * 78 + "\n")
@@ -48,10 +53,7 @@ class ctestcase(unittest.TestCase):
         fc.write("\n\n\n")
         fc.close()
         o = gc.collect()
-        fc = open("garbage.out", 'a')
+        fc = open(os.path.join(self.result_path, "garbage.out"), 'a')
         fc.write("%s --> %s unreached objects\n" % (
             self.__class__.__name__, o))
         fc.close()
-
-
-# end.

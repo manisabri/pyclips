@@ -29,14 +29,15 @@ Module
   ReorderAgenda
 
 """
+from test import *
 
 
-class ctc_Module(ctestcase):
+class Module(CTestCase):
     """test Module objects"""
 
-    def ctf_Module_01(self):
+    def test_Module_01(self):
         """Testing: BuildModule, FocusStack, PopFocus, Module.SetCurrent"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -46,9 +47,9 @@ class ctc_Module(ctestcase):
             e.PopFocus()
             self.assertEqual(len(e.FocusStack()), 0)
 
-    def ctf_Module_02(self):
+    def test_Module_02(self):
         """Testing: ClearFocusStack"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -59,15 +60,16 @@ class ctc_Module(ctestcase):
             e.ClearFocusStack()
             self.assertEqual(len(e.FocusStack()), 0)
 
-    def ctf_Module_03(self):
+    def test_Module_03(self):
         """Testing: Module.BuildTemplate, Module.BuildRule, Module.FactList"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             MAIN = e.BuildModule("MAIN", "(export ?ALL)")
             e.Reset()
             t = MAIN.BuildTemplate("t", "(slot s)")
-            r = MAIN.BuildRule("r", "(start)", "(assert (t (s 42))) (focus TEST)")
+            r = MAIN.BuildRule("r", "(start)",
+                               "(assert (t (s 42))) (focus TEST)")
             TEST = e.BuildModule("TEST", "(import MAIN deftemplate t)")
             tr = TEST.BuildRule("tr", "(t (s 42))", "(assert (success))")
             MAIN.SetCurrent()
@@ -78,9 +80,9 @@ class ctc_Module(ctestcase):
             f1 = TEST.FactList()[-1]
             self.assertEqual(f1.Relation, "success")
 
-    def ctf_Module_04(self):
+    def test_Module_04(self):
         """Testing: Module.BuildFunction, Module.FunctionList"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -91,9 +93,9 @@ class ctc_Module(ctestcase):
             li = mo.FunctionList()
             self.assertEqual(li[-1], f.Name)
 
-    def ctf_Module_05(self):
+    def test_Module_05(self):
         """Testing: Module.BuildGeneric, Module.GenericList"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -103,9 +105,9 @@ class ctc_Module(ctestcase):
             li = mo.GenericList()
             self.assertEqual(li[-1], g.Name)
 
-    def ctf_Module_06(self):
+    def test_Module_06(self):
         """Testing: Module.BuildGlobal, Module.GlobalList"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -116,9 +118,9 @@ class ctc_Module(ctestcase):
             li = mo.GlobalList()
             self.assertEqual(li[-1], g.Name)
 
-    def ctf_Module_07(self):
+    def test_Module_07(self):
         """Testing: Module.TemplateList"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -128,9 +130,9 @@ class ctc_Module(ctestcase):
             li = mo.TemplateList()
             self.assertEqual(li[-1], t.Name)
 
-    def ctf_Module_08(self):
+    def test_Module_08(self):
         """Testing: Module.BuildClass, Module.ClassList, Module.BuildInstance"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -140,11 +142,11 @@ class ctc_Module(ctestcase):
             li = mo.ClassList()
             self.assertEqual(li[-1], C.Name)
             i = mo.BuildInstance("i", C)
-            self.assert_(i)
+            self.assertTrue(i)
 
-    def ctf_Module_09(self):
+    def test_Module_09(self):
         """Testing: Module.RuleList"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -153,9 +155,9 @@ class ctc_Module(ctestcase):
             li = mo.RuleList()
             self.assertEqual(li[-1], r.Name)
 
-    def ctf_Module_10(self):
+    def test_Module_10(self):
         """Testing: Module.BuildDeffacts, Module.DeffactsList"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -164,9 +166,9 @@ class ctc_Module(ctestcase):
             li = mo.DeffactsList()
             self.assertEqual(li[-1], df.Name)
 
-    def ctf_Module_11(self):
+    def test_Module_11(self):
         """Testing: Module.BuildDefinstances, Module.DefinstancesList"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -176,15 +178,16 @@ class ctc_Module(ctestcase):
             li = mo.DefinstancesList()
             self.assertEqual(li[-1], di.Name)
 
-    def ctf_Module_12(self):
+    def test_Module_12(self):
         """Testing: Module.RefreshAgenda, Module.ReorderAgenda"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
             mo = e.BuildModule("TEST", "(export ?ALL)")
             dr1 = mo.BuildRule("dr1", "(duck)", "(assert (quack1))")
-            dr2 = mo.BuildRule("dr2", "(duck)", "(assert (quack1))(assert (quack2))")
+            dr2 = mo.BuildRule("dr2", "(duck)",
+                               "(assert (quack1))(assert (quack2))")
             e.Assert("(duck)")
             e.EngineConfig.Strategy = clips.COMPLEXITY_STRATEGY
             e.RefreshAgenda()
@@ -192,11 +195,11 @@ class ctc_Module(ctestcase):
             e.EngineConfig.Strategy = clips.DEPTH_STRATEGY
             e.ReorderAgenda()
             a2 = e.InitialActivation()
-            self.assert_(a1.Name != a2.Name)
+            self.assertTrue(a1.Name != a2.Name)
 
-    def ctf_Module_13(self):
+    def test_Module_13(self):
         """Testing: Module.FocusStack"""
-        for x in self.envdict.keys():
+        for x in list(self.envdict.keys()):
             e = self.envdict[x]
             e.Clear()
             e.Reset()
@@ -204,4 +207,6 @@ class ctc_Module(ctestcase):
             mo.SetFocus()
             self.assertEqual(e.FocusStack()[0], "TEST")
 
-# end.
+
+if __name__ == "__main__":
+    unittest.main()

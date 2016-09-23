@@ -33,9 +33,9 @@ Please issue 'print clips.license' at the prompt for licensing information.
 """
 
 
-from _clips_w import *
-from _license import license
-from _version import version, version_string
+from clips._clips_w import *
+from ._license import license
+from ._version import version, version_string
 
 
 # define the __all__ list so that the module can avoid useless names: in
