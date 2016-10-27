@@ -65,28 +65,6 @@
 
 #define SIZE_ENVIRONMENT_HASH  131
 
-/* use Python memory allocator when compiling PyCLIPS */
-#ifdef PYCLIPS
-#include <Python.h>
-void *PyCLIPS_Malloc(size_t s);
-void PyCLIPS_Free(void *p);
-#if !BLOCK_MEMORY
-   #undef malloc
-   #define malloc PyCLIPS_Malloc
-   #undef free
-   #define free PyCLIPS_Free
-#endif /* BLOCK_MEMORY */
-#endif /* PYCLIPS */
-
-
-/* enable inhibition of fatal environment errors */
-#ifdef PYCLIPS
-int PyCLIPS_EnableFatal();
-#define FPRINTF if(PyCLIPS_EnableFatal()) fprintf
-#else
-#define FPRINTF fprintf
-#endif /* PYCLIPS */
-
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
@@ -130,7 +108,7 @@ globle intBool AllocateEnvironmentData(
    
    if (size <= 0)
      {
-      FPRINTF(stderr, "\n[ENVRNMNT1] Environment data position %d allocated with size of 0 or less.\n",position);      
+      printf("\n[ENVRNMNT1] Environment data position %d allocated with size of 0 or less.\n",position);      
       return(FALSE);
      }
      
@@ -140,7 +118,7 @@ globle intBool AllocateEnvironmentData(
    
    if (position >= MAXIMUM_ENVIRONMENT_POSITIONS)
      {
-      FPRINTF(stderr, "\n[ENVRNMNT2] Environment data position %d exceeds the maximum allowed.\n",position);      
+      printf("\n[ENVRNMNT2] Environment data position %d exceeds the maximum allowed.\n",position);      
       return(FALSE);
      }
      
@@ -150,7 +128,7 @@ globle intBool AllocateEnvironmentData(
    
    if (theEnvironment->theData[position] != NULL)
      {
-      FPRINTF(stderr, "\n[ENVRNMNT3] Environment data position %d already allocated.\n",position);      
+      printf("\n[ENVRNMNT3] Environment data position %d already allocated.\n",position);      
       return(FALSE);
      }
      
@@ -161,7 +139,7 @@ globle intBool AllocateEnvironmentData(
    theEnvironment->theData[position] = malloc(size);
    if (theEnvironment->theData[position] == NULL)
      {
-      FPRINTF(stderr, "\n[ENVRNMNT4] Environment data position %d could not be allocated.\n",position);      
+      printf("\n[ENVRNMNT4] Environment data position %d could not be allocated.\n",position);      
       return(FALSE);
      }
    
@@ -231,7 +209,7 @@ static void InitializeEnvironmentHashTable()
 
    if (EnvironmentHashTable == NULL)
      {
-      FPRINTF(stderr, "\n[ENVRNMNT4] Unable to initialize environment hash table.\n");      
+      printf("\n[ENVRNMNT4] Unable to initialize environment hash table.\n");      
       return;
      }
 
@@ -357,7 +335,7 @@ globle void *CreateEnvironmentDriver(
   
    if (theEnvironment == NULL)
      {
-      FPRINTF(stderr, "\n[ENVRNMNT5] Unable to create new environment.\n");
+      printf("\n[ENVRNMNT5] Unable to create new environment.\n");
       return(NULL);
      }
 
@@ -366,7 +344,7 @@ globle void *CreateEnvironmentDriver(
    if (theData == NULL)
      {
       free(theEnvironment);
-      FPRINTF(stderr, "\n[ENVRNMNT6] Unable to create environment data.\n");
+      printf("\n[ENVRNMNT6] Unable to create environment data.\n");
       return(NULL);
      }
 
@@ -396,7 +374,7 @@ globle void *CreateEnvironmentDriver(
      {
       free(theEnvironment->theData);
       free(theEnvironment);
-      FPRINTF(stderr, "\n[ENVRNMNT7] Unable to create environment data.\n");
+      printf("\n[ENVRNMNT7] Unable to create environment data.\n");
       return(NULL);
      }
 
@@ -635,9 +613,9 @@ globle intBool DestroyEnvironment(
      
    if ((theMemData->MemoryAmount != 0) || (theMemData->MemoryCalls != 0))
      {
-      FPRINTF(stderr, "\n[ENVRNMNT8] Environment data not fully deallocated.\n"); 
-      FPRINTF(stderr, "\n[ENVRNMNT8] MemoryAmount = %ld.\n",(long) theMemData->MemoryAmount); 
-      FPRINTF(stderr, "\n[ENVRNMNT8] MemoryCalls = %ld.\n",(long) theMemData->MemoryCalls); 
+      printf("\n[ENVRNMNT8] Environment data not fully deallocated.\n"); 
+      printf("\n[ENVRNMNT8] MemoryAmount = %ld.\n",(long) theMemData->MemoryAmount); 
+      printf("\n[ENVRNMNT8] MemoryCalls = %ld.\n",(long) theMemData->MemoryCalls); 
       rv = FALSE;     
      }
 

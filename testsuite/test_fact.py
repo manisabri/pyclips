@@ -230,8 +230,9 @@ class Fact(CTestCase):
                 (test (eq ?a ?b))
             """, """
                 (retract ?f)
-                (printout t (+ ?a ?b))
-            """, "arises on two equal slots")
+                (printout t(+ ?a ?b))
+            """, "carises on two equal slots")
+
             self.assertTrue(not t1.Deletable)
             self.assertEqual(t1.Name, "t1")
             f1 = e.Fact(t1)

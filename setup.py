@@ -166,7 +166,7 @@ setup_h_templ = """\
 #define globle
 
 #define ALLOW_ENVIRONMENT_GLOBALS 1
-#define BASIC_IO 1
+#define IO_FUNCTIONS 1
 #define BLOAD 0
 #define BLOAD_AND_BSAVE 1
 #define BLOAD_ONLY 0
@@ -186,8 +186,8 @@ setup_h_templ = """\
 #define DEFTEMPLATE_CONSTRUCT 1
 #define EMACS_EDITOR 0
 #define ENVIRONMENT_API_ONLY 1
-#define EX_MATH 1
-#define EXT_IO 1
+#define TEXTPRO_FUNCTIONS 1
+#define EXTENDED_MATH_FUNCTIONS 1
 #define FACT_SET_QUERIES 1
 #define HELP_FUNCTIONS 0
 #define INSTANCE_SET_QUERIES 1

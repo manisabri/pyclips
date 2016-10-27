@@ -46,16 +46,22 @@
 #endif
 
 
+#if CLIPS_MAJOR >= 6
+
+#if CLIPS_MINOR < 24
+#error "Cannot build using CLIPS version less than 6.24"
+#endif /* CLIPS_MINOR < 24 */
+
 #define VOID     void
 #define VOID_ARG void
 #define STD_SIZE size_t
 
 #define intBool int
+
 #define globle
 
 #define ALLOW_ENVIRONMENT_GLOBALS 1
-#define ALLOW_CURRENT_ENVIRONMENT_ALIASING 0
-#define BASIC_IO 1
+#define IO_FUNCTIONS 1
 #define BLOAD 0
 #define BLOAD_AND_BSAVE 1
 #define BLOAD_ONLY 0
@@ -74,9 +80,9 @@
 #define DEFRULE_CONSTRUCT 1
 #define DEFTEMPLATE_CONSTRUCT 1
 #define EMACS_EDITOR 0
-#define ENVIRONMENT_API_ONLY 0
-#define EX_MATH 1
-#define EXT_IO 1
+#define ENVIRONMENT_API_ONLY 1
+#define TEXTPRO_FUNCTIONS 1
+#define EXTENDED_MATH_FUNCTIONS 1
 #define FACT_SET_QUERIES 1
 #define HELP_FUNCTIONS 0
 #define INSTANCE_SET_QUERIES 1
@@ -89,6 +95,10 @@
 #define WINDOW_INTERFACE 1
 
 #define DEVELOPER 0
+
+#else   /* CLIPS_MAJOR < 6 */
+#error "Cannot build using CLIPS version less than 6.24"
+#endif
 
 #include "envrnmnt.h"
 

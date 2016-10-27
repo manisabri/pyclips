@@ -309,7 +309,7 @@ def _innerclass(cls):
     if hasattr(cls, '__outer__'):
         raise TypeError('Cannot set attribute "__outer__" in inner class')
 
-    class InnerDescriptor(object):
+    class InnerDescriptor:
         def __get__(self, outer, outercls):
             if outer is None:
                 raise AttributeError(
@@ -344,7 +344,7 @@ def _nestedclass(cls):
     if hasattr(cls, '__outer__'):
         raise TypeError('Cannot set attribute "__outer__" in nested class')
 
-    class NestedDescriptor(object):
+    class NestedDescriptor:
         def __get__(self, outer, outercls):
             clsdict = cls.__dict__.copy()
             # explicit read-only reference the outer class
@@ -685,6 +685,12 @@ ClipsMultifieldType = type(Multifield([]))
 
 
 # ========================================================================== #
+# NOTICE:
+#  as of version 1.0.6 (incremental 331) we use the special markers around
+#  _cl2py and _py2cl, namely #{{FUNCTION and #}} in order to publish the
+#  above functions to the Environment class and allow passing and returning
+#  Fact and Instance objects from the respective pointers
+# ========================================================================== #
 
 # Converter from internal form (type, value) of CLIPS data to the
 #  wrappers provided above, in order to simplify transparent conversions
@@ -779,7 +785,7 @@ def _py2cl(o):
                         ClipsStringType, ClipsSymbolType,
                         ClipsInstanceNameType, ClipsNilType):
                 li.append(x.clrepr())
-                # elif t0 == Fact:
+            # elif t0 == Fact:
             #    li.append((_c.FACT_ADDRESS, o._Fact__fact))
             # elif t0 == Instance:
             #    li.append((_c.INSTANCE_ADDRESS, o._Instance__instance))
@@ -855,7 +861,7 @@ def _py2clsyntax(o):
 #  note that there are no static methods and/or classes: the decorators
 #  above are used to make all inner classes non-static and depending on
 #  the initialization of an an instance of Environment
-class Environment(object):
+class Environment:
     # utility functions
 
     # conversion from the internal representation of values (see above)
@@ -976,7 +982,7 @@ class Environment(object):
     def __clips_Debug(self, private_environment):
         environment_object = self
 
-        class _clips_Debug(object):
+        class _clips_Debug:
             """object to enable/disable debugging features"""
             __env = private_environment
             __envobject = environment_object
@@ -1203,7 +1209,7 @@ class Environment(object):
     def __clips_Status(self, private_environment):
         environment_object = self
 
-        class _clips_Status(object):
+        class _clips_Status:
             """object to access global status functions"""
             __env = private_environment
             __envobject = environment_object
@@ -1574,7 +1580,7 @@ class Environment(object):
     # Treat a fact as an object having an Object-Oriented interface. All
     #  functions that normally refer to a fact use the underlying low-level
     #  fact object to interact with the system.
-    class Fact(object):
+    class Fact:
         """high-level Fact class (represents: fact)"""
 
         # class constructor - we want to initialize the fact in several
@@ -1782,7 +1788,7 @@ class Environment(object):
     # High-level class for deffacts objects
     # Treat a deffacts as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access deffacts objects.
-    class Deffacts(object):
+    class Deffacts:
         """high-level Deffacts class (represents: deffacts)"""
 
         def __init__(self, o):
@@ -1851,7 +1857,7 @@ class Environment(object):
     # High-level class for defrule objects
     # Treat a defrule as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access defrule objects.
-    class Rule(object):
+    class Rule:
         """high-level Rule class (represents: defrule)"""
 
         def __init__(self, o):
@@ -1900,6 +1906,7 @@ class Environment(object):
             _c.routerClear("temporary")
             _c.env_matches(self.__env, "temporary", self.__defrule)
             s = _c.routerRead("temporary")
+
             if s:
                 _sys.stdout.write(s)
 
@@ -1968,7 +1975,7 @@ class Environment(object):
     # High-level class for activation objects
     # Treat an activation as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access activation objects.
-    class Activation(object):
+    class Activation:
         """high-level Activation class (represents: activation)"""
 
         def __init__(self, o):
@@ -2034,7 +2041,7 @@ class Environment(object):
     # High-level class for defglobal objects
     # Treat a defglobal as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access defglobal objects.
-    class Global(object):
+    class Global:
         """high-level Global class (represents: defglobal)"""
 
         def __init__(self, o):
@@ -2130,7 +2137,7 @@ class Environment(object):
     # High-level class for deffunction objects
     # Treat a deffunction as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access deffunction objects.
-    class Function(object):
+    class Function:
         """high-level Function class (represents: deffunction)"""
 
         def __init__(self, o):
@@ -2250,7 +2257,7 @@ class Environment(object):
     # High-level class for defgeneric objects
     # Treat a defgeneric as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access defgeneric objects.
-    class Generic(object):
+    class Generic:
         """high-level Generic class (represents: defgeneric)"""
 
         def __init__(self, o):
@@ -2501,7 +2508,7 @@ class Environment(object):
     # High-level class for defclass objects
     # Treat a defclass as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access defclass objects.
-    class Class(object):
+    class Class:
         """high-level Class class (represents: defclass)"""
 
         def __init__(self, o):
@@ -3025,7 +3032,7 @@ class Environment(object):
     # High-level class for instance objects
     # Treat an instance as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access instance objects.
-    class Instance(object):
+    class Instance:
         """high-level Instance class (represents: instance)"""
 
         def __init__(self, o):
@@ -3233,7 +3240,7 @@ class Environment(object):
     # High-level class for definstances objects
     # Treat definstances as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access definstances objects.
-    class Definstances(object):
+    class Definstances:
         """high-level Definstances class (represents: definstances)"""
 
         def __init__(self, o):
@@ -3309,7 +3316,7 @@ class Environment(object):
     # High-level class for defmodule objects
     # Treat a defmodule as an object having an Object-Oriented interface.
     #  Implements all the functions needed to access defmodule objects.
-    class Module(object):
+    class Module:
         """high-level Module class (represents: defmodule)"""
 
         def __init__(self, o):
@@ -4470,7 +4477,7 @@ class Environment(object):
 # Functions and classes to access CLIPS input/output
 
 # the simple class to access CLIPS output
-class _clips_Stream(object):
+class _clips_Stream:
     """object to access CLIPS output streams"""
 
     def __init__(self, stream, name=None):
@@ -4495,7 +4502,7 @@ class _clips_Stream(object):
 #  all supported streams
 
 # the class to write to CLIPS standard input
-class _clips_WriteStream(object):
+class _clips_WriteStream:
     """object to access CLIPS input streams"""
 
     def __init__(self, stream, name=None):
@@ -4539,7 +4546,7 @@ del _clips_WriteStream
 
 # ========================================================================== #
 # memory management - for CLIPS gurus ;-)
-class _clips_Memory(object):
+class _clips_Memory:
     """object for memory management"""
 
     __created = False
@@ -4657,4 +4664,4 @@ def SetExternalTraceback(enable=True):
     """call with a True value to enable printing tracebacks from CLIPS"""
     _c.setPrintExternalTraceback(bool(enable))
 
-# end.
+

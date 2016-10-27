@@ -9017,33 +9017,6 @@ BEGIN_FAIL
 END_FAIL
 }
 
-/* forceCleanup() [undocumented] */
-static char g_forceCleanup__doc__[] = "\
-forceCleanup([alldepths, heuristics])\n\
-attempt to force a garbage collection\n\
-arguments:\n\
-  alldepths (bool) - True to clean up all depths (default)\n\
-  heuristics (bool) - True to use heuristics (default)";
-static PyObject *g_forceCleanup(PyObject *self, PyObject *args) {
-    void *env = GetCurrentEnvironment();
-    PyObject *alldepths = NULL, *heuristics = NULL;
-
-    if(!PyArg_ParseTuple(args, "|OO", &alldepths, &heuristics))
-        FAIL();
-    ACQUIRE_MEMORY_ERROR();
-    if(EngineData(env)->ExecutingRule != NULL) {
-        RELEASE_MEMORY_ERROR();
-        ERROR_CLIPSSYS_CLEANUP();
-        FAIL();
-    }
-    RELEASE_MEMORY_ERROR();
-    RETURN_NONE();
-
-BEGIN_FAIL
-    SKIP();
-END_FAIL
-}
-
 
 /* ======================================================================== */
 
@@ -17582,50 +17555,23 @@ BEGIN_FAIL
 END_FAIL
 }
 
-/* env_forceCleanup() [undocumented] */
-static char e_forceCleanup__doc__[] = "\
-env_forceCleanup(env [, alldepths, heuristics])\n\
-attempt to force a garbage collection\n\
-arguments:\n\
-  alldepths (bool) - true to clean up all depths (default)\n\
-  heuristics (bool) - true to use heuristics (default)";
-static PyObject *e_forceCleanup(PyObject *self, PyObject *args) {
-    clips_EnvObject *pyenv = NULL;
-    void *env = NULL;
-    PyObject *alldepths = NULL, *heuristics = NULL;
 
-    if(!PyArg_ParseTuple(args, "O!|OO",
-                         &clips_EnvType, &pyenv,
-                         &alldepths, &heuristics))
-        FAIL();
-    CHECK_NOCURENV(pyenv);
-    CHECK_VALID_ENVIRONMENT(pyenv);
-    env = clips_environment_value(pyenv);
-    if(EngineData(env)->ExecutingRule != NULL) {
-        ERROR_CLIPSSYS_CLEANUP();
-        FAIL();
-    }
-    ACQUIRE_MEMORY_ERROR();
-    RELEASE_MEMORY_ERROR();
-    RETURN_NONE();
-
-BEGIN_FAIL
-    SKIP();
-END_FAIL
-}
 
 /* ======================================================================== */
 
 /* 8.2 - Memory Management */
 
 /* getConserveMemory */
-E_STATUS_FUNC_GET_BOOL(getConserveMemory, m_getConserveMemory, EnvGetConserveMemory)
+//E_STATUS_FUNC_GET_BOOL(getConserveMemory, m_getConserveMemory, EnvGetConserveMemory)
+STATUS_FUNC_GET_BOOL(getConserveMemory, m_getConserveMemory, GetConserveMemory)
 
 /* memRequests */
-E_STATUS_FUNC_GET(memRequests, m_memRequests, EnvMemRequests, "i")
+//E_STATUS_FUNC_GET(memRequests, m_memRequests, EnvMemRequests, "i")
+STATUS_FUNC_GET(memRequests, m_memRequests, MemRequests, "i")
 
 /* memUsed */
-E_STATUS_FUNC_GET(memUsed, m_memUsed, EnvMemUsed, "i")
+//E_STATUS_FUNC_GET(memUsed, m_memUsed, EnvMemUsed, "i")
+STATUS_FUNC_GET(memUsed, m_memUsed, MemUsed, "i")
 
 /* releaseMem */
 static char m_releaseMem__doc__[] = "\
@@ -17636,19 +17582,13 @@ arguments:\n\
   tell (bool) - True to print out a message\n\
   bytes (int) - bytes to free, all if omitted";
 static PyObject *m_releaseMem(PyObject *self, PyObject *args) {
-    clips_EnvObject *pyenv = NULL;
-    void *env = NULL;
-    PyObject *tell = NULL;
     int b = -1;
     long b1 = 0;
 
-    if(!PyArg_ParseTuple(args, "O!O|i",
-                         &clips_EnvType, &pyenv,
-                         &tell, &b))
+    if(!PyArg_ParseTuple(args, "i", &b))
         FAIL();
-    env = clips_environment_value(pyenv);
     ACQUIRE_MEMORY_ERROR();
-    b1 = EnvReleaseMem(env, b);
+    b1 = ReleaseMem(b);
     RELEASE_MEMORY_ERROR();
     RETURN_INT(b1);
 
@@ -17796,10 +17736,10 @@ static PyObject *v_createEnvironment(PyObject *self, PyObject *args) {
         FAIL();
     }
     /* save current environment, we need to reset it before we are back */
-    if(!(oldptr = GetCurrentEnvironment())) {
+     if(!(oldptr = GetCurrentEnvironment())) {
         ERROR_CLIPS_NOENV();
         FAIL();
-    }
+    } 
     env = CreateEnvironment();
     if(!env) {
         ERROR_CLIPS_CREATION();
@@ -17840,7 +17780,7 @@ static PyObject *v_createEnvironment(PyObject *self, PyObject *args) {
 BEGIN_FAIL
     if(env) {
         DestroyEnvironment(env);
-        SetCurrentEnvironment(oldptr);
+        SetCurrentEnvironment(oldptr); 
     }
     Py_XDECREF(pyenv);
 END_FAIL
@@ -19070,7 +19010,6 @@ static PyMethodDef g_methods[] = {
     MMAP_ENTRY(removeClearFunction, g_removeClearFunction),
     MMAP_ENTRY(removePeriodicFunction, g_removePeriodicFunction),
     MMAP_ENTRY(removeResetFunction, g_removeResetFunction),
-    MMAP_ENTRY(forceCleanup, g_forceCleanup),
 
 /* -------------------------------------------------------------------- */
 
@@ -19350,7 +19289,6 @@ static PyMethodDef g_methods[] = {
     MMAP_ENTRY(env_removeClearFunction, e_removeClearFunction),
     MMAP_ENTRY(env_removePeriodicFunction, e_removePeriodicFunction),
     MMAP_ENTRY(env_removeResetFunction, e_removeResetFunction),
-    MMAP_ENTRY(env_forceCleanup, e_forceCleanup),
 
     /* -------------------------------------------------------------------- */
 
